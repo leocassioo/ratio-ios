@@ -1,0 +1,67 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Create Account" : {
+
+    },
+    "Don't have an account? Sign Up" : {
+
+    },
+    "Email" : {
+
+    },
+    "Full Name" : {
+
+    },
+    "Logged In!" : {
+
+    },
+    "Login" : {
+
+    },
+    "login_button" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign In"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrar"
+          }
+        }
+      }
+    },
+    "Logout" : {
+
+    },
+    "Password" : {
+
+    },
+    "Register" : {
+
+    },
+    "welcome_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome to Ratio"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bem-vindo ao Ratio"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
