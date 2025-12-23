@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Adicionar foto (opcional)" : {
+
+    },
     "Ajustes" : {
 
     },
@@ -8,6 +11,9 @@
 
     },
     "Assinaturas" : {
+
+    },
+    "Configure seu perfil e comece." : {
 
     },
     "Criar conta" : {
@@ -40,9 +46,6 @@
     "Idioma do app" : {
 
     },
-    "Já tenho conta" : {
-
-    },
     "login_button" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -59,6 +62,9 @@
           }
         }
       }
+    },
+    "Nome" : {
+
     },
     "O idioma pode exigir reiniciar o app." : {
 

@@ -11,7 +11,6 @@ struct LoginView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @State private var email = ""
     @State private var password = ""
-    @State private var isCreatingAccount = false
 
     var body: some View {
         NavigationStack {
@@ -34,22 +33,22 @@ struct LoginView: View {
                         .submitLabel(.next)
 
                     SecureField("Senha", text: $password)
-                        .textContentType(isCreatingAccount ? .newPassword : .password)
+                        .textContentType(.password)
                         .submitLabel(.go)
 
                     Button(action: submit) {
                         if authViewModel.isLoading {
                             ProgressView()
                         } else {
-                            Text(isCreatingAccount ? "Criar conta" : "Entrar")
+                            Text("Entrar")
                                 .frame(maxWidth: .infinity)
                         }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(email.isEmpty || password.isEmpty || authViewModel.isLoading)
+                    .disabled(isSubmitDisabled)
 
-                    Button(isCreatingAccount ? "Já tenho conta" : "Criar nova conta") {
-                        isCreatingAccount.toggle()
+                    NavigationLink("Criar nova conta") {
+                        SignupView()
                     }
                     .font(.footnote)
                 }
@@ -67,16 +66,16 @@ struct LoginView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle(isCreatingAccount ? "Criar conta" : "Entrar")
+            .navigationTitle("Entrar")
         }
     }
 
     private func submit() {
-        if isCreatingAccount {
-            authViewModel.signUp(email: email, password: password)
-        } else {
-            authViewModel.signIn(email: email, password: password)
-        }
+        authViewModel.signIn(email: email, password: password)
+    }
+
+    private var isSubmitDisabled: Bool {
+        authViewModel.isLoading || email.isEmpty || password.isEmpty
     }
 }
 

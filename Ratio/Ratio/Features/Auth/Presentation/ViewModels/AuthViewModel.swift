@@ -34,9 +34,16 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    func signUp(email: String, password: String) {
+    func signUp(email: String, password: String, displayName: String) {
         authenticate {
-            try await Auth.auth().createUser(withEmail: email, password: password)
+            let result = try await Auth.auth().createUser(withEmail: email, password: password)
+            let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedName.isEmpty {
+                let changeRequest = result.user.createProfileChangeRequest()
+                changeRequest.displayName = trimmedName
+                try await changeRequest.commitChanges()
+            }
+            return result
         }
     }
 
