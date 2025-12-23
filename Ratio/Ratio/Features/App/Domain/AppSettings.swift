@@ -1,5 +1,5 @@
 //
-//  AppAppearance.swift
+//  AppSettings.swift
 //  Ratio
 //
 //  Created by Codex on 21/12/25.

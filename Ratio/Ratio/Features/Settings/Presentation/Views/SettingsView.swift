@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @EnvironmentObject private var authViewModel: AuthViewModel
     @AppStorage("appTheme") private var appThemeRaw: String = AppTheme.system.rawValue
     @AppStorage("appLanguage") private var appLanguageRaw: String = AppLanguage.system.rawValue
 
@@ -48,6 +49,14 @@ struct SettingsView: View {
                         Text("O idioma pode exigir reiniciar o app.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        authViewModel.signOut()
+                    } label: {
+                        Text("Sair")
                     }
                 }
             }
