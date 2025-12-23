@@ -1,70 +1,28 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "+%lld" : {
+    "Ajustes" : {
 
     },
-    "0,00" : {
+    "Aparência" : {
 
     },
-    "Advisor" : {
+    "Assinaturas" : {
 
     },
-    "AI-powered recommendations coming soon" : {
+    "Dashboard em breve" : {
 
     },
-    "Billing Cycle" : {
+    "Grupos" : {
 
     },
-    "Billing Day: %lld" : {
-
-    },
-    "Cancel" : {
-
-    },
-    "Category" : {
-
-    },
-    "Create a group to start splitting expenses." : {
-
-    },
-    "Create Account" : {
-
-    },
-    "Don't have an account? Sign Up" : {
-
-    },
-    "Email" : {
-
-    },
-    "Frequency" : {
-
-    },
-    "Full Name" : {
-
-    },
-    "Group Details" : {
-
-    },
-    "Group Name (e.g. Netflix Family)" : {
-
-    },
-    "Groups" : {
-
-    },
-    "Gym" : {
+    "Grupos em breve" : {
 
     },
     "Home" : {
 
     },
-    "Home (Coming Soon)" : {
-
-    },
-    "Housing" : {
-
-    },
-    "Login" : {
+    "Idioma do app" : {
 
     },
     "login_button" : {
@@ -84,58 +42,10 @@
         }
       }
     },
-    "My Subs" : {
+    "O idioma pode exigir reiniciar o app." : {
 
     },
-    "My Subscriptions" : {
-
-    },
-    "My Subscriptions (Coming Soon)" : {
-
-    },
-    "Name (e.g. Netflix)" : {
-
-    },
-    "New Group" : {
-
-    },
-    "New Subscription" : {
-
-    },
-    "No Groups Yet" : {
-
-    },
-    "Password" : {
-
-    },
-    "Register" : {
-
-    },
-    "Save" : {
-
-    },
-    "Service Details" : {
-
-    },
-    "shopping_toolbar_add_item" : {
-      "comment" : "Add item"
-    },
-    "Smart Advisor" : {
-
-    },
-    "Software" : {
-
-    },
-    "Streaming" : {
-
-    },
-    "Total Cost" : {
-
-    },
-    "Total: %@ / month" : {
-
-    },
-    "Utilities" : {
+    "Tema do app" : {
 
     },
     "welcome_title" : {
