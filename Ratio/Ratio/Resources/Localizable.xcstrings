@@ -4,13 +4,13 @@
     "+%lld" : {
 
     },
+    "0,00" : {
+
+    },
     "Advisor" : {
 
     },
     "AI-powered recommendations coming soon" : {
-
-    },
-    "Amount (e.g. 19.90)" : {
 
     },
     "Billing Cycle" : {
@@ -43,6 +43,12 @@
     "Full Name" : {
 
     },
+    "Group Details" : {
+
+    },
+    "Group Name (e.g. Netflix Family)" : {
+
+    },
     "Groups" : {
 
     },
@@ -53,6 +59,9 @@
 
     },
     "Home (Coming Soon)" : {
+
+    },
+    "Housing" : {
 
     },
     "Login" : {
@@ -87,6 +96,9 @@
     "Name (e.g. Netflix)" : {
 
     },
+    "New Group" : {
+
+    },
     "New Subscription" : {
 
     },
@@ -105,6 +117,9 @@
     "Service Details" : {
 
     },
+    "shopping_toolbar_add_item" : {
+      "comment" : "Add item"
+    },
     "Smart Advisor" : {
 
     },
@@ -112,6 +127,9 @@
 
     },
     "Streaming" : {
+
+    },
+    "Total Cost" : {
 
     },
     "Total: %@ / month" : {
