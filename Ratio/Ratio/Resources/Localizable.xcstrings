@@ -1,6 +1,33 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "+%lld" : {
+
+    },
+    "Advisor" : {
+
+    },
+    "AI-powered recommendations coming soon" : {
+
+    },
+    "Amount (e.g. 19.90)" : {
+
+    },
+    "Billing Cycle" : {
+
+    },
+    "Billing Day: %lld" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Category" : {
+
+    },
+    "Create a group to start splitting expenses." : {
+
+    },
     "Create Account" : {
 
     },
@@ -10,10 +37,22 @@
     "Email" : {
 
     },
+    "Frequency" : {
+
+    },
     "Full Name" : {
 
     },
-    "Logged In!" : {
+    "Groups" : {
+
+    },
+    "Gym" : {
+
+    },
+    "Home" : {
+
+    },
+    "Home (Coming Soon)" : {
 
     },
     "Login" : {
@@ -36,13 +75,49 @@
         }
       }
     },
-    "Logout" : {
+    "My Subs" : {
+
+    },
+    "My Subscriptions" : {
+
+    },
+    "My Subscriptions (Coming Soon)" : {
+
+    },
+    "Name (e.g. Netflix)" : {
+
+    },
+    "New Subscription" : {
+
+    },
+    "No Groups Yet" : {
 
     },
     "Password" : {
 
     },
     "Register" : {
+
+    },
+    "Save" : {
+
+    },
+    "Service Details" : {
+
+    },
+    "Smart Advisor" : {
+
+    },
+    "Software" : {
+
+    },
+    "Streaming" : {
+
+    },
+    "Total: %@ / month" : {
+
+    },
+    "Utilities" : {
 
     },
     "welcome_title" : {

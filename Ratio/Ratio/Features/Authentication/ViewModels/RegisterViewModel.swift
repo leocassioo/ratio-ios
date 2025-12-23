@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import Combine
 
+@MainActor
 class RegisterViewModel: ObservableObject {
     @Published var name = ""
     @Published var email = ""
@@ -28,14 +29,10 @@ class RegisterViewModel: ObservableObject {
             do {
                 try await authService.register(email: email, password: password)
                 // TODO: Save user name to Firestore profile
-                await MainActor.run {
-                    isLoading = false
-                }
+                isLoading = false
             } catch {
-                await MainActor.run {
-                    self.isLoading = false
-                    self.errorMessage = error.localizedDescription
-                }
+                isLoading = false
+                errorMessage = error.localizedDescription
             }
         }
     }

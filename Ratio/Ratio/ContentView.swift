@@ -13,17 +13,8 @@ struct ContentView: View {
     
     var body: some View {
         Group {
-            if user != nil {
-                VStack {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 64))
-                        .foregroundStyle(.green)
-                    Text("Logged In!")
-                    
-                    Button("Logout") {
-                        try? AuthService.shared.logout()
-                    }
-                }
+            if let user = user { // unwrapped
+                MainTabView(userId: user.uid)
             } else {
                 LoginView()
             }
