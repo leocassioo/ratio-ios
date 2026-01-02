@@ -113,7 +113,12 @@ struct SignupView: View {
     }
 
     private func submit() {
-        authViewModel.signUp(email: email, password: password, displayName: displayName)
+        authViewModel.signUp(
+            email: email,
+            password: password,
+            displayName: displayName,
+            photoData: profileImageData
+        )
     }
 
     private var isSubmitDisabled: Bool {

@@ -11,7 +11,7 @@ struct ContentView: View {
     @StateObject private var authViewModel = AuthViewModel()
 
     var body: some View {
-        Group {
+        SwiftUI.Group {
             if authViewModel.user != nil {
                 MainTabView()
             } else {

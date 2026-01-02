@@ -1,7 +1,13 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "0,00" : {
+
+    },
     "Adicionar foto (opcional)" : {
+
+    },
+    "Adicionar membro" : {
 
     },
     "Ajustes" : {
@@ -10,7 +16,19 @@
     "Aparência" : {
 
     },
+    "Assinatura" : {
+
+    },
     "Assinaturas" : {
+
+    },
+    "BRL" : {
+
+    },
+    "Cadastre sua primeira assinatura." : {
+
+    },
+    "Cancelar" : {
 
     },
     "Configure seu perfil e comece." : {
@@ -22,10 +40,28 @@
     "Criar nova conta" : {
 
     },
+    "Crie seu primeiro grupo para compartilhar assinaturas." : {
+
+    },
     "Dashboard em breve" : {
 
     },
+    "Detalhes" : {
+
+    },
+    "Detalhes do grupo" : {
+
+    },
+    "Dia de cobrança: %lld" : {
+
+    },
+    "Dividir igualmente" : {
+
+    },
     "Email" : {
+
+    },
+    "Email enviado. Verifique sua caixa de entrada." : {
 
     },
     "Entrar" : {
@@ -34,10 +70,22 @@
     "Entre para gerenciar suas assinaturas." : {
 
     },
-    "Grupos" : {
+    "Enviar link" : {
 
     },
-    "Grupos em breve" : {
+    "Enviaremos um link para redefinir sua senha." : {
+
+    },
+    "Esqueci minha senha" : {
+
+    },
+    "Fechar" : {
+
+    },
+    "Grupo" : {
+
+    },
+    "Grupos" : {
 
     },
     "Home" : {
@@ -63,25 +111,83 @@
         }
       }
     },
+    "Membros" : {
+
+    },
+    "Moeda" : {
+
+    },
+    "Nenhum grupo ainda" : {
+
+    },
     "Nome" : {
+
+    },
+    "Nome do grupo" : {
+
+    },
+    "Nova assinatura" : {
+
+    },
+    "Novo grupo" : {
 
     },
     "O idioma pode exigir reiniciar o app." : {
 
     },
+    "Observações" : {
+
+    },
+    "Periodicidade" : {
+
+    },
     "Personalize o visual do app." : {
+
+    },
+    "Próxima cobrança" : {
+
+    },
+    "Próxima cobrança: %@" : {
 
     },
     "Ratio" : {
 
     },
+    "Recuperar senha" : {
+
+    },
     "Sair" : {
+
+    },
+    "Salvar" : {
+
+    },
+    "Sem assinaturas ainda" : {
 
     },
     "Senha" : {
 
     },
+    "Status" : {
+
+    },
     "Tema do app" : {
+
+    },
+    "Tipo" : {
+
+    },
+    "Total: %@ / %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Total: %1$@ / %2$@"
+          }
+        }
+      }
+    },
+    "USD" : {
 
     },
     "welcome_title" : {

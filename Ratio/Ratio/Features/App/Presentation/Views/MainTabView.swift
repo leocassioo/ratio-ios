@@ -15,6 +15,11 @@ struct MainTabView: View {
                     Label("Home", systemImage: "house")
                 }
 
+            SubscriptionsView()
+                .tabItem {
+                    Label("Assinaturas", systemImage: "creditcard")
+                }
+
             GroupsView()
                 .tabItem {
                     Label("Grupos", systemImage: "person.3")
