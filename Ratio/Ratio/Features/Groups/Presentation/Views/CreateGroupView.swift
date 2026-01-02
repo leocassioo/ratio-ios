@@ -13,22 +13,23 @@ struct CreateGroupView: View {
     let ownerId: String
     let ownerName: String
 
-    @FocusState private var focusedField: Field?
     @State private var groupName = ""
-    @State private var totalAmountText = ""
+    @State private var selectedSubscriptionId: String?
     @State private var totalAmountValue: Double = 0
     @State private var currencyCode = "BRL"
-    @State private var category: GroupCategory = .streaming
-    @State private var billingPeriod: BillingPeriod = .monthly
-    @State private var billingDay = 5
+    @State private var billingPeriodLabel = ""
+    @State private var billingDay = 1
     @State private var notes = ""
     @State private var splitEqually = true
     @State private var members: [GroupMemberDraft] = []
     @State private var memberValues: [String: Double] = [:]
+    @StateObject private var creationViewModel: GroupCreationViewModel
 
-    enum Field: Hashable {
-        case total
-        case memberAmount(String)
+    init(viewModel: GroupsViewModel, ownerId: String, ownerName: String) {
+        self.viewModel = viewModel
+        self.ownerId = ownerId
+        self.ownerName = ownerName
+        _creationViewModel = StateObject(wrappedValue: GroupCreationViewModel(ownerId: ownerId))
     }
 
     var body: some View {
@@ -47,20 +48,18 @@ struct CreateGroupView: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Salvar") {
                     Task {
-                        let normalizedMembers = normalizedMemberList()
-                        let total = totalAmountValue
-                        await viewModel.createGroup(
-                            name: groupName,
-                            category: category,
-                            totalAmount: total,
-                            currencyCode: currencyCode,
-                            billingPeriod: billingPeriod,
-                            billingDay: billingDay,
-                            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes,
-                            members: normalizedMembers,
-                            ownerId: ownerId
-                        )
-                        dismiss()
+                        if let subscription = selectedSubscription {
+                            let normalizedMembers = normalizedMemberList()
+                            await viewModel.createGroup(
+                                name: groupName,
+                                subscription: subscription,
+                                billingDay: billingDay,
+                                notes: notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes,
+                                members: normalizedMembers,
+                                ownerId: ownerId
+                            )
+                            dismiss()
+                        }
                     }
                 }
                 .disabled(!canSubmit)
@@ -78,9 +77,11 @@ struct CreateGroupView: View {
                     )
                 ]
             }
-            if totalAmountValue > 0 {
-                totalAmountText = formatAmount(totalAmountValue)
-            }
+            updateSelectedSubscription()
+            creationViewModel.startListening()
+        }
+        .onDisappear {
+            creationViewModel.stopListening()
         }
         .onChange(of: splitEqually) { _, newValue in
             if newValue {
@@ -97,51 +98,50 @@ struct CreateGroupView: View {
                 applyEqualSplit()
             }
         }
+        .onChange(of: selectedSubscriptionId) { _, _ in
+            updateSelectedSubscription()
+        }
     }
 
     private var groupSection: some View {
         Section("Grupo") {
             TextField("Nome do grupo", text: $groupName)
 
-            HStack {
-                Text(currencySymbol)
-                    .foregroundStyle(.secondary)
-                TextField("0,00", text: $totalAmountText)
-                    .keyboardType(.decimalPad)
-                    .focused($focusedField, equals: .total)
-                    .onChange(of: totalAmountText) { _, newValue in
-                        if let value = parseAmount(newValue) {
-                            totalAmountValue = value
-                        } else if newValue.isEmpty {
-                            totalAmountValue = 0
-                        }
-                    }
-                    .onChange(of: focusedField) { oldValue, newValue in
-                        if oldValue == .total && newValue != .total {
-                            totalAmountText = formatAmount(totalAmountValue)
-                        }
-                    }
-            }
-
-            Picker("Moeda", selection: $currencyCode) {
-                Text("BRL").tag("BRL")
-                Text("USD").tag("USD")
-            }
-
-            Picker("Tipo", selection: $category) {
-                ForEach(GroupCategory.allCases) { category in
-                    Text(category.label).tag(category)
+            Picker("Assinatura", selection: $selectedSubscriptionId) {
+                Text("Selecione uma assinatura").tag(Optional<String>.none)
+                ForEach(creationViewModel.subscriptions) { subscription in
+                    Text(subscription.name).tag(Optional(subscription.id))
                 }
             }
 
-            Picker("Periodicidade", selection: $billingPeriod) {
-                ForEach(BillingPeriod.allCases) { period in
-                    Text(period.label).tag(period)
+            if let subscription = selectedSubscription {
+                HStack {
+                    Text("Total")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(formattedCurrency(subscription.amount, currencyCode: subscription.currencyCode))
+                        .foregroundStyle(.secondary)
                 }
-            }
 
-            Stepper(value: $billingDay, in: 1...31) {
-                Text("Dia de cobrança: \(billingDay)")
+                HStack {
+                    Text("Periodicidade")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(subscription.period.label)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack {
+                    Text("Tipo")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(subscription.category.label)
+                        .foregroundStyle(.secondary)
+                }
+
+                Stepper(value: $billingDay, in: 1...31) {
+                    Text("Dia de cobrança: \(billingDay)")
+                }
             }
 
             Toggle("Dividir igualmente", isOn: $splitEqually)
@@ -162,7 +162,6 @@ struct CreateGroupView: View {
                     member: $member,
                     currencySymbol: currencySymbol,
                     splitEqually: splitEqually,
-                    focusedField: $focusedField,
                     memberValues: $memberValues,
                     parseAmount: parseAmount,
                     formatAmount: formatAmount
@@ -179,7 +178,8 @@ struct CreateGroupView: View {
     private var canSubmit: Bool {
         !groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         totalAmountValue > 0 &&
-        !members.isEmpty
+        !members.isEmpty &&
+        selectedSubscription != nil
     }
 
     private func normalizedMemberList() -> [GroupMemberDraft] {
@@ -212,6 +212,28 @@ struct CreateGroupView: View {
         members.forEach { memberValues[$0.id] = value }
     }
 
+    private func updateSelectedSubscription() {
+        guard let subscription = selectedSubscription else {
+            totalAmountValue = 0
+            currencyCode = "BRL"
+            billingPeriodLabel = ""
+            billingDay = 1
+            return
+        }
+
+        totalAmountValue = subscription.amount
+        currencyCode = subscription.currencyCode
+        billingPeriodLabel = subscription.period.label
+        billingDay = Calendar.current.component(.day, from: subscription.nextBillingDate)
+        updateSplitAmounts()
+    }
+
+    private func updateSplitAmounts() {
+        if splitEqually {
+            applyEqualSplit()
+        }
+    }
+
     private func parseAmount(_ text: String) -> Double? {
         let cleanText = text.replacingOccurrences(of: ",", with: ".")
         return Double(cleanText)
@@ -226,12 +248,25 @@ struct CreateGroupView: View {
         return formatter.string(from: NSNumber(value: value)) ?? "0,00"
     }
 
+    private func formattedCurrency(_ value: Double, currencyCode: String) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currencyCode
+        formatter.locale = Locale(identifier: "pt_BR")
+        return formatter.string(from: NSNumber(value: value)) ?? "R$ 0,00"
+    }
+
     private var currencySymbol: String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = currencyCode
         formatter.locale = Locale(identifier: "pt_BR")
         return formatter.currencySymbol
+    }
+
+    private var selectedSubscription: SubscriptionItem? {
+        guard let selectedSubscriptionId else { return nil }
+        return creationViewModel.subscriptions.first { $0.id == selectedSubscriptionId }
     }
 }
 

@@ -52,10 +52,7 @@ final class GroupsViewModel: ObservableObject {
 
     func createGroup(
         name: String,
-        category: GroupCategory,
-        totalAmount: Double,
-        currencyCode: String,
-        billingPeriod: BillingPeriod,
+        subscription: SubscriptionItem,
         billingDay: Int?,
         notes: String?,
         members: [GroupMemberDraft],
@@ -74,15 +71,20 @@ final class GroupsViewModel: ObservableObject {
 
         let data: [String: Any] = [
             "name": name,
-            "category": category.rawValue,
-            "totalAmount": totalAmount,
-            "currencyCode": currencyCode,
-            "billingPeriod": billingPeriod.rawValue,
+            "category": subscription.category.rawValue,
+            "totalAmount": subscription.amount,
+            "currencyCode": subscription.currencyCode,
+            "billingPeriod": subscription.period.label,
             "billingDay": billingDay as Any,
             "notes": notes as Any,
             "ownerId": ownerId,
             "memberIds": Array(Set(memberIds)),
             "membersPreview": membersPreview,
+            "subscriptionId": subscription.id,
+            "subscriptionName": subscription.name,
+            "subscriptionCategory": subscription.category.rawValue,
+            "subscriptionPeriod": subscription.period.rawValue,
+            "subscriptionNextBillingDate": Timestamp(date: subscription.nextBillingDate),
             "createdAt": FieldValue.serverTimestamp()
         ]
 
