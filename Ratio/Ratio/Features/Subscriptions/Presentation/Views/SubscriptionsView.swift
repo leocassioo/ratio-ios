@@ -13,6 +13,7 @@ struct SubscriptionsView: View {
     @StateObject private var viewModel = SubscriptionsViewModel()
     @State private var showCreate = false
     @State private var showErrorAlert = false
+    @State private var selectedSubscription: SubscriptionItem?
 
     var body: some View {
         NavigationStack {
@@ -69,6 +70,16 @@ struct SubscriptionsView: View {
                                     .foregroundStyle(.secondary)
                             }
                             .padding(.vertical, 6)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedSubscription = subscription
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button("Editar") {
+                                    selectedSubscription = subscription
+                                }
+                                .tint(.blue)
+                            }
                         }
                         .onDelete(perform: deleteSubscription)
                     }
@@ -97,6 +108,27 @@ struct SubscriptionsView: View {
                                     period: newSubscription.period,
                                     nextBillingDate: newSubscription.nextBillingDate,
                                     notes: newSubscription.notes.isEmpty ? nil : newSubscription.notes,
+                                    ownerId: userId
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            .sheet(item: $selectedSubscription) { subscription in
+                if let userId = authViewModel.user?.uid {
+                    NavigationStack {
+                        EditSubscriptionView(subscription: subscription) { updated in
+                            Task {
+                                await viewModel.updateSubscription(
+                                    id: updated.id,
+                                    name: updated.name,
+                                    amount: updated.amount,
+                                    currencyCode: updated.currencyCode,
+                                    category: updated.category,
+                                    period: updated.period,
+                                    nextBillingDate: updated.nextBillingDate,
+                                    notes: updated.notes.isEmpty ? nil : updated.notes,
                                     ownerId: userId
                                 )
                             }

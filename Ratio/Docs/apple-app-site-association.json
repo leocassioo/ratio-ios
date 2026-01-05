@@ -1,0 +1,16 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.com.redpixel.Ratio",
+        "paths": [
+          "/invite",
+          "/invite/*",
+          "/apps/ratio",
+          "/apps/ratio/*"
+        ]
+      }
+    ]
+  }
+}

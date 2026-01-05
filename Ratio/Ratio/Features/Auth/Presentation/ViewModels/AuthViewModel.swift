@@ -18,6 +18,7 @@ final class AuthViewModel: ObservableObject {
     @Published var passwordResetSent = false
 
     private var handle: AuthStateDidChangeListenerHandle?
+    private let usersStore = UsersStore()
 
     init() {
         handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
@@ -37,7 +38,7 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    func signUp(email: String, password: String, displayName: String, photoData: Data?) {
+    func signUp(email: String, password: String, displayName: String, phoneNumber: String, photoData: Data?) {
         authenticate {
             let result = try await Auth.auth().createUser(withEmail: email, password: password)
             let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -53,6 +54,16 @@ final class AuthViewModel: ObservableObject {
             if changeRequest.displayName != nil || changeRequest.photoURL != nil {
                 try await changeRequest.commitChanges()
             }
+            let profileName = trimmedName.isEmpty ? (result.user.displayName ?? "") : trimmedName
+            let profileEmail = result.user.email ?? email
+            let profilePhoto = changeRequest.photoURL?.absoluteString ?? result.user.photoURL?.absoluteString
+            try await self.usersStore.upsertUser(
+                userId: result.user.uid,
+                name: profileName,
+                email: profileEmail,
+                phoneNumber: phoneNumber,
+                photoURL: profilePhoto
+            )
             return result
         }
     }

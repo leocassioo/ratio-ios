@@ -16,6 +16,7 @@ struct Group: Identifiable, Equatable {
     let billingPeriod: String
     let billingDay: Int?
     let notes: String?
+    let ownerId: String?
     let subscriptionId: String?
     let subscriptionName: String?
     let subscriptionCategory: String?

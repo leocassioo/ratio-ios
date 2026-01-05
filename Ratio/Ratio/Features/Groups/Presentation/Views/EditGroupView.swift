@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct EditGroupView: View {
     @Environment(\.dismiss) private var dismiss
@@ -25,6 +26,7 @@ struct EditGroupView: View {
     @State private var newMemberName = ""
     @State private var showDeleteAlert = false
     @StateObject private var creationViewModel: GroupCreationViewModel
+    @StateObject private var inviteViewModel: GroupInviteViewModel
 
     init(viewModel: GroupsViewModel, group: Group, ownerId: String) {
         self.viewModel = viewModel
@@ -46,6 +48,11 @@ struct EditGroupView: View {
             )
         })
         _creationViewModel = StateObject(wrappedValue: GroupCreationViewModel(ownerId: ownerId))
+        _inviteViewModel = StateObject(wrappedValue: GroupInviteViewModel(
+            groupId: group.id,
+            groupName: group.name,
+            ownerId: ownerId
+        ))
     }
 
     var body: some View {
@@ -56,6 +63,7 @@ struct EditGroupView: View {
             if perPersonAmount > 0 {
                 summarySection
             }
+            inviteSection
             deleteSection
         }
         .navigationTitle("Editar grupo")
@@ -230,6 +238,44 @@ struct EditGroupView: View {
         }
     }
 
+    private var inviteSection: some View {
+        Section {
+            if inviteViewModel.isLoading {
+                HStack {
+                    ProgressView()
+                    Text("Gerando link...")
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Button("Gerar link de convite") {
+                    Task {
+                        await inviteViewModel.createInvite()
+                    }
+                }
+            }
+
+            if let url = inviteViewModel.inviteURL {
+                ShareLink(item: url) {
+                    Label("Compartilhar no WhatsApp", systemImage: "paperplane.fill")
+                }
+
+                Button("Copiar link") {
+                    UIPasteboard.general.string = url.absoluteString
+                }
+            }
+
+            if let message = inviteViewModel.errorMessage {
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+        } header: {
+            Text("Convite")
+        } footer: {
+            Text("O link é de uso único e expira após a primeira utilização.")
+        }
+    }
+
     private var canSubmit: Bool {
         !groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         totalAmountValue > 0 &&
@@ -265,12 +311,7 @@ struct EditGroupView: View {
     }
 
     private func updateSelectedSubscription() {
-        guard let subscription = selectedSubscription else {
-            totalAmountValue = 0
-            currencyCode = "BRL"
-            billingDay = 1
-            return
-        }
+        guard let subscription = selectedSubscriptionForSave else { return }
 
         totalAmountValue = subscription.amount
         currencyCode = subscription.currencyCode
@@ -369,6 +410,7 @@ struct EditGroupView: View {
                 billingPeriod: "Mensal",
                 billingDay: 5,
                 notes: "Teste",
+                ownerId: "1",
                 subscriptionId: "sub",
                 subscriptionName: "Netflix",
                 subscriptionCategory: "streaming",

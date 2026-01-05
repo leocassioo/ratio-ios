@@ -20,6 +20,7 @@ enum GroupMapper {
         let billingPeriod = data["billingPeriod"] as? String ?? "mês"
         let billingDay = data["billingDay"] as? Int
         let notes = data["notes"] as? String
+        let ownerId = data["ownerId"] as? String
         let subscriptionId = data["subscriptionId"] as? String
         let subscriptionName = data["subscriptionName"] as? String
         let subscriptionCategory = data["subscriptionCategory"] as? String
@@ -49,6 +50,7 @@ enum GroupMapper {
             billingPeriod: billingPeriod,
             billingDay: billingDay,
             notes: notes,
+            ownerId: ownerId,
             subscriptionId: subscriptionId,
             subscriptionName: subscriptionName,
             subscriptionCategory: subscriptionCategory,

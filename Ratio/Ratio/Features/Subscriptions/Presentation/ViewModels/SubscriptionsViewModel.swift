@@ -80,6 +80,47 @@ final class SubscriptionsViewModel: ObservableObject {
         }
     }
 
+    func updateSubscription(
+        id: String,
+        name: String,
+        amount: Double,
+        currencyCode: String,
+        category: SubscriptionCategory,
+        period: SubscriptionPeriod,
+        nextBillingDate: Date,
+        notes: String?,
+        ownerId: String
+    ) async {
+        let data: [String: Any] = [
+            "name": name,
+            "amount": amount,
+            "currencyCode": currencyCode,
+            "category": category.rawValue,
+            "period": period.rawValue,
+            "nextBillingDate": Timestamp(date: nextBillingDate),
+            "notes": notes as Any,
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+
+        do {
+            try await store.updateSubscription(userId: ownerId, id: id, data: data)
+            let groupData: [String: Any] = [
+                "subscriptionName": name,
+                "subscriptionCategory": category.rawValue,
+                "subscriptionPeriod": period.rawValue,
+                "subscriptionNextBillingDate": Timestamp(date: nextBillingDate),
+                "totalAmount": amount,
+                "currencyCode": currencyCode,
+                "billingPeriod": period.label,
+                "updatedAt": FieldValue.serverTimestamp()
+            ]
+            try await store.updateLinkedGroups(subscriptionId: id, data: groupData)
+            try await store.updateLinkedGroupAmounts(subscriptionId: id, totalAmount: amount)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func deleteSubscription(id: String, ownerId: String) async {
         do {
             try await store.deleteSubscription(userId: ownerId, id: id)

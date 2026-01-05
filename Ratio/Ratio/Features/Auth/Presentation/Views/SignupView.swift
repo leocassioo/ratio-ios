@@ -14,6 +14,7 @@ struct SignupView: View {
     @State private var displayName = ""
     @State private var email = ""
     @State private var password = ""
+    @State private var phoneNumber = ""
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var profileImageData: Data?
 
@@ -64,6 +65,11 @@ struct SignupView: View {
                     .keyboardType(.emailAddress)
                     .autocorrectionDisabled()
                     .textContentType(.emailAddress)
+                    .submitLabel(.next)
+
+                TextField("Telefone (WhatsApp)", text: $phoneNumber)
+                    .keyboardType(.phonePad)
+                    .textContentType(.telephoneNumber)
                     .submitLabel(.next)
 
                 SecureField("Senha", text: $password)
@@ -117,6 +123,7 @@ struct SignupView: View {
             email: email,
             password: password,
             displayName: displayName,
+            phoneNumber: phoneNumber,
             photoData: profileImageData
         )
     }
@@ -126,7 +133,8 @@ struct SignupView: View {
             return true
         }
 
-        return displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
 

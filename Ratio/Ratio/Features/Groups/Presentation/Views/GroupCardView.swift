@@ -46,7 +46,7 @@ struct GroupCardView: View {
             Divider()
 
             VStack(spacing: 12) {
-                ForEach(group.members) { member in
+                ForEach(orderedMembers) { member in
                     HStack(spacing: 12) {
                         MemberAvatarView(name: member.name)
 
@@ -91,5 +91,17 @@ struct GroupCardView: View {
         formatter.currencyCode = group.currencyCode
         formatter.locale = Locale(identifier: "pt_BR")
         return formatter.string(from: NSNumber(value: value)) ?? "R$ 0,00"
+    }
+
+    private var orderedMembers: [GroupMember] {
+        guard let ownerId = group.ownerId else { return group.members }
+        return group.members.sorted { lhs, rhs in
+            let lhsIsOwner = lhs.userId == ownerId
+            let rhsIsOwner = rhs.userId == ownerId
+            if lhsIsOwner != rhsIsOwner {
+                return lhsIsOwner
+            }
+            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
     }
 }

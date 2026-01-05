@@ -28,7 +28,16 @@
     "Cancelar" : {
 
     },
+    "Compartilhar no WhatsApp" : {
+
+    },
     "Configure seu perfil e comece." : {
+
+    },
+    "Convite" : {
+
+    },
+    "Copiar link" : {
 
     },
     "Criar conta" : {
@@ -53,6 +62,12 @@
 
     },
     "Dividir igualmente" : {
+
+    },
+    "Editar" : {
+
+    },
+    "Editar assinatura" : {
 
     },
     "Editar grupo" : {
@@ -92,6 +107,12 @@
 
     },
     "Fechar" : {
+
+    },
+    "Gerando link..." : {
+
+    },
+    "Gerar link de convite" : {
 
     },
     "Grupo" : {
@@ -153,6 +174,9 @@
     "O idioma pode exigir reiniciar o app." : {
 
     },
+    "O link é de uso único e expira após a primeira utilização." : {
+
+    },
     "Observações" : {
 
     },
@@ -199,6 +223,9 @@
 
     },
     "Status" : {
+
+    },
+    "Telefone (WhatsApp)" : {
 
     },
     "Tema do app" : {
