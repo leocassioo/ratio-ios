@@ -7,9 +7,6 @@
     "Adicionar foto (opcional)" : {
 
     },
-    "Adicionar membro" : {
-
-    },
     "Ajustes" : {
 
     },
@@ -58,6 +55,9 @@
     "Dividir igualmente" : {
 
     },
+    "Editar grupo" : {
+
+    },
     "Email" : {
 
     },
@@ -77,6 +77,18 @@
 
     },
     "Esqueci minha senha" : {
+
+    },
+    "Essa ação é permanente e remove o grupo para todos os membros." : {
+
+    },
+    "Excluir" : {
+
+    },
+    "Excluir grupo" : {
+
+    },
+    "Excluir grupo?" : {
 
     },
     "Fechar" : {
@@ -117,6 +129,9 @@
     "Moeda" : {
 
     },
+    "Não foi possível excluir" : {
+
+    },
     "Nenhum grupo ainda" : {
 
     },
@@ -124,6 +139,9 @@
 
     },
     "Nome do grupo" : {
+
+    },
+    "Nome do membro" : {
 
     },
     "Nova assinatura" : {
@@ -138,10 +156,16 @@
     "Observações" : {
 
     },
+    "OK" : {
+
+    },
     "Periodicidade" : {
 
     },
     "Personalize o visual do app." : {
+
+    },
+    "Por pessoa" : {
 
     },
     "Próxima cobrança" : {
@@ -154,6 +178,9 @@
 
     },
     "Recuperar senha" : {
+
+    },
+    "Resumo" : {
 
     },
     "Sair" : {

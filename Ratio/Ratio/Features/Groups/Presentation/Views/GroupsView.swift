@@ -12,6 +12,7 @@ struct GroupsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @StateObject private var viewModel = GroupsViewModel()
     @State private var showCreateGroup = false
+    @State private var selectedGroup: Group?
 
     var body: some View {
         NavigationStack {
@@ -50,7 +51,9 @@ struct GroupsView: View {
                     ScrollView {
                         VStack(spacing: 16) {
                             ForEach(viewModel.groups) { group in
-                                GroupCardView(group: group, currentUserId: authViewModel.user?.uid)
+                                GroupCardView(group: group, currentUserId: authViewModel.user?.uid) {
+                                    selectedGroup = group
+                                }
                             }
                         }
                         .padding()
@@ -82,6 +85,17 @@ struct GroupsView: View {
                             viewModel: viewModel,
                             ownerId: userId,
                             ownerName: authViewModel.user?.displayName ?? ""
+                        )
+                    }
+                }
+            }
+            .sheet(item: $selectedGroup) { group in
+                if let userId = authViewModel.user?.uid {
+                    NavigationStack {
+                        EditGroupView(
+                            viewModel: viewModel,
+                            group: group,
+                            ownerId: userId
                         )
                     }
                 }

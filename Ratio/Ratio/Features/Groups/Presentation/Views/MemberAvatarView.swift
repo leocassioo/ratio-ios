@@ -13,7 +13,7 @@ struct MemberAvatarView: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color(.systemGray5))
+                .fill(AvatarColorProvider.color(for: name))
                 .overlay(
                     Circle()
                         .stroke(Color(.separator).opacity(0.4), lineWidth: 0.5)
@@ -22,11 +22,11 @@ struct MemberAvatarView: View {
             if let initials = initials(from: name), !initials.isEmpty {
                 Text(initials)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color(.label))
+                    .foregroundStyle(.white)
             } else {
                 Image(systemName: "person.fill")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color(.secondaryLabel))
+                    .foregroundStyle(.white)
             }
         }
         .frame(width: 36, height: 36)

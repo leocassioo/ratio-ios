@@ -12,6 +12,7 @@ struct SubscriptionsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @StateObject private var viewModel = SubscriptionsViewModel()
     @State private var showCreate = false
+    @State private var showErrorAlert = false
 
     var body: some View {
         NavigationStack {
@@ -21,7 +22,7 @@ struct SubscriptionsView: View {
 
                 if viewModel.isLoading {
                     ProgressView()
-                } else if let message = viewModel.errorMessage {
+                } else if let message = viewModel.errorMessage, viewModel.subscriptions.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.system(size: 32))
@@ -110,6 +111,14 @@ struct SubscriptionsView: View {
             }
             .onDisappear {
                 viewModel.stopListening()
+            }
+            .onChange(of: viewModel.errorMessage) { _, newValue in
+                showErrorAlert = newValue != nil
+            }
+            .alert("Não foi possível excluir", isPresented: $showErrorAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(viewModel.errorMessage ?? "")
             }
         }
     }

@@ -10,6 +10,7 @@ import SwiftUI
 struct GroupCardView: View {
     let group: Group
     let currentUserId: String?
+    let onEdit: () -> Void
 
     var body: some View {
         VStack(spacing: 12) {
@@ -27,7 +28,19 @@ struct GroupCardView: View {
 
                 Spacer()
 
-                GroupAvatarStack(members: group.members)
+                VStack(alignment: .trailing, spacing: 8) {
+                    GroupAvatarStack(members: group.members)
+                    Button {
+                        onEdit()
+                    } label: {
+                        Image(systemName: "pencil")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .padding(6)
+                            .background(Circle().fill(Color(.tertiarySystemBackground)))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
 
             Divider()

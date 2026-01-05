@@ -94,4 +94,57 @@ final class GroupsViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
+
+    func updateGroup(
+        groupId: String,
+        name: String,
+        subscription: SubscriptionItem,
+        billingDay: Int?,
+        notes: String?,
+        members: [GroupMemberDraft],
+        ownerId: String
+    ) async {
+        let memberIds = members.compactMap { $0.userId }.unique() + [ownerId]
+        let membersPreview: [[String: Any]] = members.map { member in
+            [
+                "id": member.id,
+                "name": member.name,
+                "amount": member.amountValue,
+                "status": member.status.rawValue,
+                "userId": member.userId as Any
+            ]
+        }
+
+        let data: [String: Any] = [
+            "name": name,
+            "category": subscription.category.rawValue,
+            "totalAmount": subscription.amount,
+            "currencyCode": subscription.currencyCode,
+            "billingPeriod": subscription.period.label,
+            "billingDay": billingDay as Any,
+            "notes": notes as Any,
+            "memberIds": Array(Set(memberIds)),
+            "membersPreview": membersPreview,
+            "subscriptionId": subscription.id,
+            "subscriptionName": subscription.name,
+            "subscriptionCategory": subscription.category.rawValue,
+            "subscriptionPeriod": subscription.period.rawValue,
+            "subscriptionNextBillingDate": Timestamp(date: subscription.nextBillingDate),
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+
+        do {
+            try await store.updateGroup(groupId: groupId, data: data, members: members, ownerId: ownerId)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func deleteGroup(groupId: String) async {
+        do {
+            try await store.deleteGroup(groupId: groupId)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 }

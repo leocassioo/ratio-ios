@@ -18,6 +18,7 @@ struct Group: Identifiable, Equatable {
     let notes: String?
     let subscriptionId: String?
     let subscriptionName: String?
+    let subscriptionCategory: String?
     let subscriptionPeriod: String?
     let subscriptionNextBillingDate: Date?
     let members: [GroupMember]

@@ -34,10 +34,29 @@ final class SubscriptionsStore {
     }
 
     func deleteSubscription(userId: String, id: String) async throws {
+        let linkedGroups = try await db.collection("groups")
+            .whereField("subscriptionId", isEqualTo: id)
+            .getDocuments()
+
+        if !linkedGroups.documents.isEmpty {
+            throw SubscriptionDeletionError.linkedGroup
+        }
+
         try await db.collection("users")
             .document(userId)
             .collection("subscriptions")
             .document(id)
             .delete()
+    }
+}
+
+enum SubscriptionDeletionError: LocalizedError {
+    case linkedGroup
+
+    var errorDescription: String? {
+        switch self {
+        case .linkedGroup:
+            return "Essa assinatura está vinculada a um grupo. Remova o vínculo antes de excluir."
+        }
     }
 }
