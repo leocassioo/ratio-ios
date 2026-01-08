@@ -9,7 +9,7 @@ import FirebaseFirestore
 import Foundation
 
 final class UsersStore {
-    private let db = Firestore.firestore()
+    private lazy var db = Firestore.firestore()
 
     func upsertUser(
         userId: String,
@@ -60,5 +60,16 @@ final class UsersStore {
     func fetchUserName(userId: String) async throws -> String? {
         let snapshot = try await db.collection("users").document(userId).getDocument()
         return snapshot.data()?["name"] as? String
+    }
+
+    func updateFCMToken(userId: String, token: String) async throws {
+        let data: [String: Any] = [
+            "fcmTokens": FieldValue.arrayUnion([token]),
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+
+        try await db.collection("users")
+            .document(userId)
+            .setData(data, merge: true)
     }
 }

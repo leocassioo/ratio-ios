@@ -27,11 +27,13 @@ struct EditGroupView: View {
     @State private var showDeleteAlert = false
     @StateObject private var creationViewModel: GroupCreationViewModel
     @StateObject private var inviteViewModel: GroupInviteViewModel
+    private let isOwner: Bool
 
     init(viewModel: GroupsViewModel, group: Group, ownerId: String) {
         self.viewModel = viewModel
         self.group = group
         self.ownerId = ownerId
+        self.isOwner = group.ownerId == ownerId
         _groupName = State(initialValue: group.name)
         _selectedSubscriptionId = State(initialValue: group.subscriptionId)
         _totalAmountValue = State(initialValue: group.totalAmount)
@@ -91,7 +93,7 @@ struct EditGroupView: View {
                         }
                     }
                 }
-                .disabled(!canSubmit)
+                .disabled(!canSubmit || !isOwner)
             }
         }
         .alert("Excluir grupo?", isPresented: $showDeleteAlert) {
@@ -235,6 +237,7 @@ struct EditGroupView: View {
             } label: {
                 Text("Excluir grupo")
             }
+            .disabled(!isOwner)
         }
     }
 
@@ -252,16 +255,19 @@ struct EditGroupView: View {
                         await inviteViewModel.createInvite()
                     }
                 }
+                .disabled(!isOwner)
             }
 
             if let url = inviteViewModel.inviteURL {
                 ShareLink(item: url) {
                     Label("Compartilhar no WhatsApp", systemImage: "paperplane.fill")
                 }
+                .disabled(!isOwner)
 
                 Button("Copiar link") {
                     UIPasteboard.general.string = url.absoluteString
                 }
+                .disabled(!isOwner)
             }
 
             if let message = inviteViewModel.errorMessage {

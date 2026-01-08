@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%lld" : {
+
+    },
     "0,00" : {
 
     },
@@ -29,6 +32,9 @@
 
     },
     "Carregando convite..." : {
+
+    },
+    "Categoria" : {
 
     },
     "Compartilhar no WhatsApp" : {
@@ -62,6 +68,9 @@
 
     },
     "Detalhes do grupo" : {
+
+    },
+    "Dia de cobrança" : {
 
     },
     "Dia de cobrança: %lld" : {

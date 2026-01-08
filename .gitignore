@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Node / Firebase Functions
+node_modules/
+Ratio/functions/node_modules/
+.firebase/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*

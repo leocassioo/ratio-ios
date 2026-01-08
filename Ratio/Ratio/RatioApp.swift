@@ -5,15 +5,35 @@
 //  Created by Leonardo Figueiredo on 21/12/25.
 //
 
-import SwiftUI
+import FirebaseAuth
 import FirebaseCore
+import FirebaseMessaging
+import SwiftUI
+import UserNotifications
 
-class AppDelegate: NSObject, UIApplicationDelegate {
-  func application(_ application: UIApplication,
-                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-    FirebaseApp.configure()
-    return true
-  }
+class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
+    private lazy var usersStore = UsersStore()
+
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        FirebaseApp.configure()
+        Messaging.messaging().delegate = self
+        NotificationManager.shared.configure()
+        return true
+    }
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Messaging.messaging().apnsToken = deviceToken
+    }
+
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let token = fcmToken, let userId = Auth.auth().currentUser?.uid else { return }
+        Task {
+            try? await usersStore.updateFCMToken(userId: userId, token: token)
+        }
+    }
 }
 
 @main

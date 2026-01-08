@@ -13,6 +13,7 @@ struct GroupsView: View {
     @StateObject private var viewModel = GroupsViewModel()
     @State private var showCreateGroup = false
     @State private var selectedGroup: Group?
+    @State private var selectedGroupDetail: Group?
 
     var body: some View {
         NavigationStack {
@@ -53,6 +54,10 @@ struct GroupsView: View {
                             ForEach(viewModel.groups) { group in
                                 GroupCardView(group: group, currentUserId: authViewModel.user?.uid) {
                                     selectedGroup = group
+                                }
+                                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .onTapGesture {
+                                    selectedGroupDetail = group
                                 }
                             }
                         }
@@ -98,6 +103,14 @@ struct GroupsView: View {
                             ownerId: userId
                         )
                     }
+                }
+            }
+            .sheet(item: $selectedGroupDetail) { group in
+                NavigationStack {
+                    GroupDetailView(
+                        group: group,
+                        currentUserId: authViewModel.user?.uid
+                    )
                 }
             }
         }

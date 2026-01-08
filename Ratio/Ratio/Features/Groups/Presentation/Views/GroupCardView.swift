@@ -30,16 +30,18 @@ struct GroupCardView: View {
 
                 VStack(alignment: .trailing, spacing: 8) {
                     GroupAvatarStack(members: group.members)
-                    Button {
-                        onEdit()
-                    } label: {
-                        Image(systemName: "pencil")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .padding(6)
-                            .background(Circle().fill(Color(.tertiarySystemBackground)))
+                    if canEdit {
+                        Button {
+                            onEdit()
+                        } label: {
+                            Image(systemName: "pencil")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .padding(6)
+                                .background(Circle().fill(Color(.tertiarySystemBackground)))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
 
@@ -79,10 +81,19 @@ struct GroupCardView: View {
     }
 
     private func memberLabel(for member: GroupMember) -> String {
-        if let currentUserId, currentUserId == member.userId {
+        let isOwner = member.userId == group.ownerId
+        let isCurrentUser = currentUserId == member.userId
+
+        switch (isOwner, isCurrentUser) {
+        case (true, true):
+            return "\(member.name) (Você • Organizador)"
+        case (true, false):
+            return "\(member.name) (Organizador)"
+        case (false, true):
             return "\(member.name) (Você)"
+        default:
+            return member.name
         }
-        return member.name
     }
 
     private func formattedCurrency(_ value: Double) -> String {
@@ -103,5 +114,10 @@ struct GroupCardView: View {
             }
             return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
         }
+    }
+
+    private var canEdit: Bool {
+        guard let currentUserId, let ownerId = group.ownerId else { return false }
+        return currentUserId == ownerId
     }
 }
