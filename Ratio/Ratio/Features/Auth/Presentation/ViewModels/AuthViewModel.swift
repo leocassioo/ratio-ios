@@ -34,7 +34,14 @@ final class AuthViewModel: ObservableObject {
 
     func signIn(email: String, password: String) {
         authenticate {
-            try await Auth.auth().signIn(withEmail: email, password: password)
+            let result = try await Auth.auth().signIn(withEmail: email, password: password)
+            try await self.usersStore.updateUserProfile(
+                userId: result.user.uid,
+                name: result.user.displayName,
+                email: result.user.email,
+                photoURL: result.user.photoURL?.absoluteString
+            )
+            return result
         }
     }
 

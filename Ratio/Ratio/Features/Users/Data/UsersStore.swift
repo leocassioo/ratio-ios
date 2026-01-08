@@ -31,4 +31,34 @@ final class UsersStore {
             .document(userId)
             .setData(data, merge: true)
     }
+
+    func updateUserProfile(
+        userId: String,
+        name: String?,
+        email: String?,
+        photoURL: String?
+    ) async throws {
+        var data: [String: Any] = [
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+
+        if let name, !name.isEmpty {
+            data["name"] = name
+        }
+        if let email, !email.isEmpty {
+            data["email"] = email
+        }
+        if let photoURL {
+            data["photoURL"] = photoURL
+        }
+
+        try await db.collection("users")
+            .document(userId)
+            .setData(data, merge: true)
+    }
+
+    func fetchUserName(userId: String) async throws -> String? {
+        let snapshot = try await db.collection("users").document(userId).getDocument()
+        return snapshot.data()?["name"] as? String
+    }
 }
