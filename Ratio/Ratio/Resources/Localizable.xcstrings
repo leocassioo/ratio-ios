@@ -70,10 +70,10 @@
     "Detalhes do grupo" : {
 
     },
-    "Dia de cobrança" : {
+    "Dia de cobrança do grupo" : {
 
     },
-    "Dia de cobrança: %lld" : {
+    "Dia de cobrança do grupo: %lld" : {
 
     },
     "Dividir igualmente" : {

@@ -85,6 +85,8 @@ final class GroupsViewModel: ObservableObject {
             "subscriptionCategory": subscription.category.rawValue,
             "subscriptionPeriod": subscription.period.rawValue,
             "subscriptionNextBillingDate": Timestamp(date: subscription.nextBillingDate),
+            "chargeDay": billingDay as Any,
+            "chargeNextBillingDate": Timestamp(date: computedChargeNextBillingDate(for: subscription, billingDay: billingDay)),
             "createdAt": FieldValue.serverTimestamp()
         ]
 
@@ -130,6 +132,8 @@ final class GroupsViewModel: ObservableObject {
             "subscriptionCategory": subscription.category.rawValue,
             "subscriptionPeriod": subscription.period.rawValue,
             "subscriptionNextBillingDate": Timestamp(date: subscription.nextBillingDate),
+            "chargeDay": billingDay as Any,
+            "chargeNextBillingDate": Timestamp(date: computedChargeNextBillingDate(for: subscription, billingDay: billingDay)),
             "updatedAt": FieldValue.serverTimestamp()
         ]
 
@@ -146,5 +150,33 @@ final class GroupsViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func computedChargeNextBillingDate(for subscription: SubscriptionItem, billingDay: Int?) -> Date {
+        guard let billingDay, billingDay > 0 else {
+            return subscription.nextBillingDate
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfToday = calendar.startOfDay(for: now)
+
+        func dateForDay(reference: Date) -> Date? {
+            var components = calendar.dateComponents([.year, .month], from: reference)
+            let dayRange = calendar.range(of: .day, in: .month, for: reference)
+            components.day = min(billingDay, dayRange?.count ?? billingDay)
+            return calendar.date(from: components)
+        }
+
+        guard var candidate = dateForDay(reference: now) else {
+            return subscription.nextBillingDate
+        }
+
+        if candidate < startOfToday {
+            let nextMonth = calendar.date(byAdding: .month, value: 1, to: now) ?? now
+            candidate = dateForDay(reference: nextMonth) ?? candidate
+        }
+
+        return candidate
     }
 }

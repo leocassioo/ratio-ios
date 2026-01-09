@@ -144,7 +144,7 @@ struct CreateGroupView: View {
                 }
 
                 Stepper(value: $billingDay, in: 1...31) {
-                    Text("Dia de cobrança: \(billingDay)")
+                    Text("Dia de cobrança do grupo: \(billingDay)")
                 }
             }
 

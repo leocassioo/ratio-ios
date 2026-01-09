@@ -40,9 +40,9 @@ struct GroupDetailView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                if let billingDay = group.billingDay {
+                if let billingDay = group.chargeDay ?? group.billingDay {
                     HStack {
-                        Text("Dia de cobrança")
+                        Text("Dia de cobrança do grupo")
                             .foregroundStyle(.secondary)
                         Spacer()
                         Text("\(billingDay)")
@@ -141,6 +141,8 @@ struct GroupDetailView: View {
                 subscriptionCategory: "streaming",
                 subscriptionPeriod: "monthly",
                 subscriptionNextBillingDate: Date(),
+                chargeDay: 9,
+                chargeNextBillingDate: Date(),
                 members: [
                     GroupMember(id: "1", name: "Leo", amount: 20, status: .paid, userId: "1"),
                     GroupMember(id: "2", name: "Pessoa", amount: 20, status: .pending, userId: nil)

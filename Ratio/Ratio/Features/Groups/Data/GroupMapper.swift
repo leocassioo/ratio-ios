@@ -27,6 +27,9 @@ enum GroupMapper {
         let subscriptionPeriod = data["subscriptionPeriod"] as? String
         let subscriptionNextBilling = data["subscriptionNextBillingDate"] as? Timestamp
         let subscriptionNextBillingDate = subscriptionNextBilling?.dateValue()
+        let chargeDay = data["chargeDay"] as? Int
+        let chargeNextBilling = data["chargeNextBillingDate"] as? Timestamp
+        let chargeNextBillingDate = chargeNextBilling?.dateValue()
 
         let membersData = (data["membersPreview"] as? [[String: Any]])
             ?? (data["members"] as? [[String: Any]] ?? [])
@@ -56,6 +59,8 @@ enum GroupMapper {
             subscriptionCategory: subscriptionCategory,
             subscriptionPeriod: subscriptionPeriod,
             subscriptionNextBillingDate: subscriptionNextBillingDate,
+            chargeDay: chargeDay,
+            chargeNextBillingDate: chargeNextBillingDate,
             members: members
         )
     }

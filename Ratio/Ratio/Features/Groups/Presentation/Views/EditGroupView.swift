@@ -171,7 +171,7 @@ struct EditGroupView: View {
                 }
 
                 Stepper(value: $billingDay, in: 1...31) {
-                    Text("Dia de cobrança: \(billingDay)")
+                    Text("Dia de cobrança do grupo: \(billingDay)")
                 }
             }
 
@@ -422,6 +422,8 @@ struct EditGroupView: View {
                 subscriptionCategory: "streaming",
                 subscriptionPeriod: "monthly",
                 subscriptionNextBillingDate: Date(),
+                chargeDay: 9,
+                chargeNextBillingDate: Date(),
                 members: [
                     GroupMember(id: "1", name: "Leo", amount: 20, status: .paid, userId: "1"),
                     GroupMember(id: "2", name: "Pessoa", amount: 20, status: .pending, userId: nil)
