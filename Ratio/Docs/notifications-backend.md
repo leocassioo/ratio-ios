@@ -90,50 +90,54 @@ Dentro de `functions/`:
 npm i firebase-admin firebase-functions
 ```
 
-### 3. Função de envio (exemplo)
+### 3. Função de envio (exemplo atualizado)
 Crie `functions/src/notifications.ts`:
 ```
 import * as admin from "firebase-admin";
-import * as functions from "firebase-functions";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 
 admin.initializeApp();
 
-export const sendBillingReminders = functions.pubsub
-  .schedule("every day 09:00")
-  .timeZone("America/Sao_Paulo")
-  .onRun(async () => {
+export const sendBillingReminders = onSchedule(
+  { schedule: "every day 09:00", timeZone: "America/Sao_Paulo" },
+  async () => {
     const db = admin.firestore();
     const today = new Date();
-    const inTwoDays = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const inFiveDays = new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000);
+    const maxDate = admin.firestore.Timestamp.fromDate(inFiveDays);
 
-    const users = await db.collection("users").get();
-    for (const userDoc of users.docs) {
-      const tokens = userDoc.data().fcmTokens || [];
-      if (tokens.length === 0) continue;
+    const groups = await db
+      .collection("groups")
+      .where("chargeNextBillingDate", "<=", maxDate)
+      .get();
 
-      const subs = await db
-        .collection("users")
-        .doc(userDoc.id)
-        .collection("subscriptions")
-        .where("nextBillingDate", "<=", admin.firestore.Timestamp.fromDate(inTwoDays))
-        .get();
+    for (const groupDoc of groups.docs) {
+      const data = groupDoc.data();
+      const groupName = data.name || "Grupo";
+      const memberIds = data.memberIds || [];
+      if (memberIds.length === 0) continue;
 
-      for (const sub of subs.docs) {
-        const data = sub.data();
-        const name = data.name || "Assinatura";
-        const message = {
-          notification: {
-            title: "Cobrança em breve",
-            body: `Sua assinatura de ${name} vence em breve.`
-          },
-          tokens
-        };
-        await admin.messaging().sendEachForMulticast(message);
-      }
+      const userDocs = await Promise.all(
+        memberIds.map((userId) => db.collection("users").doc(userId).get())
+      );
+      const tokens = new Set();
+      userDocs.forEach((userDoc) => {
+        (userDoc.data()?.fcmTokens || []).forEach((token) => tokens.add(token));
+      });
+      if (tokens.size === 0) continue;
+
+      const message = {
+        notification: {
+          title: "Cobranca em breve",
+          body: `O grupo ${groupName} vence em breve.`
+        },
+        data: { route: "groups" },
+        tokens: Array.from(tokens)
+      };
+      await admin.messaging().sendEachForMulticast(message);
     }
-
-    return null;
-  });
+  }
+);
 ```
 
 ### 4. Export no index
@@ -148,6 +152,36 @@ firebase deploy --only functions
 ```
 
 ---
+
+## Rotas no push (data.route)
+As notificacoes enviadas usam `data.route` para abrir a aba correta no app.
+
+Rotas suportadas:
+- `groups`
+- `subscriptions`
+- `home`
+- `settings`
+
+Exemplo de payload:
+```
+{
+  "notification": {
+    "title": "Cobranca em breve",
+    "body": "O grupo Netflix vence hoje."
+  },
+  "data": {
+    "route": "groups"
+  }
+}
+```
+
+## Endpoint de teste (emulator)
+`sendBillingRemindersTest` existe apenas para testes no emulator.
+
+Chamada:
+```
+curl -X POST http://127.0.0.1:5001/ratio-9e231/us-central1/sendBillingRemindersTest
+```
 
 ## Parte 4 - Consideracoes
 - Use `nextBillingDate` real (Timestamp).

@@ -17,6 +17,26 @@ Agendar um job diario (Cloud Functions/cron):
 - Para cada usuario, ler `fcmTokens`.
 - Enviar push via FCM.
 
+### Roteamento no app (data.route)
+O backend envia a chave `data.route` para abrir a aba correta no app:
+- `groups`
+- `subscriptions`
+- `home`
+- `settings`
+
+Exemplo:
+```
+{
+  "notification": {
+    "title": "Cobranca em breve",
+    "body": "O grupo Netflix vence hoje."
+  },
+  "data": {
+    "route": "groups"
+  }
+}
+```
+
 Payload sugerido:
 ```
 {
