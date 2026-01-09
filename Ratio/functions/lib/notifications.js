@@ -33,14 +33,16 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendBillingReminders = void 0;
+exports.sendBillingRemindersTest = exports.sendBillingReminders = void 0;
 const admin = __importStar(require("firebase-admin"));
+const firestore_1 = require("firebase-admin/firestore");
+const https_1 = require("firebase-functions/v2/https");
 const scheduler_1 = require("firebase-functions/v2/scheduler");
-exports.sendBillingReminders = (0, scheduler_1.onSchedule)({ schedule: "every day 09:00", timeZone: "America/Sao_Paulo" }, async () => {
+const runBillingReminders = async () => {
     const db = admin.firestore();
     const now = new Date();
     const inTwoDays = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
-    const maxDate = admin.firestore.Timestamp.fromDate(inTwoDays);
+    const maxDate = firestore_1.Timestamp.fromDate(inTwoDays);
     const usersSnapshot = await db.collection("users").get();
     for (const userDoc of usersSnapshot.docs) {
         const tokens = userDoc.data().fcmTokens || [];
@@ -66,4 +68,15 @@ exports.sendBillingReminders = (0, scheduler_1.onSchedule)({ schedule: "every da
             await admin.messaging().sendEachForMulticast(message);
         }
     }
+};
+exports.sendBillingReminders = (0, scheduler_1.onSchedule)({ schedule: "every 1 minutes", timeZone: "America/Sao_Paulo" }, async () => {
+    await runBillingReminders();
+});
+exports.sendBillingRemindersTest = (0, https_1.onRequest)(async (req, res) => {
+    if (process.env.FUNCTIONS_EMULATOR !== "true") {
+        res.status(403).send("Apenas no emulator.");
+        return;
+    }
+    await runBillingReminders();
+    res.status(200).send("OK");
 });
