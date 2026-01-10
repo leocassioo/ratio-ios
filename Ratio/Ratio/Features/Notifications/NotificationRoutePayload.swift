@@ -9,6 +9,7 @@ import Foundation
 
 struct NotificationRoutePayload {
     let route: NotificationRoute
+    let groupId: String?
 
     init?(userInfo: [AnyHashable: Any]) {
         guard let routeValue = userInfo["route"] as? String,
@@ -16,5 +17,6 @@ struct NotificationRoutePayload {
             return nil
         }
         self.route = route
+        self.groupId = userInfo["groupId"] as? String
     }
 }

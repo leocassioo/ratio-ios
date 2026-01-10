@@ -5,6 +5,7 @@
 //  Created by Codex on 21/12/25.
 //
 
+import FirebaseAuth
 import FirebaseMessaging
 import Foundation
 import UserNotifications
@@ -40,6 +41,10 @@ final class NotificationCenterDelegate: NSObject, UNUserNotificationCenterDelega
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         let userInfo = response.notification.request.content.userInfo
+        if !shouldHandleNotification(userInfo: userInfo) {
+            completionHandler()
+            return
+        }
         NotificationRouteHandler.shared.handle(userInfo: userInfo)
         completionHandler()
     }
@@ -49,6 +54,21 @@ final class NotificationCenterDelegate: NSObject, UNUserNotificationCenterDelega
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        let userInfo = notification.request.content.userInfo
+        if !shouldHandleNotification(userInfo: userInfo) {
+            completionHandler([])
+            return
+        }
         completionHandler([.banner, .sound, .badge])
+    }
+
+    private func shouldHandleNotification(userInfo: [AnyHashable: Any]) -> Bool {
+        guard let targetUserId = userInfo["targetUserId"] as? String else {
+            return true
+        }
+        guard let currentUserId = Auth.auth().currentUser?.uid else {
+            return false
+        }
+        return targetUserId == currentUserId
     }
 }

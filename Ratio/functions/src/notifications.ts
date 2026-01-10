@@ -394,7 +394,16 @@ export const notifyOwnerOnPaymentSubmitted = onDocumentUpdated(
       return;
     }
 
-    const ownerId = groupData.ownerId as string | undefined;
+    let ownerId = groupData.ownerId as string | undefined;
+    if (!ownerId) {
+      const ownerSnapshot = await groupSnapshot.ref
+        .collection("members")
+        .where("role", "==", "owner")
+        .limit(1)
+        .get();
+      ownerId = ownerSnapshot.docs[0]?.data().userId as string | undefined;
+    }
+
     if (!ownerId) {
       return;
     }
@@ -408,11 +417,11 @@ export const notifyOwnerOnPaymentSubmitted = onDocumentUpdated(
     const memberName = after.name || "Membro";
     const groupName = groupData.name || "Grupo";
     const title = "Pagamento enviado";
-    const body = "\(memberName) enviou o comprovante do grupo \(groupName).";
+    const body = `${memberName} enviou o comprovante do grupo ${groupName}.`;
 
     await admin.messaging().sendEachForMulticast({
       notification: { title, body },
-      data: { route: "groups", groupId },
+      data: { route: "groups", groupId, targetUserId: ownerId },
       tokens
     });
   }
@@ -472,7 +481,7 @@ export const notifyOwnerOnPaymentSubmittedTest = onRequest(async (req, res) => {
 
   const response = await admin.messaging().sendEachForMulticast({
     notification: { title, body },
-    data: { route: "groups", groupId },
+    data: { route: "groups", groupId, targetUserId: ownerId },
     tokens
   });
 

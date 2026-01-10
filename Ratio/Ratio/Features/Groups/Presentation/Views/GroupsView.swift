@@ -10,6 +10,7 @@ import SwiftUI
 
 struct GroupsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @EnvironmentObject private var navigationState: AppNavigationState
     @StateObject private var viewModel = GroupsViewModel()
     @State private var showCreateGroup = false
     @State private var selectedGroup: Group?
@@ -80,6 +81,12 @@ struct GroupsView: View {
                     viewModel.startListening(userId: userId)
                 }
             }
+            .onChange(of: viewModel.groups) { _, _ in
+                openPendingGroupIfNeeded()
+            }
+            .onChange(of: navigationState.pendingGroupId) { _, _ in
+                openPendingGroupIfNeeded()
+            }
             .onDisappear {
                 viewModel.stopListening()
             }
@@ -114,6 +121,13 @@ struct GroupsView: View {
                 }
             }
         }
+    }
+
+    private func openPendingGroupIfNeeded() {
+        guard let groupId = navigationState.pendingGroupId else { return }
+        guard let group = viewModel.groups.first(where: { $0.id == groupId }) else { return }
+        selectedGroupDetail = group
+        navigationState.pendingGroupId = nil
     }
 }
 

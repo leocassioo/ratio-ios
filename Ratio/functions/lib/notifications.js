@@ -326,7 +326,15 @@ exports.notifyOwnerOnPaymentSubmitted = (0, firestore_2.onDocumentUpdated)("grou
     if (!groupData) {
         return;
     }
-    const ownerId = groupData.ownerId;
+    let ownerId = groupData.ownerId;
+    if (!ownerId) {
+        const ownerSnapshot = await groupSnapshot.ref
+            .collection("members")
+            .where("role", "==", "owner")
+            .limit(1)
+            .get();
+        ownerId = ownerSnapshot.docs[0]?.data().userId;
+    }
     if (!ownerId) {
         return;
     }
@@ -338,10 +346,10 @@ exports.notifyOwnerOnPaymentSubmitted = (0, firestore_2.onDocumentUpdated)("grou
     const memberName = after.name || "Membro";
     const groupName = groupData.name || "Grupo";
     const title = "Pagamento enviado";
-    const body = "\(memberName) enviou o comprovante do grupo \(groupName).";
+    const body = `${memberName} enviou o comprovante do grupo ${groupName}.`;
     await admin.messaging().sendEachForMulticast({
         notification: { title, body },
-        data: { route: "groups", groupId },
+        data: { route: "groups", groupId, targetUserId: ownerId },
         tokens
     });
 });
@@ -391,7 +399,7 @@ exports.notifyOwnerOnPaymentSubmittedTest = (0, https_1.onRequest)(async (req, r
     const body = `${memberName} enviou o comprovante do grupo ${groupName}.`;
     const response = await admin.messaging().sendEachForMulticast({
         notification: { title, body },
-        data: { route: "groups", groupId },
+        data: { route: "groups", groupId, targetUserId: ownerId },
         tokens
     });
     res.status(200).json({

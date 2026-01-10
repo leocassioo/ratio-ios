@@ -37,7 +37,7 @@ struct ContentView: View {
             case .subscriptions:
                 navigationState.route(to: .subscriptions)
             case .groups:
-                navigationState.route(to: .groups)
+                navigationState.route(to: .groups, groupId: payload.groupId)
             case .settings:
                 navigationState.route(to: .settings)
             }
