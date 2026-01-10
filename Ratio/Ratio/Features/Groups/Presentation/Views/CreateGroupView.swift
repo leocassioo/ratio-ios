@@ -77,7 +77,8 @@ struct CreateGroupView: View {
                         name: ownerName.isEmpty ? "Você" : ownerName,
                         amountText: "",
                         status: .paid,
-                        userId: ownerId
+                        userId: ownerId,
+                        receiptURL: nil
                     )
                 ]
             }
@@ -282,7 +283,7 @@ struct CreateGroupView: View {
     private func addMember() {
         let trimmed = newMemberName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        members.append(GroupMemberDraft(id: UUID().uuidString, name: trimmed, amountText: "", status: .pending, userId: nil))
+        members.append(GroupMemberDraft(id: UUID().uuidString, name: trimmed, amountText: "", status: .pending, userId: nil, receiptURL: nil))
         newMemberName = ""
         if splitEqually {
             applyEqualSplit()

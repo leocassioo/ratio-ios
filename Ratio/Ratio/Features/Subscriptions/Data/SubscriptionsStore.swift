@@ -41,9 +41,10 @@ final class SubscriptionsStore {
             .setData(data, merge: true)
     }
 
-    func updateLinkedGroups(subscriptionId: String, data: [String: Any]) async throws {
+    func updateLinkedGroups(subscriptionId: String, ownerId: String, data: [String: Any]) async throws {
         let snapshot = try await db.collection("groups")
             .whereField("subscriptionId", isEqualTo: subscriptionId)
+            .whereField("ownerId", isEqualTo: ownerId)
             .getDocuments()
 
         guard !snapshot.documents.isEmpty else { return }
@@ -55,9 +56,10 @@ final class SubscriptionsStore {
         try await batch.commit()
     }
 
-    func updateLinkedGroupAmounts(subscriptionId: String, totalAmount: Double) async throws {
+    func updateLinkedGroupAmounts(subscriptionId: String, ownerId: String, totalAmount: Double) async throws {
         let groupsSnapshot = try await db.collection("groups")
             .whereField("subscriptionId", isEqualTo: subscriptionId)
+            .whereField("ownerId", isEqualTo: ownerId)
             .getDocuments()
 
         guard !groupsSnapshot.documents.isEmpty else { return }
@@ -109,6 +111,7 @@ final class SubscriptionsStore {
     func deleteSubscription(userId: String, id: String) async throws {
         let linkedGroups = try await db.collection("groups")
             .whereField("subscriptionId", isEqualTo: id)
+            .whereField("ownerId", isEqualTo: userId)
             .getDocuments()
 
         if !linkedGroups.documents.isEmpty {

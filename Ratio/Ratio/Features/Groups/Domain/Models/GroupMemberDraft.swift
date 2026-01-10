@@ -13,6 +13,7 @@ struct GroupMemberDraft: Identifiable, Equatable {
     var amountText: String
     var status: GroupMemberStatus
     var userId: String?
+    var receiptURL: String?
 }
 
 extension GroupMemberDraft {

@@ -33,9 +33,10 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendBillingRemindersTest = exports.sendBillingReminders = void 0;
+exports.notifyOwnerOnPaymentSubmittedTest = exports.notifyOwnerOnPaymentSubmitted = exports.sendBillingRemindersTest = exports.sendBillingReminders = void 0;
 const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
+const firestore_2 = require("firebase-functions/v2/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const chunk = (items, size) => {
@@ -69,6 +70,7 @@ const runBillingReminders = async (includeDiagnostics) => {
             "2": 0,
             "5": 0
         },
+        groupsReset: 0,
         groupOffsetDebug: [],
         sends: 0,
         successCount: 0,
@@ -124,6 +126,56 @@ const runBillingReminders = async (includeDiagnostics) => {
                 }
             });
         }
+    };
+    const resetGroupStatusesIfNeeded = async (groupDoc, nextBillingDate, offset) => {
+        if (offset !== 5) {
+            return;
+        }
+        const data = groupDoc.data();
+        const lastReset = data.lastChargeResetDate;
+        if (lastReset && lastReset.toMillis() == nextBillingDate.toMillis()) {
+            return;
+        }
+        const ownerId = data.ownerId;
+        const groupRef = groupDoc.ref;
+        const membersSnapshot = await groupRef.collection("members").get();
+        const batch = db.batch();
+        membersSnapshot.docs.forEach((memberDoc) => {
+            const memberData = memberDoc.data();
+            const role = memberData.role ?? "";
+            const userId = memberData.userId;
+            const isOwner = role == "owner" || (ownerId && userId == ownerId);
+            if (isOwner) {
+                return;
+            }
+            batch.update(memberDoc.ref, {
+                status: "pending",
+                receiptURL: firestore_1.FieldValue.delete(),
+                submittedAt: firestore_1.FieldValue.delete(),
+                approvedAt: firestore_1.FieldValue.delete(),
+                updatedAt: firestore_1.FieldValue.serverTimestamp()
+            });
+        });
+        const preview = data.membersPreview ?? [];
+        const updatedPreview = preview.map((member) => {
+            const userId = member.userId;
+            const isOwner = ownerId && userId == ownerId;
+            if (isOwner) {
+                return member;
+            }
+            return {
+                ...member,
+                status: "pending",
+                receiptURL: null
+            };
+        });
+        batch.update(groupRef, {
+            membersPreview: updatedPreview,
+            lastChargeResetDate: nextBillingDate,
+            updatedAt: firestore_1.FieldValue.serverTimestamp()
+        });
+        await batch.commit();
+        summary.groupsReset += 1;
     };
     for (const userDoc of usersSnapshot.docs) {
         const tokens = userDoc.data().fcmTokens || [];
@@ -227,6 +279,7 @@ const runBillingReminders = async (includeDiagnostics) => {
         if (!validOffsets.has(offset)) {
             continue;
         }
+        await resetGroupStatusesIfNeeded(groupDoc, nextBillingDate, offset);
         const memberIds = data.memberIds ?? [];
         if (memberIds.length == 0) {
             continue;
@@ -257,4 +310,92 @@ exports.sendBillingRemindersTest = (0, https_1.onRequest)(async (req, res) => {
     }
     const summary = await runBillingReminders(true);
     res.status(200).json(summary);
+});
+exports.notifyOwnerOnPaymentSubmitted = (0, firestore_2.onDocumentUpdated)("groups/{groupId}/members/{memberId}", async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) {
+        return;
+    }
+    if (before.status == "submitted" || after.status != "submitted") {
+        return;
+    }
+    const groupId = event.params.groupId;
+    const groupSnapshot = await admin.firestore().collection("groups").doc(groupId).get();
+    const groupData = groupSnapshot.data();
+    if (!groupData) {
+        return;
+    }
+    const ownerId = groupData.ownerId;
+    if (!ownerId) {
+        return;
+    }
+    const ownerSnapshot = await admin.firestore().collection("users").doc(ownerId).get();
+    const tokens = ownerSnapshot.data()?.fcmTokens || [];
+    if (tokens.length == 0) {
+        return;
+    }
+    const memberName = after.name || "Membro";
+    const groupName = groupData.name || "Grupo";
+    const title = "Pagamento enviado";
+    const body = "\(memberName) enviou o comprovante do grupo \(groupName).";
+    await admin.messaging().sendEachForMulticast({
+        notification: { title, body },
+        data: { route: "groups", groupId },
+        tokens
+    });
+});
+exports.notifyOwnerOnPaymentSubmittedTest = (0, https_1.onRequest)(async (req, res) => {
+    if (process.env.FUNCTIONS_EMULATOR !== "true") {
+        res.status(403).send("Apenas no emulator.");
+        return;
+    }
+    const groupId = req.query.groupId || req.body?.groupId;
+    const memberId = req.query.memberId || req.body?.memberId;
+    if (!groupId || !memberId) {
+        res.status(400).json({ error: "groupId e memberId são obrigatórios." });
+        return;
+    }
+    const groupSnapshot = await admin.firestore().collection("groups").doc(groupId).get();
+    const groupData = groupSnapshot.data();
+    if (!groupData) {
+        res.status(404).json({ error: "Grupo não encontrado." });
+        return;
+    }
+    const ownerId = groupData.ownerId;
+    if (!ownerId) {
+        res.status(400).json({ error: "ownerId ausente no grupo." });
+        return;
+    }
+    const memberSnapshot = await admin
+        .firestore()
+        .collection("groups")
+        .doc(groupId)
+        .collection("members")
+        .doc(memberId)
+        .get();
+    const memberData = memberSnapshot.data();
+    if (!memberData) {
+        res.status(404).json({ error: "Membro não encontrado." });
+        return;
+    }
+    const ownerSnapshot = await admin.firestore().collection("users").doc(ownerId).get();
+    const tokens = ownerSnapshot.data()?.fcmTokens || [];
+    if (tokens.length == 0) {
+        res.status(200).json({ message: "Owner sem tokens." });
+        return;
+    }
+    const memberName = memberData.name || "Membro";
+    const groupName = groupData.name || "Grupo";
+    const title = "Pagamento enviado";
+    const body = `${memberName} enviou o comprovante do grupo ${groupName}.`;
+    const response = await admin.messaging().sendEachForMulticast({
+        notification: { title, body },
+        data: { route: "groups", groupId },
+        tokens
+    });
+    res.status(200).json({
+        successCount: response.successCount,
+        failureCount: response.failureCount
+    });
 });

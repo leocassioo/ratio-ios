@@ -41,7 +41,19 @@ enum GroupMapper {
             let statusRaw = memberData["status"] as? String ?? GroupMemberStatus.pending.rawValue
             let status = GroupMemberStatus(rawValue: statusRaw) ?? .pending
             let userId = memberData["userId"] as? String
-            return GroupMember(id: id, name: name, amount: amount, status: status, userId: userId)
+            let receiptURL = memberData["receiptURL"] as? String
+            let submittedAtTimestamp = memberData["submittedAt"] as? Timestamp
+            let approvedAtTimestamp = memberData["approvedAt"] as? Timestamp
+            return GroupMember(
+                id: id,
+                name: name,
+                amount: amount,
+                status: status,
+                userId: userId,
+                receiptURL: receiptURL,
+                submittedAt: submittedAtTimestamp?.dateValue(),
+                approvedAt: approvedAtTimestamp?.dateValue()
+            )
         }
 
         return Group(

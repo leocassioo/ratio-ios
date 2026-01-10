@@ -10,10 +10,16 @@
     "Adicionar foto (opcional)" : {
 
     },
+    "Aguardando confirmação do organizador." : {
+
+    },
     "Ajustes" : {
 
     },
     "Aparência" : {
+
+    },
+    "Aprovar" : {
 
     },
     "Assinatura" : {
@@ -40,7 +46,13 @@
     "Compartilhar no WhatsApp" : {
 
     },
+    "Comprovante (opcional)" : {
+
+    },
     "Configure seu perfil e comece." : {
+
+    },
+    "Confirmar pagamento" : {
 
     },
     "Convite" : {
@@ -112,6 +124,9 @@
     "Enviaremos um link para redefinir sua senha." : {
 
     },
+    "Erro" : {
+
+    },
     "Esqueci minha senha" : {
 
     },
@@ -168,6 +183,9 @@
         }
       }
     },
+    "Marcar como pago" : {
+
+    },
     "Membros" : {
 
     },
@@ -204,7 +222,13 @@
     "Observações" : {
 
     },
+    "Ok" : {
+
+    },
     "OK" : {
+
+    },
+    "Pagamento" : {
 
     },
     "Periodicidade" : {
@@ -237,6 +261,9 @@
     "Salvar" : {
 
     },
+    "Selecionar comprovante" : {
+
+    },
     "Selecione uma assinatura" : {
 
     },
@@ -244,6 +271,9 @@
 
     },
     "Senha" : {
+
+    },
+    "Seu pagamento" : {
 
     },
     "Status" : {
@@ -275,6 +305,12 @@
 
     },
     "Uso único" : {
+
+    },
+    "Valor" : {
+
+    },
+    "Ver comprovante" : {
 
     },
     "welcome_title" : {

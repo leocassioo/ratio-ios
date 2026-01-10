@@ -18,12 +18,22 @@ final class InvitesStore {
         expiresAt: Date,
         maxUses: Int
     ) async throws -> String {
+        let groupSnapshot = try await db.collection("groups").document(groupId).getDocument()
+        let groupData = groupSnapshot.data() ?? [:]
+        let memberIds = groupData["memberIds"] as? [String] ?? []
+        let membersPreview = groupData["membersPreview"] as? [[String: Any]] ?? []
+        let totalAmount = groupData["totalAmount"] as? Double ?? 0
+
         let token = UUID().uuidString.lowercased()
         let data: [String: Any] = [
             "token": token,
             "groupId": groupId,
             "groupName": groupName,
             "createdBy": createdBy,
+            "totalAmount": totalAmount,
+            "memberCount": memberIds.count,
+            "membersPreview": membersPreview,
+            "memberIds": memberIds,
             "expiresAt": Timestamp(date: expiresAt),
             "maxUses": maxUses,
             "usesCount": 0,
@@ -80,18 +90,14 @@ final class InvitesStore {
         guard usesCount < maxUses else { throw InviteError.alreadyUsed }
 
         let groupRef = db.collection("groups").document(groupId)
-        let groupSnapshot = try await groupRef.getDocument()
-        guard let groupData = groupSnapshot.data() else {
-            throw InviteError.invalid
-        }
-
-        let memberSnapshot = try await groupRef.collection("members").getDocuments()
-        if memberSnapshot.documents.contains(where: { ($0.data()["userId"] as? String) == userId }) {
+        let memberIds = inviteData["memberIds"] as? [String] ?? []
+        if memberIds.contains(userId) {
             throw InviteError.alreadyMember
         }
 
-        let totalAmount = groupData["totalAmount"] as? Double ?? 0
-        let newMemberCount = memberSnapshot.documents.count + 1
+        let totalAmount = inviteData["totalAmount"] as? Double ?? 0
+        let existingCount = inviteData["memberCount"] as? Int ?? memberIds.count
+        let newMemberCount = max(existingCount, memberIds.count) + 1
         let perMember = newMemberCount > 0 ? totalAmount / Double(newMemberCount) : 0
 
         let batch = db.batch()
@@ -106,20 +112,13 @@ final class InvitesStore {
         ]
         batch.setData(newMemberData, forDocument: newMemberRef)
 
-        memberSnapshot.documents.forEach { member in
-            batch.updateData(["amount": perMember], forDocument: member.reference)
+        let existingPreview = inviteData["membersPreview"] as? [[String: Any]] ?? []
+        let updatedPreview = existingPreview.map { member in
+            var updated = member
+            updated["amount"] = perMember
+            return updated
         }
-
-        let membersPreview: [[String: Any]] = memberSnapshot.documents.map { member in
-            let data = member.data()
-            return [
-                "id": member.documentID,
-                "name": data["name"] as? String ?? "Membro",
-                "amount": perMember,
-                "status": data["status"] as? String ?? GroupMemberStatus.pending.rawValue,
-                "userId": data["userId"] as Any
-            ]
-        } + [[
+        let membersPreview: [[String: Any]] = updatedPreview + [[
             "id": userId,
             "name": userName,
             "amount": perMember,

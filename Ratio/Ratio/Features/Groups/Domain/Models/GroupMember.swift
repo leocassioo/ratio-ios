@@ -13,4 +13,7 @@ struct GroupMember: Identifiable, Equatable {
     let amount: Double
     let status: GroupMemberStatus
     let userId: String?
+    let receiptURL: String?
+    let submittedAt: Date?
+    let approvedAt: Date?
 }

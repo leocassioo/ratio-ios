@@ -10,17 +10,55 @@ service cloud.firestore {
         get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid;
     }
 
+    function isGroupMember(groupId) {
+      return isSignedIn() &&
+        request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
+    }
+
+    function isGroupOwnerResource() {
+      return isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    function isGroupMemberResource() {
+      return isSignedIn() && request.auth.uid in resource.data.memberIds;
+    }
+
+    function isSelfMemberCreate() {
+      return isSignedIn() &&
+        request.auth.uid == request.resource.data.userId;
+    }
+
     match /groups/{groupId} {
-      allow read: if isSignedIn() &&
-        request.auth.uid in resource.data.memberIds;
+      allow read: if isGroupOwnerResource() || isGroupMemberResource();
       allow create: if isSignedIn() &&
         request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isGroupOwner(groupId);
+      allow update: if isGroupOwner(groupId) ||
+        (isSignedIn() &&
+          !(request.auth.uid in resource.data.memberIds) &&
+          request.auth.uid in request.resource.data.memberIds &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            "membersPreview",
+            "memberIds",
+            "updatedAt"
+          ])) ||
+        (isGroupMember(groupId) &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(["membersPreview"]));
+      allow delete: if isGroupOwner(groupId);
 
       match /members/{memberId} {
-        allow read: if isSignedIn() &&
-          request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
-        allow create, update, delete: if isGroupOwner(groupId);
+        allow read: if isGroupOwner(groupId) || isGroupMember(groupId);
+        allow create: if isGroupOwner(groupId) ||
+          (isSelfMemberCreate() && memberId == request.auth.uid);
+        allow delete: if isGroupOwner(groupId);
+        allow update: if isGroupOwner(groupId) ||
+          (isGroupMember(groupId) &&
+            request.auth.uid == resource.data.userId &&
+            request.resource.data.diff(resource.data).changedKeys().hasOnly([
+              "status",
+              "receiptURL",
+              "submittedAt",
+              "updatedAt"
+            ]));
       }
     }
 

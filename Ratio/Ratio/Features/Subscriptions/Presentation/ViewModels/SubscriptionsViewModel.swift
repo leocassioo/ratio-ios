@@ -114,8 +114,8 @@ final class SubscriptionsViewModel: ObservableObject {
                 "billingPeriod": period.label,
                 "updatedAt": FieldValue.serverTimestamp()
             ]
-            try await store.updateLinkedGroups(subscriptionId: id, data: groupData)
-            try await store.updateLinkedGroupAmounts(subscriptionId: id, totalAmount: amount)
+            try await store.updateLinkedGroups(subscriptionId: id, ownerId: ownerId, data: groupData)
+            try await store.updateLinkedGroupAmounts(subscriptionId: id, ownerId: ownerId, totalAmount: amount)
         } catch {
             errorMessage = error.localizedDescription
         }

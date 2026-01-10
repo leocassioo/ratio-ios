@@ -65,7 +65,8 @@ final class GroupsViewModel: ObservableObject {
                 "name": member.name,
                 "amount": member.amountValue,
                 "status": member.status.rawValue,
-                "userId": member.userId as Any
+                "userId": member.userId as Any,
+                "receiptURL": member.receiptURL as Any
             ]
         }
 
@@ -113,7 +114,8 @@ final class GroupsViewModel: ObservableObject {
                 "name": member.name,
                 "amount": member.amountValue,
                 "status": member.status.rawValue,
-                "userId": member.userId as Any
+                "userId": member.userId as Any,
+                "receiptURL": member.receiptURL as Any
             ]
         }
 

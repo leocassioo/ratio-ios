@@ -3,8 +3,10 @@
 Arquivo de regras: `Docs/firestore.rules`
 
 ## O que foi aplicado
-- Apenas o **owner** pode editar/excluir grupos e membros.
-- Membros apenas leem grupos em que estao listados.
+- Owner pode editar/excluir grupos e membros.
+- Owner e membros leem grupos em que estao listados (via `resource.data`).
+- Membro pode aceitar convite: cria seu doc em `members` e adiciona seu `userId` em `memberIds`.
+- Membros podem atualizar **apenas o status/recibo** do proprio pagamento.
 - Convites abertos para leitura/criacao por usuarios autenticados.
 - Subscriptions so podem ser lidas/escritas pelo proprio usuario.
 

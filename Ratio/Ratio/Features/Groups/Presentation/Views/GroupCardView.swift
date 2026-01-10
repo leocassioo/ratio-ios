@@ -21,6 +21,11 @@ struct GroupCardView: View {
                     Text("Total: \(formattedCurrency(group.totalAmount)) / \(group.billingPeriod)")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                    if let nextChargeDate = nextChargeDate {
+                        Text("Próxima cobrança: \(formattedDate(nextChargeDate))")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                     Text(group.category.label)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -57,7 +62,7 @@ struct GroupCardView: View {
                                 .font(.subheadline.weight(.semibold))
                             Text(member.status.label)
                                 .font(.footnote)
-                                .foregroundStyle(member.status == .paid ? .green : .orange)
+                                .foregroundStyle(statusColor(for: member.status))
                         }
 
                         Spacer()
@@ -102,6 +107,28 @@ struct GroupCardView: View {
         formatter.currencyCode = group.currencyCode
         formatter.locale = Locale(identifier: "pt_BR")
         return formatter.string(from: NSNumber(value: value)) ?? "R$ 0,00"
+    }
+
+    private func statusColor(for status: GroupMemberStatus) -> Color {
+        switch status {
+        case .paid:
+            return .green
+        case .pending:
+            return .orange
+        case .submitted:
+            return .blue
+        }
+    }
+
+    private var nextChargeDate: Date? {
+        group.chargeNextBillingDate ?? group.subscriptionNextBillingDate
+    }
+
+    private func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateStyle = .short
+        return formatter.string(from: date)
     }
 
     private var orderedMembers: [GroupMember] {

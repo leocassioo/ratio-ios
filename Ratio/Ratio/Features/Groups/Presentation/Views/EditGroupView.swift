@@ -46,7 +46,8 @@ struct EditGroupView: View {
                 name: $0.name,
                 amountText: $0.amount.formatted(.number.precision(.fractionLength(2))),
                 status: $0.status,
-                userId: $0.userId
+                userId: $0.userId,
+                receiptURL: $0.receiptURL
             )
         })
         _creationViewModel = StateObject(wrappedValue: GroupCreationViewModel(ownerId: ownerId))
@@ -349,7 +350,7 @@ struct EditGroupView: View {
     private func addMember() {
         let trimmed = newMemberName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        members.append(GroupMemberDraft(id: UUID().uuidString, name: trimmed, amountText: "", status: .pending, userId: nil))
+        members.append(GroupMemberDraft(id: UUID().uuidString, name: trimmed, amountText: "", status: .pending, userId: nil, receiptURL: nil))
         newMemberName = ""
         if splitEqually {
             applyEqualSplit()
@@ -425,8 +426,8 @@ struct EditGroupView: View {
                 chargeDay: 9,
                 chargeNextBillingDate: Date(),
                 members: [
-                    GroupMember(id: "1", name: "Leo", amount: 20, status: .paid, userId: "1"),
-                    GroupMember(id: "2", name: "Pessoa", amount: 20, status: .pending, userId: nil)
+                    GroupMember(id: "1", name: "Leo", amount: 20, status: .paid, userId: "1", receiptURL: nil, submittedAt: nil, approvedAt: nil),
+                    GroupMember(id: "2", name: "Pessoa", amount: 20, status: .pending, userId: nil, receiptURL: nil, submittedAt: nil, approvedAt: nil)
                 ]
             ),
             ownerId: "preview"

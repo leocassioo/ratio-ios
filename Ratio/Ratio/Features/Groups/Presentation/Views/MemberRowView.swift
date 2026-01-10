@@ -43,7 +43,7 @@ struct MemberRowView: View {
             }
 
             Picker("Status", selection: $member.status) {
-                ForEach(GroupMemberStatus.allCases, id: \.self) { status in
+                ForEach(GroupMemberStatus.editableCases, id: \.self) { status in
                     Text(status.label).tag(status)
                 }
             }
