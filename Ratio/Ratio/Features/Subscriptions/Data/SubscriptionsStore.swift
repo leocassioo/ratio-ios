@@ -124,6 +124,70 @@ final class SubscriptionsStore {
             .document(id)
             .delete()
     }
+
+    func normalizeNextBillingDates(userId: String) async throws {
+        let snapshot = try await db.collection("users")
+            .document(userId)
+            .collection("subscriptions")
+            .getDocuments()
+
+        guard !snapshot.documents.isEmpty else { return }
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let batch = db.batch()
+
+        for document in snapshot.documents {
+            let data = document.data()
+            guard let timestamp = data["nextBillingDate"] as? Timestamp else { continue }
+            let periodRaw = data["period"] as? String ?? SubscriptionPeriod.monthly.rawValue
+            guard let period = SubscriptionPeriod(rawValue: periodRaw) else { continue }
+
+            let currentDate = timestamp.dateValue()
+            let nextDate = nextBillingDate(from: currentDate, period: period, today: today, calendar: calendar)
+            if nextDate == currentDate {
+                continue
+            }
+
+            batch.updateData([
+                "nextBillingDate": Timestamp(date: nextDate),
+                "updatedAt": FieldValue.serverTimestamp()
+            ], forDocument: document.reference)
+
+            try await updateLinkedGroups(
+                subscriptionId: document.documentID,
+                ownerId: userId,
+                data: [
+                    "subscriptionNextBillingDate": Timestamp(date: nextDate),
+                    "updatedAt": FieldValue.serverTimestamp()
+                ]
+            )
+        }
+
+        try await batch.commit()
+    }
+
+    private func nextBillingDate(
+        from date: Date,
+        period: SubscriptionPeriod,
+        today: Date,
+        calendar: Calendar
+    ) -> Date {
+        var nextDate = calendar.startOfDay(for: date)
+        while nextDate < today {
+            switch period {
+            case .weekly:
+                nextDate = calendar.date(byAdding: .day, value: 7, to: nextDate) ?? nextDate
+            case .monthly:
+                nextDate = calendar.date(byAdding: .month, value: 1, to: nextDate) ?? nextDate
+            case .quarterly:
+                nextDate = calendar.date(byAdding: .month, value: 3, to: nextDate) ?? nextDate
+            case .yearly:
+                nextDate = calendar.date(byAdding: .year, value: 1, to: nextDate) ?? nextDate
+            }
+        }
+        return nextDate
+    }
 }
 
 enum SubscriptionDeletionError: LocalizedError {

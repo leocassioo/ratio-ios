@@ -88,4 +88,58 @@ final class GroupsStore {
         batch.deleteDocument(groupRef)
         try await batch.commit()
     }
+
+    func normalizeChargeDates(for userId: String) async throws {
+        let snapshot = try await db.collection("groups")
+            .whereField("ownerId", isEqualTo: userId)
+            .getDocuments()
+
+        guard !snapshot.documents.isEmpty else { return }
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let batch = db.batch()
+
+        for document in snapshot.documents {
+            let data = document.data()
+            guard let chargeTimestamp = data["chargeNextBillingDate"] as? Timestamp else { continue }
+            let periodRaw = data["subscriptionPeriod"] as? String ?? SubscriptionPeriod.monthly.rawValue
+            guard let period = SubscriptionPeriod(rawValue: periodRaw) else { continue }
+
+            let currentDate = chargeTimestamp.dateValue()
+            let nextDate = nextBillingDate(from: currentDate, period: period, today: today, calendar: calendar)
+            if nextDate == currentDate {
+                continue
+            }
+
+            batch.updateData([
+                "chargeNextBillingDate": Timestamp(date: nextDate),
+                "updatedAt": FieldValue.serverTimestamp()
+            ], forDocument: document.reference)
+        }
+
+        try await batch.commit()
+    }
+
+    private func nextBillingDate(
+        from date: Date,
+        period: SubscriptionPeriod,
+        today: Date,
+        calendar: Calendar
+    ) -> Date {
+        var nextDate = calendar.startOfDay(for: date)
+        while nextDate < today {
+            switch period {
+            case .weekly:
+                nextDate = calendar.date(byAdding: .day, value: 7, to: nextDate) ?? nextDate
+            case .monthly:
+                nextDate = calendar.date(byAdding: .month, value: 1, to: nextDate) ?? nextDate
+            case .quarterly:
+                nextDate = calendar.date(byAdding: .month, value: 3, to: nextDate) ?? nextDate
+            case .yearly:
+                nextDate = calendar.date(byAdding: .year, value: 1, to: nextDate) ?? nextDate
+            }
+        }
+        return nextDate
+    }
 }

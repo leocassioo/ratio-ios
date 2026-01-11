@@ -51,8 +51,20 @@ struct HomeUpcomingRowView: View {
     }
 
     private var subtitleText: String {
-        let remaining = max(Int(item.dueDate.timeIntervalSinceNow / 86400), 0)
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let dueDay = calendar.startOfDay(for: item.dueDate)
+        let remaining = calendar.dateComponents([.day], from: today, to: dueDay).day ?? 0
         let formattedDate = formattedDate(item.dueDate)
+        if remaining < 0 {
+            return "Vencido • \(formattedDate)"
+        }
+        if remaining == 0 {
+            return "Hoje • \(formattedDate)"
+        }
+        if remaining == 1 {
+            return "Amanhã • \(formattedDate)"
+        }
         return "\(remaining) dias • \(formattedDate)"
     }
 

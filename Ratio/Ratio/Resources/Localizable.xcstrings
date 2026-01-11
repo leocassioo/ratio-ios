@@ -43,7 +43,7 @@
     "Categoria" : {
 
     },
-    "Compartilhar no WhatsApp" : {
+    "Compartilhar convite" : {
 
     },
     "Comprovante (opcional)" : {
@@ -61,7 +61,7 @@
     "Convite para" : {
 
     },
-    "Copiar link" : {
+    "Copiar mensagem" : {
 
     },
     "Criar conta" : {
@@ -198,6 +198,9 @@
     "Nenhum grupo ainda" : {
 
     },
+    "Nenhum pagamento próximo" : {
+
+    },
     "Nome" : {
 
     },
@@ -216,7 +219,7 @@
     "O idioma pode exigir reiniciar o app." : {
 
     },
-    "O link é de uso único e expira após a primeira utilização." : {
+    "O link expira em 24 horas e pode ser usado sem limite de pessoas." : {
 
     },
     "Observações" : {
@@ -289,6 +292,9 @@
 
     },
     "Tipo" : {
+
+    },
+    "Totais por moeda" : {
 
     },
     "Total" : {

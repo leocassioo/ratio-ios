@@ -31,6 +31,9 @@ final class GroupsViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
 
+        Task {
+            try? await store.normalizeChargeDates(for: userId)
+        }
         listener = store.listenGroups(for: userId) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false

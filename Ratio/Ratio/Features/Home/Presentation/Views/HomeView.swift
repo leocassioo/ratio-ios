@@ -6,8 +6,11 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct HomeView: View {
+    @EnvironmentObject private var authViewModel: AuthViewModel
+    @StateObject private var viewModel = HomeViewModel()
     private let upcomingPayments: [UpcomingPaymentItem] = [
         UpcomingPaymentItem(
             name: "SmartFit",
@@ -40,34 +43,48 @@ struct HomeView: View {
         CategorySpendItem(label: "Música", amount: 27.90, color: Color(.systemPink)),
         CategorySpendItem(label: "Outros", amount: 57.02, color: Color(.systemOrange))
     ]
-    private let insights: [HomeInsightItem] = [
-        HomeInsightItem(title: "2 assinaturas sem grupo", icon: "person.3"),
-        HomeInsightItem(title: "1 cobrança hoje", icon: "bell.badge"),
-        HomeInsightItem(title: "R$ 48,00 economizados", icon: "leaf")
-    ]
-
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
                     HomeSummaryCardView(
-                        totalAmount: 337.62,
-                        currencyCode: "BRL",
-                        deltaText: "+2,5% desde o último mês"
+                        totalAmount: viewModel.totalMonthlyAmount,
+                        currencyCode: viewModel.currencyCode,
+                        deltaText: summarySubtitle
                     )
+                    if viewModel.hasMixedCurrencies {
+                        HomeCurrencySummaryView(totalsByCurrency: viewModel.totalsByCurrency)
+                    }
 
-                    HomeInsightsRowView(insights: insights)
+                    if !viewModel.insights.isEmpty {
+                        HomeInsightsRowView(insights: viewModel.insights)
+                    }
 
-                    HomeUpcomingSectionView(items: upcomingPayments)
+                    HomeUpcomingSectionView(items: viewModel.upcomingPayments)
 
-                    HomeCategoryDonutCardView(items: categorySpends)
+                    HomeCategoryDonutCardView(items: viewModel.categorySpends)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Resumo")
+            .onAppear {
+                if let userId = authViewModel.user?.uid {
+                    viewModel.startListening(userId: userId)
+                }
+            }
+            .onDisappear {
+                viewModel.stopListening()
+            }
         }
+    }
+
+    private var summarySubtitle: String {
+        if viewModel.hasMixedCurrencies {
+            return "Total exibido na moeda principal"
+        }
+        return "Baseado nas assinaturas ativas"
     }
 }
 

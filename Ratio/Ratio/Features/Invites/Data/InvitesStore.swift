@@ -87,7 +87,9 @@ final class InvitesStore {
 
         guard status == "active" else { throw InviteError.alreadyUsed }
         guard Date() < expiresAt else { throw InviteError.expired }
-        guard usesCount < maxUses else { throw InviteError.alreadyUsed }
+        if maxUses > 0, usesCount >= maxUses {
+            throw InviteError.alreadyUsed
+        }
 
         let groupRef = db.collection("groups").document(groupId)
         let memberIds = inviteData["memberIds"] as? [String] ?? []

@@ -33,13 +33,13 @@ final class GroupInviteViewModel: ObservableObject {
         inviteURL = nil
 
         do {
-            let expiresAt = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
+            let expiresAt = Date().addingTimeInterval(60 * 60 * 24)
             let token = try await store.createInvite(
                 groupId: groupId,
                 groupName: groupName,
                 createdBy: ownerId,
                 expiresAt: expiresAt,
-                maxUses: 1
+                maxUses: 0
             )
             inviteURL = URL(string: "\(baseInviteURL)?token=\(token)")
         } catch {

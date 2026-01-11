@@ -260,13 +260,14 @@ struct EditGroupView: View {
             }
 
             if let url = inviteViewModel.inviteURL {
-                ShareLink(item: url) {
-                    Label("Compartilhar no WhatsApp", systemImage: "paperplane.fill")
+                let message = inviteMessage(for: url)
+                ShareLink(item: message) {
+                    Label("Compartilhar convite", systemImage: "square.and.arrow.up")
                 }
                 .disabled(!isOwner)
 
-                Button("Copiar link") {
-                    UIPasteboard.general.string = url.absoluteString
+                Button("Copiar mensagem") {
+                    UIPasteboard.general.string = message
                 }
                 .disabled(!isOwner)
             }
@@ -279,7 +280,7 @@ struct EditGroupView: View {
         } header: {
             Text("Convite")
         } footer: {
-            Text("O link é de uso único e expira após a primeira utilização.")
+            Text("O link expira em 24 horas e pode ser usado sem limite de pessoas.")
         }
     }
 
@@ -355,6 +356,18 @@ struct EditGroupView: View {
         if splitEqually {
             applyEqualSplit()
         }
+    }
+
+    private func inviteMessage(for url: URL) -> String {
+        """
+        Você foi convidado(a) para o grupo "\(group.name)" no Ratio.
+
+        Baixe o app (em breve):
+        https://uaipixel.com/apps/ratio
+
+        Abra o convite:
+        \(url.absoluteString)
+        """
     }
 
     private var perPersonAmount: Double {

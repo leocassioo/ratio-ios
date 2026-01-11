@@ -32,6 +32,9 @@ final class SubscriptionsViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
 
+        Task {
+            try? await store.normalizeNextBillingDates(userId: userId)
+        }
         listener = store.listenSubscriptions(for: userId) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false

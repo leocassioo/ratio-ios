@@ -19,9 +19,15 @@ struct HomeUpcomingSectionView: View {
                     .font(.headline)
             }
 
-            VStack(spacing: 10) {
-                ForEach(items) { item in
-                    HomeUpcomingRowView(item: item)
+            if items.isEmpty {
+                Text("Nenhum pagamento próximo")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(items) { item in
+                        HomeUpcomingRowView(item: item)
+                    }
                 }
             }
         }
