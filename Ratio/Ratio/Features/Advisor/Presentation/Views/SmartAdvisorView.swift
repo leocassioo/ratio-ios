@@ -16,8 +16,6 @@ struct SmartAdvisorView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    headerView
-
                     if viewModel.isLoading {
                         analyzingCard
                     } else {
@@ -31,41 +29,22 @@ struct SmartAdvisorView: View {
                 .padding(.bottom, 24)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("")
-            .navigationBarHidden(true)
+            .navigationTitle("Smart Advisor")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        viewModel.refreshInsights()
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .disabled(viewModel.isLoading)
+                }
+            }
             .onAppear {
                 if let userId = authViewModel.user?.uid {
                     viewModel.start(userId: userId)
                 }
-            }
-        }
-    }
-
-    private var headerView: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 8) {
-                    Image(systemName: "sparkles")
-                        .foregroundStyle(Color(.systemIndigo))
-                    Text("Smart Advisor")
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(.primary)
-                }
-                Text("Insights inteligentes para sua carteira")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Button {
-                viewModel.refreshInsights()
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .foregroundStyle(.primary)
-                    .frame(width: 36, height: 36)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(Circle())
             }
         }
     }

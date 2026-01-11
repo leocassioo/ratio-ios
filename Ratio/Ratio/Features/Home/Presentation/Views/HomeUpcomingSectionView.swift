@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct HomeUpcomingSectionView: View {
+    @EnvironmentObject private var navigationState: AppNavigationState
     let items: [UpcomingPaymentItem]
 
     var body: some View {
@@ -17,6 +18,14 @@ struct HomeUpcomingSectionView: View {
                     .foregroundStyle(.secondary)
                 Text("Próximos pagamentos")
                     .font(.headline)
+                Spacer()
+                Button {
+                    navigationState.route(to: .subscriptions)
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
             }
 
             if items.isEmpty {
