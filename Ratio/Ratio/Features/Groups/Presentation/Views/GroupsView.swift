@@ -83,6 +83,7 @@ struct GroupsView: View {
             }
             .onChange(of: viewModel.groups) { _, _ in
                 openPendingGroupIfNeeded()
+                refreshSelectedGroupDetailIfNeeded()
             }
             .onChange(of: navigationState.pendingGroupId) { _, _ in
                 openPendingGroupIfNeeded()
@@ -128,6 +129,12 @@ struct GroupsView: View {
         guard let group = viewModel.groups.first(where: { $0.id == groupId }) else { return }
         selectedGroupDetail = group
         navigationState.pendingGroupId = nil
+    }
+
+    private func refreshSelectedGroupDetailIfNeeded() {
+        guard let selectedGroupDetail else { return }
+        guard let updated = viewModel.groups.first(where: { $0.id == selectedGroupDetail.id }) else { return }
+        self.selectedGroupDetail = updated
     }
 }
 

@@ -8,24 +8,26 @@
 import SwiftUI
 
 struct GroupDetailView: View {
-    @State private var group: Group
+    let group: Group
     let currentUserId: String?
+    @State private var currentGroup: Group
     @StateObject private var paymentsViewModel = GroupPaymentsViewModel()
     @State private var showPaymentSheet = false
     @State private var showPaymentError = false
 
     init(group: Group, currentUserId: String?) {
-        _group = State(initialValue: group)
+        self.group = group
         self.currentUserId = currentUserId
+        _currentGroup = State(initialValue: group)
     }
 
     var body: some View {
         List {
             Section("Grupo") {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(group.name)
+                    Text(currentGroup.name)
                         .font(.title2.bold())
-                    if let subscriptionName = group.subscriptionName {
+                    if let subscriptionName = currentGroup.subscriptionName {
                         Text(subscriptionName)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
@@ -36,7 +38,7 @@ struct GroupDetailView: View {
                     Text("Total")
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text(formattedCurrency(group.totalAmount))
+                    Text(formattedCurrency(currentGroup.totalAmount))
                         .font(.headline)
                 }
 
@@ -44,11 +46,11 @@ struct GroupDetailView: View {
                     Text("Periodicidade")
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text(group.billingPeriod)
+                    Text(currentGroup.billingPeriod)
                         .foregroundStyle(.secondary)
                 }
 
-                if let billingDay = group.chargeDay ?? group.billingDay {
+                if let billingDay = currentGroup.chargeDay ?? currentGroup.billingDay {
                     HStack {
                         Text("Dia de cobrança do grupo")
                             .foregroundStyle(.secondary)
@@ -62,7 +64,7 @@ struct GroupDetailView: View {
                     Text("Categoria")
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text(group.category.label)
+                    Text(currentGroup.category.label)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -94,7 +96,7 @@ struct GroupDetailView: View {
                 }
             }
 
-            if let notes = group.notes, !notes.isEmpty {
+            if let notes = currentGroup.notes, !notes.isEmpty {
                 Section("Observações") {
                     Text(notes)
                 }
@@ -127,7 +129,7 @@ struct GroupDetailView: View {
                         if canApprove(member: member) {
                             Button("Aprovar") {
                                 Task {
-                                    await paymentsViewModel.approvePayment(groupId: group.id, memberId: member.id)
+                                    await paymentsViewModel.approvePayment(groupId: currentGroup.id, memberId: member.id)
                                     if paymentsViewModel.errorMessage == nil {
                                         updateMemberStatus(member.id, status: .paid)
                                     }
@@ -145,10 +147,10 @@ struct GroupDetailView: View {
             if let currentMember = currentMember {
                 NavigationStack {
                     PaymentSubmissionView(
-                        groupId: group.id,
+                        groupId: currentGroup.id,
                         memberId: currentMember.id,
                         amount: currentMember.amount,
-                        currencyCode: group.currencyCode,
+                        currencyCode: currentGroup.currencyCode,
                         onSubmitted: {
                             updateMemberStatus(currentMember.id, status: .submitted)
                         }
@@ -161,13 +163,16 @@ struct GroupDetailView: View {
         } message: {
             Text(paymentsViewModel.errorMessage ?? "Não foi possível atualizar o pagamento.")
         }
+        .onChange(of: group) { _, newValue in
+            currentGroup = newValue
+        }
         .onChange(of: paymentsViewModel.errorMessage) { _, newValue in
             showPaymentError = newValue != nil
         }
     }
 
     private func memberLabel(for member: GroupMember) -> String {
-        let isOwner = member.userId == group.ownerId
+        let isOwner = member.userId == currentGroup.ownerId
         let isCurrentUser = currentUserId == member.userId
 
         switch (isOwner, isCurrentUser) {
@@ -185,7 +190,7 @@ struct GroupDetailView: View {
     private func formattedCurrency(_ value: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        formatter.currencyCode = group.currencyCode
+        formatter.currencyCode = currentGroup.currencyCode
         formatter.locale = Locale(identifier: "pt_BR")
         return formatter.string(from: NSNumber(value: value)) ?? "R$ 0,00"
     }
@@ -202,8 +207,8 @@ struct GroupDetailView: View {
     }
 
     private var orderedMembers: [GroupMember] {
-        guard let ownerId = group.ownerId else { return group.members }
-        return group.members.sorted { lhs, rhs in
+        guard let ownerId = currentGroup.ownerId else { return currentGroup.members }
+        return currentGroup.members.sorted { lhs, rhs in
             let lhsIsOwner = lhs.userId == ownerId
             let rhsIsOwner = rhs.userId == ownerId
             if lhsIsOwner != rhsIsOwner {
@@ -215,33 +220,33 @@ struct GroupDetailView: View {
 
     private var currentMember: GroupMember? {
         guard let currentUserId else { return nil }
-        return group.members.first { $0.userId == currentUserId }
+        return currentGroup.members.first { $0.userId == currentUserId }
     }
 
     private func canApprove(member: GroupMember) -> Bool {
-        guard let ownerId = group.ownerId, ownerId == currentUserId else { return false }
+        guard let ownerId = currentGroup.ownerId, ownerId == currentUserId else { return false }
         return member.status == .submitted
     }
 
     private func updateMemberStatus(_ memberId: String, status: GroupMemberStatus) {
-        group = Group(
-            id: group.id,
-            name: group.name,
-            category: group.category,
-            totalAmount: group.totalAmount,
-            currencyCode: group.currencyCode,
-            billingPeriod: group.billingPeriod,
-            billingDay: group.billingDay,
-            notes: group.notes,
-            ownerId: group.ownerId,
-            subscriptionId: group.subscriptionId,
-            subscriptionName: group.subscriptionName,
-            subscriptionCategory: group.subscriptionCategory,
-            subscriptionPeriod: group.subscriptionPeriod,
-            subscriptionNextBillingDate: group.subscriptionNextBillingDate,
-            chargeDay: group.chargeDay,
-            chargeNextBillingDate: group.chargeNextBillingDate,
-            members: group.members.map { member in
+        currentGroup = Group(
+            id: currentGroup.id,
+            name: currentGroup.name,
+            category: currentGroup.category,
+            totalAmount: currentGroup.totalAmount,
+            currencyCode: currentGroup.currencyCode,
+            billingPeriod: currentGroup.billingPeriod,
+            billingDay: currentGroup.billingDay,
+            notes: currentGroup.notes,
+            ownerId: currentGroup.ownerId,
+            subscriptionId: currentGroup.subscriptionId,
+            subscriptionName: currentGroup.subscriptionName,
+            subscriptionCategory: currentGroup.subscriptionCategory,
+            subscriptionPeriod: currentGroup.subscriptionPeriod,
+            subscriptionNextBillingDate: currentGroup.subscriptionNextBillingDate,
+            chargeDay: currentGroup.chargeDay,
+            chargeNextBillingDate: currentGroup.chargeNextBillingDate,
+            members: currentGroup.members.map { member in
                 guard member.id == memberId else { return member }
                 return GroupMember(
                     id: member.id,

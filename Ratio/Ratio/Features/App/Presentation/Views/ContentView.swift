@@ -29,6 +29,20 @@ struct ContentView: View {
         .onOpenURL { url in
             inviteCoordinator.handleURL(url)
         }
+        .onAppear {
+            if let payload = NotificationRouteHandler.shared.consumePendingPayload() {
+                switch payload.route {
+                case .home:
+                    navigationState.route(to: .home)
+                case .subscriptions:
+                    navigationState.route(to: .subscriptions)
+                case .groups:
+                    navigationState.route(to: .groups, groupId: payload.groupId)
+                case .settings:
+                    navigationState.route(to: .settings)
+                }
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .notificationRouteDidReceive)) { notification in
             guard let payload = notification.object as? NotificationRoutePayload else { return }
             switch payload.route {

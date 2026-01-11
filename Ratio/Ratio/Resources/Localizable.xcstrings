@@ -73,9 +73,6 @@
     "Crie seu primeiro grupo para compartilhar assinaturas." : {
 
     },
-    "Dashboard em breve" : {
-
-    },
     "Detalhes" : {
 
     },
@@ -146,6 +143,9 @@
 
     },
     "Fechar" : {
+
+    },
+    "Gastos por categoria" : {
 
     },
     "Gerando link..." : {
@@ -246,6 +246,9 @@
     "Próxima cobrança: %@" : {
 
     },
+    "Próximos pagamentos" : {
+
+    },
     "Ratio" : {
 
     },
@@ -289,6 +292,9 @@
 
     },
     "Total" : {
+
+    },
+    "Total mensal" : {
 
     },
     "Total: %@ / %@" : {
