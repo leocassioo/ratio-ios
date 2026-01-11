@@ -30,6 +30,12 @@ struct MainTabView: View {
                 }
                 .tag(MainTab.groups)
 
+            SmartAdvisorView()
+                .tabItem {
+                    Label("Advisor", systemImage: "sparkles")
+                }
+                .tag(MainTab.advisor)
+
             SettingsView()
                 .tabItem {
                     Label("Ajustes", systemImage: "gearshape")

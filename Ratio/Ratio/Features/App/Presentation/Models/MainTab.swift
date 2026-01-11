@@ -11,5 +11,6 @@ enum MainTab: String, Hashable {
     case home
     case subscriptions
     case groups
+    case advisor
     case settings
 }

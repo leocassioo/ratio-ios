@@ -1,0 +1,200 @@
+//
+//  SmartAdvisorView.swift
+//  Ratio
+//
+//  Created by Codex on 15/02/26.
+//
+
+import SwiftUI
+import FirebaseAuth
+
+struct SmartAdvisorView: View {
+    @EnvironmentObject private var authViewModel: AuthViewModel
+    @StateObject private var viewModel = SmartAdvisorViewModel()
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 16) {
+                    headerView
+
+                    if viewModel.isLoading {
+                        analyzingCard
+                    } else {
+                        insightsCard
+                    }
+
+                    statsRow
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 24)
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("")
+            .navigationBarHidden(true)
+            .onAppear {
+                if let userId = authViewModel.user?.uid {
+                    viewModel.start(userId: userId)
+                }
+            }
+        }
+    }
+
+    private var headerView: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(Color(.systemIndigo))
+                    Text("Smart Advisor")
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
+                Text("Insights inteligentes para sua carteira")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button {
+                viewModel.refreshInsights()
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .foregroundStyle(.primary)
+                    .frame(width: 36, height: 36)
+                    .background(Color(.secondarySystemBackground))
+                    .clipShape(Circle())
+            }
+        }
+    }
+
+    private var insightsCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Insights personalizados")
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(insightsToDisplay) { insight in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("• \(insight.title)")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                        Text(insight.detail)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Text("* Insights gerados por IA. Sempre revise decisões financeiras.")
+                .font(.footnote)
+                .foregroundStyle(.secondary.opacity(0.7))
+                .padding(.top, 8)
+
+            if let message = viewModel.errorMessage {
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+        }
+        .padding(18)
+        .background(cardBackground)
+        .overlay(cardSymbolOverlay)
+    }
+
+    private var analyzingCard: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .tint(Color(.systemIndigo))
+                .scaleEffect(1.2)
+
+            Text("Analisando padrões de gasto...")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(28)
+        .background(cardBackground)
+        .overlay(cardSymbolOverlay)
+    }
+
+    private var statsRow: some View {
+        VStack(spacing: 12) {
+            ForEach(statsToDisplay) { stat in
+                statCard(
+                    title: stat.title,
+                    subtitle: stat.detail,
+                    highlight: stat.isHighlighted
+                )
+            }
+        }
+    }
+
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(
+                Color(.secondarySystemBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color(.separator), lineWidth: 1)
+            )
+    }
+
+    private var cardSymbolOverlay: some View {
+        Image(systemName: "brain.head.profile")
+            .font(.system(size: 90))
+            .foregroundStyle(Color(.secondaryLabel).opacity(0.2))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .padding(10)
+    }
+
+    private func statCard(title: String, subtitle: String, highlight: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(highlight ? Color(.systemGreen) : .primary)
+            Text(subtitle)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color(.separator), lineWidth: 1)
+                )
+        )
+    }
+
+    private var insightsToDisplay: [AdvisorInsight] {
+        if viewModel.insights.isEmpty {
+            return [
+                AdvisorInsight(
+                    id: UUID().uuidString,
+                    title: "Aguarde os insights",
+                    detail: "Atualize para receber análises personalizadas."
+                )
+            ]
+        }
+        return viewModel.insights
+    }
+
+    private var statsToDisplay: [AdvisorStat] {
+        if viewModel.stats.isEmpty {
+            return []
+        }
+        return viewModel.stats
+    }
+}
+
+#Preview {
+    SmartAdvisorView()
+}

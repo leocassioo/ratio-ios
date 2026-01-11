@@ -1,7 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+
+    },
+    "* Insights gerados por IA. Sempre revise decisões financeiras." : {
+
+    },
     "%lld" : {
+
+    },
+    "• %@" : {
 
     },
     "0,00" : {
@@ -10,10 +19,16 @@
     "Adicionar foto (opcional)" : {
 
     },
+    "Advisor" : {
+
+    },
     "Aguardando confirmação do organizador." : {
 
     },
     "Ajustes" : {
+
+    },
+    "Analisando padrões de gasto..." : {
 
     },
     "Aparência" : {
@@ -166,6 +181,12 @@
     "Idioma do app" : {
 
     },
+    "Insights inteligentes para sua carteira" : {
+
+    },
+    "Insights personalizados" : {
+
+    },
     "login_button" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -280,6 +301,9 @@
 
     },
     "Seu pagamento" : {
+
+    },
+    "Smart Advisor" : {
 
     },
     "Status" : {
