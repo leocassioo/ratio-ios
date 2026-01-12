@@ -24,5 +24,8 @@ struct Group: Identifiable, Equatable {
     let subscriptionNextBillingDate: Date?
     let chargeDay: Int?
     let chargeNextBillingDate: Date?
+    let serviceLogin: String?
+    let servicePassword: String?
+    let pixKey: String?
     let members: [GroupMember]
 }

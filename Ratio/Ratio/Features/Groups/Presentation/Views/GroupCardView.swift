@@ -70,14 +70,27 @@ struct GroupCardView: View {
 
                         if canEdit, member.status != .paid, member.userId != currentUserId {
                             Button {
-                                if let url = WhatsAppMessageBuilder.buildPaymentRequest(
-                                    memberName: member.name,
-                                    groupName: group.name,
-                                    amount: member.amount,
-                                    currencyCode: group.currencyCode,
-                                    pixKey: currentUserPixKey
-                                ) {
-                                    UIApplication.shared.open(url)
+                                Task {
+                                    let usersStore = UsersStore()
+                                    var phoneNumber: String?
+                                    if let userId = member.userId {
+                                        if let profile = try? await usersStore.fetchUserProfile(userId: userId) {
+                                            phoneNumber = profile.phoneNumber
+                                        }
+                                    }
+                                    
+                                    if let url = WhatsAppMessageBuilder.buildPaymentRequest(
+                                        memberName: member.name,
+                                        groupName: group.name,
+                                        amount: member.amount,
+                                        currencyCode: group.currencyCode,
+                                        pixKey: (group.pixKey?.isEmpty == false) ? group.pixKey : currentUserPixKey,
+                                        phoneNumber: phoneNumber
+                                    ) {
+                                        await MainActor.run {
+                                            UIApplication.shared.open(url)
+                                        }
+                                    }
                                 }
                             } label: {
                                 Image(systemName: "bell.fill")

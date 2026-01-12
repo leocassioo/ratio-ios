@@ -64,6 +64,12 @@
     "Chave Pix" : {
 
     },
+    "Chave Pix do grupo" : {
+
+    },
+    "Chave Pix para pagamento" : {
+
+    },
     "Compartilhar convite" : {
 
     },
@@ -85,7 +91,10 @@
     "Convite para" : {
 
     },
-    "Copiar mensagem" : {
+    "Credenciais de Acesso" : {
+
+    },
+    "Credenciais de Acesso (Opcional)" : {
 
     },
     "Criar conta" : {
@@ -95,6 +104,9 @@
 
     },
     "Crie seu primeiro grupo para compartilhar assinaturas." : {
+
+    },
+    "Dados de Pagamento (Opcional)" : {
 
     },
     "Dados pessoais" : {
@@ -194,6 +206,12 @@
 
     },
     "Insights personalizados" : {
+
+    },
+    "Login" : {
+
+    },
+    "Login do serviço" : {
 
     },
     "login_button" : {
@@ -315,6 +333,12 @@
     "Salvar alterações" : {
 
     },
+    "Se deixado em branco, será usada a chave Pix do seu perfil ao cobrar." : {
+
+    },
+    "Se preenchido, esta chave será usada em vez da chave do seu perfil." : {
+
+    },
     "Selecionar comprovante" : {
 
     },
@@ -325,6 +349,9 @@
 
     },
     "Senha" : {
+
+    },
+    "Senha do serviço" : {
 
     },
     "Seu pagamento" : {

@@ -20,6 +20,10 @@ struct CreateGroupView: View {
     @State private var billingPeriodLabel = ""
     @State private var billingDay = 1
     @State private var notes = ""
+    @State private var serviceLogin = ""
+    @State private var servicePassword = ""
+
+    @State private var pixKey = ""
     @State private var splitEqually = true
     @State private var members: [GroupMemberDraft] = []
     @State private var memberValues: [String: Double] = [:]
@@ -36,6 +40,8 @@ struct CreateGroupView: View {
     var body: some View {
         Form {
             groupSection
+            credentialsSection
+            paymentDataSection
             notesSection
             membersSection
             if perPersonAmount > 0 {
@@ -59,6 +65,9 @@ struct CreateGroupView: View {
                                 subscription: subscription,
                                 billingDay: billingDay,
                                 notes: notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes,
+                                serviceLogin: serviceLogin.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : serviceLogin,
+                                servicePassword: servicePassword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : servicePassword,
+                                pixKey: pixKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : pixKey,
                                 members: normalizedMembers,
                                 ownerId: ownerId
                             )
@@ -84,6 +93,11 @@ struct CreateGroupView: View {
             }
             updateSelectedSubscription()
             creationViewModel.startListening()
+            Task {
+                if let profile = try? await UsersStore().fetchUserProfile(userId: ownerId), let key = profile.pixKey {
+                    pixKey = key
+                }
+            }
         }
         .onDisappear {
             creationViewModel.stopListening()
@@ -150,6 +164,29 @@ struct CreateGroupView: View {
             }
 
             Toggle("Dividir igualmente", isOn: $splitEqually)
+        }
+    }
+
+    private var credentialsSection: some View {
+        Section("Credenciais de Acesso (Opcional)") {
+            TextField("Login do serviço", text: $serviceLogin)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            TextField("Senha do serviço", text: $servicePassword)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+        }
+        .textCase(nil)
+    }
+
+    private var paymentDataSection: some View {
+        Section("Dados de Pagamento (Opcional)") {
+            TextField("Chave Pix do grupo", text: $pixKey)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            Text("Se deixado em branco, será usada a chave Pix do seu perfil ao cobrar.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 

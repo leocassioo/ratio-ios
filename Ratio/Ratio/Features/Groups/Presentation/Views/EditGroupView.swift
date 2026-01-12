@@ -20,6 +20,9 @@ struct EditGroupView: View {
     @State private var currencyCode: String
     @State private var billingDay: Int
     @State private var notes: String
+    @State private var serviceLogin: String
+    @State private var servicePassword: String
+    @State private var pixKey: String
     @State private var splitEqually: Bool = true
     @State private var members: [GroupMemberDraft]
     @State private var memberValues: [String: Double] = [:]
@@ -40,6 +43,9 @@ struct EditGroupView: View {
         _currencyCode = State(initialValue: group.currencyCode)
         _billingDay = State(initialValue: group.billingDay ?? 1)
         _notes = State(initialValue: group.notes ?? "")
+        _serviceLogin = State(initialValue: group.serviceLogin ?? "")
+        _servicePassword = State(initialValue: group.servicePassword ?? "")
+        _pixKey = State(initialValue: group.pixKey ?? "")
         _members = State(initialValue: group.members.map {
             GroupMemberDraft(
                 id: $0.id,
@@ -61,6 +67,8 @@ struct EditGroupView: View {
     var body: some View {
         Form {
             groupSection
+            credentialsSection
+            paymentDataSection
             notesSection
             membersSection
             if perPersonAmount > 0 {
@@ -87,6 +95,9 @@ struct EditGroupView: View {
                                 subscription: subscription,
                                 billingDay: billingDay,
                                 notes: notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes,
+                                serviceLogin: serviceLogin.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : serviceLogin,
+                                servicePassword: servicePassword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : servicePassword,
+                                pixKey: pixKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : pixKey,
                                 members: normalizedMembers,
                                 ownerId: ownerId
                             )
@@ -180,6 +191,30 @@ struct EditGroupView: View {
         }
     }
 
+    private var credentialsSection: some View {
+        Section("Credenciais de Acesso (Opcional)") {
+            TextField("Login do serviço", text: $serviceLogin)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            TextField("Senha do serviço", text: $servicePassword)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+        }
+        .textCase(nil)
+    }
+
+    private var paymentDataSection: some View {
+        Section("Dados de Pagamento (Opcional)") {
+            TextField("Chave Pix do grupo", text: $pixKey)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            Text("Se preenchido, esta chave será usada em vez da chave do seu perfil.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+
+    }
+
     private var notesSection: some View {
         Section("Observações") {
             TextField("Detalhes do grupo", text: $notes, axis: .vertical)
@@ -266,10 +301,7 @@ struct EditGroupView: View {
                 }
                 .disabled(!isOwner)
 
-                Button("Copiar mensagem") {
-                    UIPasteboard.general.string = message
-                }
-                .disabled(!isOwner)
+                CopyButton(textToCopy: message)
             }
 
             if let message = inviteViewModel.errorMessage {
@@ -438,6 +470,9 @@ struct EditGroupView: View {
                 subscriptionNextBillingDate: Date(),
                 chargeDay: 9,
                 chargeNextBillingDate: Date(),
+                serviceLogin: nil,
+                servicePassword: nil,
+                pixKey: nil,
                 members: [
                     GroupMember(id: "1", name: "Leo", amount: 20, status: .paid, userId: "1", receiptURL: nil, submittedAt: nil, approvedAt: nil),
                     GroupMember(id: "2", name: "Pessoa", amount: 20, status: .pending, userId: nil, receiptURL: nil, submittedAt: nil, approvedAt: nil)

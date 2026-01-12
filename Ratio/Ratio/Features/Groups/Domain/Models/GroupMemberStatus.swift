@@ -16,11 +16,11 @@ enum GroupMemberStatus: String, CaseIterable {
         switch self {
         case .paid: return "Pago"
         case .pending: return "Pendente"
-        case .submitted: return "Aguardando confirmação"
+        case .submitted: return "Aguardando aprovação"
         }
     }
 
     static var editableCases: [GroupMemberStatus] {
-        [.paid, .pending]
+        [.paid, .pending, .submitted]
     }
 }

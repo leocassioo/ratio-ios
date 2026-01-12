@@ -58,6 +58,9 @@ final class GroupsViewModel: ObservableObject {
         subscription: SubscriptionItem,
         billingDay: Int?,
         notes: String?,
+        serviceLogin: String?,
+        servicePassword: String?,
+        pixKey: String?,
         members: [GroupMemberDraft],
         ownerId: String
     ) async {
@@ -91,6 +94,9 @@ final class GroupsViewModel: ObservableObject {
             "subscriptionNextBillingDate": Timestamp(date: subscription.nextBillingDate),
             "chargeDay": billingDay as Any,
             "chargeNextBillingDate": Timestamp(date: computedChargeNextBillingDate(for: subscription, billingDay: billingDay)),
+            "serviceLogin": serviceLogin as Any,
+            "servicePassword": servicePassword as Any,
+            "pixKey": pixKey as Any,
             "createdAt": FieldValue.serverTimestamp()
         ]
 
@@ -107,6 +113,9 @@ final class GroupsViewModel: ObservableObject {
         subscription: SubscriptionItem,
         billingDay: Int?,
         notes: String?,
+        serviceLogin: String?,
+        servicePassword: String?,
+        pixKey: String?,
         members: [GroupMemberDraft],
         ownerId: String
     ) async {
@@ -139,6 +148,9 @@ final class GroupsViewModel: ObservableObject {
             "subscriptionNextBillingDate": Timestamp(date: subscription.nextBillingDate),
             "chargeDay": billingDay as Any,
             "chargeNextBillingDate": Timestamp(date: computedChargeNextBillingDate(for: subscription, billingDay: billingDay)),
+            "serviceLogin": serviceLogin as Any,
+            "servicePassword": servicePassword as Any,
+            "pixKey": pixKey as Any,
             "updatedAt": FieldValue.serverTimestamp()
         ]
 

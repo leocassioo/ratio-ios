@@ -14,6 +14,7 @@ struct GroupDetailView: View {
     @StateObject private var paymentsViewModel = GroupPaymentsViewModel()
     @State private var showPaymentSheet = false
     @State private var showPaymentError = false
+    @State private var ownerPixKey: String?
 
     init(group: Group, currentUserId: String?) {
         self.group = group
@@ -85,6 +86,24 @@ struct GroupDetailView: View {
                     }
 
                     if currentMember.status == .pending {
+                        if let paymentKey = (currentGroup.pixKey?.isEmpty == false) ? currentGroup.pixKey : ownerPixKey, !paymentKey.isEmpty {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Chave Pix para pagamento")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                HStack {
+                                    Text(paymentKey)
+                                        .font(.subheadline)
+                                        .monospaced()
+                                    Spacer()
+                                    CopyButton(textToCopy: paymentKey)
+                                }
+                                .padding(8)
+                                .background(Color(.secondarySystemBackground))
+                                .cornerRadius(8)
+                            }
+                        }
+
                         Button("Marcar como pago") {
                             showPaymentSheet = true
                         }
@@ -99,6 +118,38 @@ struct GroupDetailView: View {
             if let notes = currentGroup.notes, !notes.isEmpty {
                 Section("Observações") {
                     Text(notes)
+                }
+            }
+            
+            if (currentGroup.serviceLogin?.isEmpty == false) || (currentGroup.servicePassword?.isEmpty == false) {
+                Section("Credenciais de Acesso") {
+                    if let login = currentGroup.serviceLogin, !login.isEmpty {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("Login")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(login)
+                                    .font(.body)
+                            }
+                            Spacer()
+                            CopyButton(textToCopy: login)
+                        }
+                    }
+                    
+                    if let password = currentGroup.servicePassword, !password.isEmpty {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("Senha")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                SecureField("Senha", text: .constant(password))
+                                    .disabled(true)
+                            }
+                            Spacer()
+                            CopyButton(textToCopy: password)
+                        }
+                    }
                 }
             }
 
@@ -137,14 +188,27 @@ struct GroupDetailView: View {
                             .tint(.green)
                         } else if member.status != .paid && member.userId != currentUserId {
                             Button {
-                                if let url = WhatsAppMessageBuilder.buildPaymentRequest(
-                                    memberName: member.name,
-                                    groupName: currentGroup.name,
-                                    amount: member.amount,
-                                    currencyCode: currentGroup.currencyCode,
-                                    pixKey: paymentsViewModel.userPixKey
-                                ) {
-                                    UIApplication.shared.open(url)
+                                Task {
+                                    let usersStore = UsersStore()
+                                    var phoneNumber: String?
+                                    if let userId = member.userId {
+                                        if let profile = try? await usersStore.fetchUserProfile(userId: userId) {
+                                            phoneNumber = profile.phoneNumber
+                                        }
+                                    }
+                                    
+                                    if let url = WhatsAppMessageBuilder.buildPaymentRequest(
+                                        memberName: member.name,
+                                        groupName: currentGroup.name,
+                                        amount: member.amount,
+                                        currencyCode: currentGroup.currencyCode,
+                                        pixKey: (currentGroup.pixKey?.isEmpty == false) ? currentGroup.pixKey : paymentsViewModel.userPixKey,
+                                        phoneNumber: phoneNumber
+                                    ) {
+                                        await MainActor.run {
+                                            UIApplication.shared.open(url)
+                                        }
+                                    }
                                 }
                             } label: {
                                 Image(systemName: "bell.fill")
@@ -165,6 +229,11 @@ struct GroupDetailView: View {
         .task {
             if let currentUserId {
                 await paymentsViewModel.fetchUserPixKey(userId: currentUserId)
+            }
+            if let ownerId = currentGroup.ownerId, ownerId != currentUserId {
+                if let profile = try? await UsersStore().fetchUserProfile(userId: ownerId) {
+                    ownerPixKey = profile.pixKey
+                }
             }
         }
         .sheet(isPresented: $showPaymentSheet) {
@@ -270,6 +339,9 @@ struct GroupDetailView: View {
             subscriptionNextBillingDate: currentGroup.subscriptionNextBillingDate,
             chargeDay: currentGroup.chargeDay,
             chargeNextBillingDate: currentGroup.chargeNextBillingDate,
+            serviceLogin: currentGroup.serviceLogin,
+            servicePassword: currentGroup.servicePassword,
+            pixKey: currentGroup.pixKey,
             members: currentGroup.members.map { member in
                 guard member.id == memberId else { return member }
                 return GroupMember(
@@ -307,6 +379,9 @@ struct GroupDetailView: View {
                 subscriptionNextBillingDate: Date(),
                 chargeDay: 9,
                 chargeNextBillingDate: Date(),
+                serviceLogin: nil,
+                servicePassword: nil,
+                pixKey: nil,
                 members: [
                     GroupMember(id: "1", name: "Leo", amount: 20, status: .paid, userId: "1", receiptURL: nil, submittedAt: nil, approvedAt: nil),
                     GroupMember(id: "2", name: "Pessoa", amount: 20, status: .pending, userId: nil, receiptURL: nil, submittedAt: nil, approvedAt: nil)
