@@ -30,6 +30,18 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
+                    if let user = authViewModel.user {
+                        NavigationLink {
+                            EditProfileView(user: user)
+                        } label: {
+                            Label("Perfil", systemImage: "person.crop.circle")
+                        }
+                    }
+                } header: {
+                    Text("Conta")
+                }
+
+                Section {
                     Picker("Tema do app", selection: appTheme) {
                         ForEach(AppTheme.allCases) { theme in
                             Text(theme.label).tag(theme)
@@ -58,6 +70,25 @@ struct SettingsView: View {
                     } label: {
                         Text("Sair")
                     }
+                }
+
+                Section {
+                    HStack {
+                        Text("Versão do app")
+                        Spacer()
+                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
+                            .foregroundStyle(.secondary)
+                    }
+                    Link("Termos de uso", destination: URL(string: "https://uaipixel.com/legal/ratio/terms")!)
+                    Link("Política de privacidade", destination: URL(string: "https://uaipixel.com/legal/ratio/privacy")!)
+                } header: {
+                    Text("Sobre")
+                } footer: {
+                    Text("Ratio © 2026 Red Pixel Tecnologia")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 8)
                 }
             }
             .navigationTitle("Ajustes")

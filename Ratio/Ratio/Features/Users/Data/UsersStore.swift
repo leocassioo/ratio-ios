@@ -36,6 +36,7 @@ final class UsersStore {
         userId: String,
         name: String?,
         email: String?,
+        phoneNumber: String? = nil,
         photoURL: String?
     ) async throws {
         var data: [String: Any] = [
@@ -47,6 +48,9 @@ final class UsersStore {
         }
         if let email, !email.isEmpty {
             data["email"] = email
+        }
+        if let phoneNumber, !phoneNumber.isEmpty {
+            data["phoneNumber"] = phoneNumber
         }
         if let photoURL {
             data["photoURL"] = photoURL
@@ -60,6 +64,18 @@ final class UsersStore {
     func fetchUserName(userId: String) async throws -> String? {
         let snapshot = try await db.collection("users").document(userId).getDocument()
         return snapshot.data()?["name"] as? String
+    }
+
+    func fetchUserProfile(userId: String) async throws -> UserProfile? {
+        let snapshot = try await db.collection("users").document(userId).getDocument()
+        let data = snapshot.data()
+        guard let data else { return nil }
+        return UserProfile(
+            name: data["name"] as? String,
+            email: data["email"] as? String,
+            phoneNumber: data["phoneNumber"] as? String,
+            photoURL: data["photoURL"] as? String
+        )
     }
 
     func updateFCMToken(userId: String, token: String) async throws {
