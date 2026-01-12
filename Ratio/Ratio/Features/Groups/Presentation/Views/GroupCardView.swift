@@ -8,8 +8,9 @@
 import SwiftUI
 
 struct GroupCardView: View {
-    let group: Group
+     let group: Group
     let currentUserId: String?
+    let currentUserPixKey: String?
     let onEdit: () -> Void
 
     var body: some View {
@@ -66,6 +67,27 @@ struct GroupCardView: View {
                         }
 
                         Spacer()
+
+                        if canEdit, member.status != .paid, member.userId != currentUserId {
+                            Button {
+                                if let url = WhatsAppMessageBuilder.buildPaymentRequest(
+                                    memberName: member.name,
+                                    groupName: group.name,
+                                    amount: member.amount,
+                                    currencyCode: group.currencyCode,
+                                    pixKey: currentUserPixKey
+                                ) {
+                                    UIApplication.shared.open(url)
+                                }
+                            } label: {
+                                Image(systemName: "bell.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.white)
+                                    .padding(6)
+                                    .background(Circle().fill(Color.orange))
+                            }
+                            .buttonStyle(.plain)
+                        }
 
                         Text(formattedCurrency(member.amount))
                             .font(.subheadline.weight(.semibold))

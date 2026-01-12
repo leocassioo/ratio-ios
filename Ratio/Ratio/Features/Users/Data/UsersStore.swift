@@ -16,13 +16,15 @@ final class UsersStore {
         name: String,
         email: String,
         phoneNumber: String,
-        photoURL: String?
+        photoURL: String?,
+        pixKey: String?
     ) async throws {
         let data: [String: Any] = [
             "name": name,
             "email": email,
             "phoneNumber": phoneNumber,
             "photoURL": photoURL as Any,
+            "pixKey": pixKey as Any,
             "updatedAt": FieldValue.serverTimestamp(),
             "createdAt": FieldValue.serverTimestamp()
         ]
@@ -37,7 +39,8 @@ final class UsersStore {
         name: String?,
         email: String?,
         phoneNumber: String? = nil,
-        photoURL: String?
+        photoURL: String?,
+        pixKey: String?
     ) async throws {
         var data: [String: Any] = [
             "updatedAt": FieldValue.serverTimestamp()
@@ -54,6 +57,9 @@ final class UsersStore {
         }
         if let photoURL {
             data["photoURL"] = photoURL
+        }
+        if let pixKey {
+            data["pixKey"] = pixKey
         }
 
         try await db.collection("users")
@@ -74,7 +80,8 @@ final class UsersStore {
             name: data["name"] as? String,
             email: data["email"] as? String,
             phoneNumber: data["phoneNumber"] as? String,
-            photoURL: data["photoURL"] as? String
+            photoURL: data["photoURL"] as? String,
+            pixKey: data["pixKey"] as? String
         )
     }
 

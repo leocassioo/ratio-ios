@@ -17,6 +17,7 @@ final class EditProfileViewModel: ObservableObject {
     @Published var name: String
     @Published var email: String
     @Published var phoneNumber: String
+    @Published var pixKey: String
     @Published var selectedPhoto: PhotosPickerItem?
     @Published var profileImageData: Data?
     @Published private(set) var remotePhotoURL: URL?
@@ -27,12 +28,13 @@ final class EditProfileViewModel: ObservableObject {
     private let user: User
     private let usersStore: UsersStore
 
-    init(user: User, usersStore: UsersStore = UsersStore()) {
+    init(user: User, usersStore: UsersStore? = nil) {
         self.user = user
-        self.usersStore = usersStore
+        self.usersStore = usersStore ?? UsersStore()
         self.name = user.displayName ?? ""
         self.email = user.email ?? ""
         self.phoneNumber = ""
+        self.pixKey = ""
         self.remotePhotoURL = user.photoURL
     }
 
@@ -43,6 +45,7 @@ final class EditProfileViewModel: ObservableObject {
                     name = profile.name ?? name
                     email = profile.email ?? email
                     phoneNumber = profile.phoneNumber ?? phoneNumber
+                    pixKey = profile.pixKey ?? pixKey
                     if let photo = profile.photoURL, let url = URL(string: photo) {
                         remotePhotoURL = url
                     }
@@ -93,7 +96,8 @@ final class EditProfileViewModel: ObservableObject {
                     name: trimmedName,
                     email: email,
                     phoneNumber: phoneNumber,
-                    photoURL: updatedPhotoURL?.absoluteString
+                    photoURL: updatedPhotoURL?.absoluteString,
+                    pixKey: pixKey
                 )
 
                 remotePhotoURL = updatedPhotoURL

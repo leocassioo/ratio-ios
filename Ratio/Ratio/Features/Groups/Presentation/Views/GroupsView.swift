@@ -53,9 +53,20 @@ struct GroupsView: View {
                     ScrollView {
                         VStack(spacing: 16) {
                             ForEach(viewModel.groups) { group in
-                                GroupCardView(group: group, currentUserId: authViewModel.user?.uid) {
-                                    selectedGroup = group
+                            ForEach(viewModel.groups) { group in
+                                GroupCardView(
+                                    group: group,
+                                    currentUserId: authViewModel.user?.uid,
+                                    currentUserPixKey: authViewModel.userPixKey,
+                                    onEdit: {
+                                        selectedGroup = group
+                                    }
+                                )
+                                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .onTapGesture {
+                                    selectedGroupDetail = group
                                 }
+                            }
                                 .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 .onTapGesture {
                                     selectedGroupDetail = group

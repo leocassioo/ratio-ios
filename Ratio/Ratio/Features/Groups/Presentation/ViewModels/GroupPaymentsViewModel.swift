@@ -13,11 +13,17 @@ import Combine
 final class GroupPaymentsViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
+    @Published var userPixKey: String?
 
     private let store: GroupPaymentsStore
+    private let usersStore: UsersStore
 
-    init(store: GroupPaymentsStore? = nil) {
+    init(
+        store: GroupPaymentsStore? = nil,
+        usersStore: UsersStore = UsersStore()
+    ) {
         self.store = store ?? GroupPaymentsStore()
+        self.usersStore = usersStore
     }
 
     func submitPayment(groupId: String, memberId: String, receiptData: Data?) async {
@@ -48,6 +54,16 @@ final class GroupPaymentsViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
             isLoading = false
+        }
+    }
+
+    func fetchUserPixKey(userId: String) async {
+        do {
+            if let profile = try await usersStore.fetchUserProfile(userId: userId) {
+                userPixKey = profile.pixKey
+            }
+        } catch {
+            print("Error fetching user profile: \(error)")
         }
     }
 

@@ -12,4 +12,5 @@ struct UserProfile: Equatable {
     let email: String?
     let phoneNumber: String?
     let photoURL: String?
+    let pixKey: String?
 }

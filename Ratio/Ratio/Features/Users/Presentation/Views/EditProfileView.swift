@@ -45,6 +45,10 @@ struct EditProfileView: View {
                 TextField("Telefone", text: $viewModel.phoneNumber)
                     .keyboardType(.phonePad)
                     .textContentType(.telephoneNumber)
+
+                TextField("Chave Pix", text: $viewModel.pixKey)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
             } header: {
                 Text("Dados pessoais")
             } footer: {

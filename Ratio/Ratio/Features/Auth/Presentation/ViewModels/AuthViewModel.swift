@@ -16,6 +16,7 @@ final class AuthViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var passwordResetSent = false
+    @Published private(set) var userPixKey: String?
 
     private var handle: AuthStateDidChangeListenerHandle?
     private let usersStore = UsersStore()
@@ -23,6 +24,13 @@ final class AuthViewModel: ObservableObject {
     init() {
         handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             self?.user = user
+            if let user {
+                Task {
+                    await self?.fetchProfile(userId: user.uid)
+                }
+            } else {
+                self?.userPixKey = nil
+            }
         }
     }
 
@@ -39,7 +47,8 @@ final class AuthViewModel: ObservableObject {
                 userId: result.user.uid,
                 name: result.user.displayName,
                 email: result.user.email,
-                photoURL: result.user.photoURL?.absoluteString
+                photoURL: result.user.photoURL?.absoluteString,
+                pixKey: nil
             )
             return result
         }
@@ -69,7 +78,8 @@ final class AuthViewModel: ObservableObject {
                 name: profileName,
                 email: profileEmail,
                 phoneNumber: phoneNumber,
-                photoURL: profilePhoto
+                photoURL: profilePhoto,
+                pixKey: nil
             )
             return result
         }
@@ -101,6 +111,18 @@ final class AuthViewModel: ObservableObject {
                     self?.errorMessage = error.localizedDescription
                 }
             }
+        }
+    }
+    
+    func fetchProfile(userId: String) async {
+        do {
+            if let profile = try await usersStore.fetchUserProfile(userId: userId) {
+                await MainActor.run {
+                    self.userPixKey = profile.pixKey
+                }
+            }
+        } catch {
+            print("Error fetching profile: \(error)")
         }
     }
 

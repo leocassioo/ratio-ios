@@ -114,8 +114,6 @@ struct GroupDetailView: View {
                                 .foregroundStyle(statusColor(for: member.status))
                         }
                         Spacer()
-                        Text(formattedCurrency(member.amount))
-                            .font(.subheadline.weight(.semibold))
 
                         if let receiptURL = member.receiptURL,
                            let url = URL(string: receiptURL) {
@@ -137,12 +135,38 @@ struct GroupDetailView: View {
                             }
                             .buttonStyle(.bordered)
                             .tint(.green)
+                        } else if member.status != .paid && member.userId != currentUserId {
+                            Button {
+                                if let url = WhatsAppMessageBuilder.buildPaymentRequest(
+                                    memberName: member.name,
+                                    groupName: currentGroup.name,
+                                    amount: member.amount,
+                                    currencyCode: currentGroup.currencyCode,
+                                    pixKey: paymentsViewModel.userPixKey
+                                ) {
+                                    UIApplication.shared.open(url)
+                                }
+                            } label: {
+                                Image(systemName: "bell.fill")
+                                    .foregroundStyle(.white)
+                                    .padding(8)
+                                    .background(Circle().fill(Color.orange))
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
+
+                    Text(formattedCurrency(member.amount))
+                        .font(.subheadline.weight(.semibold))
                 }
             }
         }
         .navigationTitle("Detalhes do grupo")
+        .task {
+            if let currentUserId {
+                await paymentsViewModel.fetchUserPixKey(userId: currentUserId)
+            }
+        }
         .sheet(isPresented: $showPaymentSheet) {
             if let currentMember = currentMember {
                 NavigationStack {
