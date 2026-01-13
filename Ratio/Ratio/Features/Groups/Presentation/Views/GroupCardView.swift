@@ -152,6 +152,8 @@ struct GroupCardView: View {
             return .orange
         case .submitted:
             return .blue
+        case .overdue:
+            return .red
         }
     }
 

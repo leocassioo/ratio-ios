@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>OPENAI_API_KEY</key>
-	<string>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</string>
+	<string>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</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

@@ -6,5 +6,6 @@ export {
   sendBillingReminders,
   sendBillingRemindersTest,
   notifyOwnerOnPaymentSubmitted,
-  notifyOwnerOnPaymentSubmittedTest
+  notifyOwnerOnPaymentSubmittedTest,
+  markOverdueTest
 } from "./notifications";

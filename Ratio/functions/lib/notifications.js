@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notifyOwnerOnPaymentSubmittedTest = exports.notifyOwnerOnPaymentSubmitted = exports.sendBillingRemindersTest = exports.sendBillingReminders = void 0;
+exports.notifyOwnerOnPaymentSubmittedTest = exports.notifyOwnerOnPaymentSubmitted = exports.markOverdueTest = exports.sendBillingRemindersTest = exports.sendBillingReminders = void 0;
 const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const firestore_2 = require("firebase-functions/v2/firestore");
@@ -67,10 +67,12 @@ const runBillingReminders = async (includeDiagnostics) => {
         nextBillingDateTypes: {},
         remindersByOffset: {
             "0": 0,
+            "1": 0,
             "2": 0,
             "5": 0
         },
         groupsReset: 0,
+        groupsOverdue: 0,
         groupOffsetDebug: [],
         sends: 0,
         successCount: 0,
@@ -97,21 +99,25 @@ const runBillingReminders = async (includeDiagnostics) => {
         return Math.round((targetUtc - todayUtc) / (24 * 60 * 60 * 1000));
     };
     const validOffsets = new Set([0, 2, 5]);
+    const subscriptionOffsets = new Set([0, 1, 2, 5]);
     const reminderTextForOffset = (offset) => {
         if (offset === 0) {
             return "vence hoje.";
+        }
+        if (offset === 1) {
+            return "vence amanha.";
         }
         if (offset === 2) {
             return "vence em 2 dias.";
         }
         return "vence em 5 dias.";
     };
-    const sendNotification = async (title, body, tokens, route) => {
+    const sendNotification = async (title, body, tokens, route, data = {}) => {
         summary.sends += 1;
         for (const tokenChunk of chunk(tokens, 500)) {
             const response = await admin.messaging().sendEachForMulticast({
                 notification: { title, body },
-                data: { route },
+                data: { route, ...data },
                 tokens: tokenChunk
             });
             summary.successCount += response.successCount;
@@ -177,6 +183,89 @@ const runBillingReminders = async (includeDiagnostics) => {
         await batch.commit();
         summary.groupsReset += 1;
     };
+    const markGroupStatusesOverdueIfNeeded = async (groupDoc, offset, force = false) => {
+        if (!force && offset >= 0) {
+            return;
+        }
+        const data = groupDoc.data();
+        const ownerId = data.ownerId;
+        const groupRef = groupDoc.ref;
+        const membersSnapshot = await groupRef.collection("members").get();
+        let hasMemberUpdates = false;
+        const overdueMemberIds = [];
+        const overdueMemberNames = [];
+        const batch = db.batch();
+        membersSnapshot.docs.forEach((memberDoc) => {
+            const memberData = memberDoc.data();
+            const role = memberData.role ?? "";
+            const userId = memberData.userId;
+            const isOwner = role == "owner" || (ownerId && userId == ownerId);
+            const status = memberData.status ?? "pending";
+            if (isOwner || status !== "pending") {
+                return;
+            }
+            hasMemberUpdates = true;
+            overdueMemberIds.push(memberDoc.id);
+            overdueMemberNames.push(memberData.name ?? "Membro");
+            batch.update(memberDoc.ref, {
+                status: "overdue",
+                updatedAt: firestore_1.FieldValue.serverTimestamp()
+            });
+        });
+        const preview = data.membersPreview ?? [];
+        let previewChanged = false;
+        const updatedPreview = preview.map((member) => {
+            const userId = member.userId;
+            const isOwner = ownerId && userId == ownerId;
+            const status = member.status ?? "pending";
+            if (isOwner || status !== "pending") {
+                return member;
+            }
+            previewChanged = true;
+            return {
+                ...member,
+                status: "overdue"
+            };
+        });
+        if (!hasMemberUpdates && !previewChanged) {
+            return;
+        }
+        batch.update(groupRef, {
+            membersPreview: updatedPreview,
+            updatedAt: firestore_1.FieldValue.serverTimestamp()
+        });
+        await batch.commit();
+        summary.groupsOverdue += 1;
+        const memberUserIds = membersSnapshot.docs
+            .filter((memberDoc) => overdueMemberIds.includes(memberDoc.id))
+            .map((memberDoc) => memberDoc.data().userId)
+            .filter((userId) => Boolean(userId));
+        if (memberUserIds.length > 0) {
+            const memberSnapshots = await Promise.all(memberUserIds.map((userId) => db.collection("users").doc(userId).get()));
+            const memberTokens = new Set();
+            memberSnapshots.forEach((snapshot) => {
+                const tokens = snapshot.data()?.fcmTokens || [];
+                tokens.forEach((token) => memberTokens.add(token));
+            });
+            if (memberTokens.size > 0) {
+                await sendNotification("Pagamento em atraso", `Seu pagamento do grupo ${data.name || "Grupo"} está em atraso.`, Array.from(memberTokens), "groups", { groupId: groupDoc.id });
+            }
+        }
+        if (ownerId) {
+            const ownerSnapshot = await db.collection("users").doc(ownerId).get();
+            const ownerTokens = ownerSnapshot.data()?.fcmTokens || [];
+            if (ownerTokens.length > 0) {
+                const count = overdueMemberIds.length;
+                const memberList = overdueMemberNames.length <= 3
+                    ? overdueMemberNames.join(", ")
+                    : `${overdueMemberNames.slice(0, 3).join(", ")} e mais ${overdueMemberNames.length - 3}`;
+                const body = count == 1
+                    ? `${memberList} está em atraso no grupo ${data.name || "Grupo"}.`
+                    : `${memberList} estão em atraso no grupo ${data.name || "Grupo"}.`;
+                await sendNotification("Pagamento em atraso", body, ownerTokens, "groups", { groupId: groupDoc.id, targetUserId: ownerId });
+            }
+        }
+    };
     for (const userDoc of usersSnapshot.docs) {
         const tokens = userDoc.data().fcmTokens || [];
         if (tokens.length === 0) {
@@ -221,7 +310,7 @@ const runBillingReminders = async (includeDiagnostics) => {
                 continue;
             }
             const offset = offsetDays(nextBillingDate.toDate());
-            if (!validOffsets.has(offset)) {
+            if (!subscriptionOffsets.has(offset)) {
                 continue;
             }
             const name = data.name || "Assinatura";
@@ -277,8 +366,10 @@ const runBillingReminders = async (includeDiagnostics) => {
             });
         }
         if (!validOffsets.has(offset)) {
+            await markGroupStatusesOverdueIfNeeded(groupDoc, offset);
             continue;
         }
+        await markGroupStatusesOverdueIfNeeded(groupDoc, offset);
         await resetGroupStatusesIfNeeded(groupDoc, nextBillingDate, offset);
         const memberIds = data.memberIds ?? [];
         if (memberIds.length == 0) {
@@ -309,6 +400,151 @@ exports.sendBillingRemindersTest = (0, https_1.onRequest)(async (req, res) => {
         return;
     }
     const summary = await runBillingReminders(true);
+    res.status(200).json(summary);
+});
+exports.markOverdueTest = (0, https_1.onRequest)(async (req, res) => {
+    if (process.env.FUNCTIONS_EMULATOR !== "true") {
+        res.status(403).send("Apenas no emulator.");
+        return;
+    }
+    const groupId = req.query.groupId || req.body?.groupId;
+    if (!groupId) {
+        res.status(400).json({ error: "groupId é obrigatório." });
+        return;
+    }
+    const db = admin.firestore();
+    const groupSnapshot = await db.collection("groups").doc(groupId).get();
+    if (!groupSnapshot.exists) {
+        res.status(404).json({ error: "Grupo não encontrado." });
+        return;
+    }
+    const summary = {
+        maxDateISO: new Date().toISOString(),
+        usersScanned: 0,
+        usersWithTokens: 0,
+        subscriptionsScanned: 0,
+        subscriptionsMatched: 0,
+        groupsScanned: 1,
+        groupsMatched: 1,
+        groupsMissingNextBillingDateCount: 0,
+        groupsNonTimestampCount: 0,
+        missingNextBillingDateCount: 0,
+        nonTimestampCount: 0,
+        nextBillingDateTypes: {},
+        remindersByOffset: {
+            "0": 0,
+            "1": 0,
+            "2": 0,
+            "5": 0
+        },
+        groupsReset: 0,
+        groupsOverdue: 0,
+        groupOffsetDebug: [],
+        sends: 0,
+        successCount: 0,
+        failureCount: 0,
+        failures: []
+    };
+    const sendNotification = async (title, body, tokens, route, data = {}) => {
+        summary.sends += 1;
+        for (const tokenChunk of chunk(tokens, 500)) {
+            const response = await admin.messaging().sendEachForMulticast({
+                notification: { title, body },
+                data: { route, ...data },
+                tokens: tokenChunk
+            });
+            summary.successCount += response.successCount;
+            summary.failureCount += response.failureCount;
+            response.responses.forEach((item, index) => {
+                if (!item.success) {
+                    summary.failures.push({
+                        token: tokenChunk[index] ?? "",
+                        code: item.error?.code,
+                        message: item.error?.message
+                    });
+                }
+            });
+        }
+    };
+    const data = groupSnapshot.data() ?? {};
+    const ownerId = data.ownerId;
+    const groupRef = groupSnapshot.ref;
+    const membersSnapshot = await groupRef.collection("members").get();
+    let hasMemberUpdates = false;
+    const overdueMemberIds = [];
+    const overdueMemberNames = [];
+    const batch = db.batch();
+    membersSnapshot.docs.forEach((memberDoc) => {
+        const memberData = memberDoc.data();
+        const role = memberData.role ?? "";
+        const userId = memberData.userId;
+        const isOwner = role == "owner" || (ownerId && userId == ownerId);
+        const status = memberData.status ?? "pending";
+        if (isOwner || status !== "pending") {
+            return;
+        }
+        hasMemberUpdates = true;
+        overdueMemberIds.push(memberDoc.id);
+        overdueMemberNames.push(memberData.name ?? "Membro");
+        batch.update(memberDoc.ref, {
+            status: "overdue",
+            updatedAt: firestore_1.FieldValue.serverTimestamp()
+        });
+    });
+    const preview = data.membersPreview ?? [];
+    let previewChanged = false;
+    const updatedPreview = preview.map((member) => {
+        const userId = member.userId;
+        const isOwner = ownerId && userId == ownerId;
+        const status = member.status ?? "pending";
+        if (isOwner || status !== "pending") {
+            return member;
+        }
+        previewChanged = true;
+        return {
+            ...member,
+            status: "overdue"
+        };
+    });
+    if (!hasMemberUpdates && !previewChanged) {
+        res.status(200).json({ message: "Nenhum membro pendente para marcar como atraso." });
+        return;
+    }
+    batch.update(groupRef, {
+        membersPreview: updatedPreview,
+        updatedAt: firestore_1.FieldValue.serverTimestamp()
+    });
+    await batch.commit();
+    summary.groupsOverdue += 1;
+    const memberUserIds = membersSnapshot.docs
+        .filter((memberDoc) => overdueMemberIds.includes(memberDoc.id))
+        .map((memberDoc) => memberDoc.data().userId)
+        .filter((userId) => Boolean(userId));
+    if (memberUserIds.length > 0) {
+        const memberSnapshots = await Promise.all(memberUserIds.map((userId) => db.collection("users").doc(userId).get()));
+        const memberTokens = new Set();
+        memberSnapshots.forEach((snapshot) => {
+            const tokens = snapshot.data()?.fcmTokens || [];
+            tokens.forEach((token) => memberTokens.add(token));
+        });
+        if (memberTokens.size > 0) {
+            await sendNotification("Pagamento em atraso", `Seu pagamento do grupo ${data.name || "Grupo"} está em atraso.`, Array.from(memberTokens), "groups", { groupId });
+        }
+    }
+    if (ownerId) {
+        const ownerSnapshot = await db.collection("users").doc(ownerId).get();
+        const ownerTokens = ownerSnapshot.data()?.fcmTokens || [];
+        if (ownerTokens.length > 0) {
+            const count = overdueMemberIds.length;
+            const memberList = overdueMemberNames.length <= 3
+                ? overdueMemberNames.join(", ")
+                : `${overdueMemberNames.slice(0, 3).join(", ")} e mais ${overdueMemberNames.length - 3}`;
+            const body = count == 1
+                ? `${memberList} está em atraso no grupo ${data.name || "Grupo"}.`
+                : `${memberList} estão em atraso no grupo ${data.name || "Grupo"}.`;
+            await sendNotification("Pagamento em atraso", body, ownerTokens, "groups", { groupId, targetUserId: ownerId });
+        }
+    }
     res.status(200).json(summary);
 });
 exports.notifyOwnerOnPaymentSubmitted = (0, firestore_2.onDocumentUpdated)("groups/{groupId}/members/{memberId}", async (event) => {

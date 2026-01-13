@@ -46,7 +46,7 @@ struct EditProfileView: View {
                     .keyboardType(.phonePad)
                     .textContentType(.telephoneNumber)
 
-                TextField("Chave Pix", text: $viewModel.pixKey)
+                TextField("Chave Pix para recebimento", text: $viewModel.pixKey)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } header: {

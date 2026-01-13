@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notifyOwnerOnPaymentSubmittedTest = exports.notifyOwnerOnPaymentSubmitted = exports.sendBillingRemindersTest = exports.sendBillingReminders = void 0;
+exports.markOverdueTest = exports.notifyOwnerOnPaymentSubmittedTest = exports.notifyOwnerOnPaymentSubmitted = exports.sendBillingRemindersTest = exports.sendBillingReminders = void 0;
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 var notifications_1 = require("./notifications");
@@ -41,3 +41,4 @@ Object.defineProperty(exports, "sendBillingReminders", { enumerable: true, get: 
 Object.defineProperty(exports, "sendBillingRemindersTest", { enumerable: true, get: function () { return notifications_1.sendBillingRemindersTest; } });
 Object.defineProperty(exports, "notifyOwnerOnPaymentSubmitted", { enumerable: true, get: function () { return notifications_1.notifyOwnerOnPaymentSubmitted; } });
 Object.defineProperty(exports, "notifyOwnerOnPaymentSubmittedTest", { enumerable: true, get: function () { return notifications_1.notifyOwnerOnPaymentSubmittedTest; } });
+Object.defineProperty(exports, "markOverdueTest", { enumerable: true, get: function () { return notifications_1.markOverdueTest; } });

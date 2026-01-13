@@ -85,7 +85,7 @@ struct GroupDetailView: View {
                         Link("Ver comprovante", destination: url)
                     }
 
-                    if currentMember.status == .pending {
+                    if currentMember.status == .pending || currentMember.status == .overdue {
                         if let paymentKey = (currentGroup.pixKey?.isEmpty == false) ? currentGroup.pixKey : ownerPixKey, !paymentKey.isEmpty {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Chave Pix para pagamento")
@@ -296,6 +296,8 @@ struct GroupDetailView: View {
             return .orange
         case .submitted:
             return .blue
+        case .overdue:
+            return .red
         }
     }
 
