@@ -11,7 +11,7 @@ import Foundation
 final class GroupsStore {
     private let db = Firestore.firestore()
 
-    func listenGroups(for userId: String, onChange: @escaping (Result<[Group], Error>) -> Void) -> ListenerRegistration {
+    func listenGroups(for userId: String, onChange: @escaping (Result<[SharedGroup], Error>) -> Void) -> ListenerRegistration {
         db.collection("groups")
             .whereField("memberIds", arrayContains: userId)
             .addSnapshotListener { snapshot, error in
@@ -25,7 +25,7 @@ final class GroupsStore {
             }
     }
 
-    func fetchGroups(userId: String) async throws -> [Group] {
+    func fetchGroups(userId: String) async throws -> [SharedGroup] {
         let snapshot = try await db.collection("groups")
             .whereField("memberIds", arrayContains: userId)
             .getDocuments()
@@ -45,6 +45,7 @@ final class GroupsStore {
                 "userId": member.userId as Any,
                 "status": member.status.rawValue,
                 "amount": member.amountValue,
+                "photoURL": member.photoURL as Any,
                 "receiptURL": member.receiptURL as Any,
                 "role": role,
                 "createdAt": FieldValue.serverTimestamp()
@@ -74,6 +75,7 @@ final class GroupsStore {
                 "userId": member.userId as Any,
                 "status": member.status.rawValue,
                 "amount": member.amountValue,
+                "photoURL": member.photoURL as Any,
                 "receiptURL": member.receiptURL as Any,
                 "role": role,
                 "createdAt": FieldValue.serverTimestamp()

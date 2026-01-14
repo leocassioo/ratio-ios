@@ -15,12 +15,13 @@ final class SmartAdvisorViewModel: ObservableObject {
     @Published private(set) var stats: [AdvisorStat] = []
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
+    @Published private(set) var hasRequestedAnalysis = false
 
     private let subscriptionsStore: SubscriptionsStore
     private let groupsStore: GroupsStore
     private let provider: AdvisorAIProvider
     private var subscriptions: [SubscriptionItem] = []
-    private var groups: [Group] = []
+    private var groups: [SharedGroup] = []
     private var subscriptionsListener: ListenerRegistration?
     private var groupsListener: ListenerRegistration?
     private var userId: String?
@@ -38,8 +39,9 @@ final class SmartAdvisorViewModel: ObservableObject {
         if let provider {
             self.provider = provider
         } else {
-            let key = Bundle.main.object(forInfoDictionaryKey: "OPENAI_API_KEY") as? String
-            if let key, !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let remoteKey = RemoteConfigService.shared.openAiApiKey
+            if let key = remoteKey?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !key.isEmpty {
                 self.provider = OpenAIChatAdvisorProvider(apiKey: key)
             } else {
                 self.provider = NoopAdvisorAIProvider()
@@ -98,6 +100,14 @@ final class SmartAdvisorViewModel: ObservableObject {
         guard !isLoading else { return }
         isLoading = true
         errorMessage = nil
+        hasRequestedAnalysis = true
+
+        let remoteKey = RemoteConfigService.shared.openAiApiKey
+        if remoteKey?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
+            errorMessage = "Análises indisponíveis no momento. Tente novamente mais tarde."
+            isLoading = false
+            return
+        }
 
         let context = buildContext()
 
@@ -115,6 +125,7 @@ final class SmartAdvisorViewModel: ObservableObject {
     }
 
     private func refreshIfNeeded() {
+        guard hasRequestedAnalysis else { return }
         guard !hasLoadedOnce, !subscriptions.isEmpty || !groups.isEmpty else { return }
         refreshInsights()
     }

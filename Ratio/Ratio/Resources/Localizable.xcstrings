@@ -7,6 +7,16 @@
     "* Insights gerados por IA. Sempre revise decisões financeiras." : {
 
     },
+    "%@ • %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ • %2$@"
+          }
+        }
+      }
+    },
     "%lld" : {
 
     },
@@ -40,10 +50,16 @@
     "Aprovar" : {
 
     },
+    "Assim que houver cobranças, elas aparecerão aqui." : {
+
+    },
     "Assinatura" : {
 
     },
     "Assinaturas" : {
+
+    },
+    "Ative sua análise inteligente" : {
 
     },
     "BRL" : {
@@ -88,6 +104,12 @@
     "Conta" : {
 
     },
+    "Contato do organizador" : {
+
+    },
+    "Contato do organizador (Opcional)" : {
+
+    },
     "Convite" : {
 
     },
@@ -121,6 +143,9 @@
     "Dados pessoais" : {
 
     },
+    "Descubra oportunidades de economia, assinaturas redundantes e dicas personalizadas para sua carteira." : {
+
+    },
     "Detalhes" : {
 
     },
@@ -143,6 +168,9 @@
 
     },
     "Editar grupo" : {
+
+    },
+    "Em breve: histórico completo de assinaturas e grupos." : {
 
     },
     "Email" : {
@@ -178,7 +206,16 @@
     "Essa ação é permanente e remove o grupo para todos os membros." : {
 
     },
+    "Esse número ficará visível para os membros do grupo." : {
+
+    },
+    "Esta assinatura está vinculada a um grupo e não pode ser excluída." : {
+
+    },
     "Excluir" : {
+
+    },
+    "Excluir assinatura" : {
 
     },
     "Excluir grupo" : {
@@ -199,6 +236,9 @@
     "Gerando link..." : {
 
     },
+    "Gerar análise" : {
+
+    },
     "Gerar link de convite" : {
 
     },
@@ -208,6 +248,12 @@
     "Grupos" : {
 
     },
+    "Histórico" : {
+
+    },
+    "Histórico de cobranças" : {
+
+    },
     "Home" : {
 
     },
@@ -215,6 +261,9 @@
 
     },
     "Insights personalizados" : {
+
+    },
+    "Ligar" : {
 
     },
     "Login" : {
@@ -336,6 +385,9 @@
     "Sair" : {
 
     },
+    "Sair da conta?" : {
+
+    },
     "Salvar" : {
 
     },
@@ -355,6 +407,9 @@
 
     },
     "Sem assinaturas ainda" : {
+
+    },
+    "Sem histórico ainda" : {
 
     },
     "Senha" : {
@@ -379,6 +434,12 @@
 
     },
     "Telefone (WhatsApp)" : {
+
+    },
+    "Telefone para contato" : {
+
+    },
+    "Tem certeza que deseja excluir esta assinatura? Essa ação não pode ser desfeita." : {
 
     },
     "Tema do app" : {
@@ -424,6 +485,9 @@
     "Versão do app" : {
 
     },
+    "Você precisará fazer login novamente para acessar o app." : {
+
+    },
     "welcome_title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -440,6 +504,9 @@
           }
         }
       }
+    },
+    "WhatsApp" : {
+
     }
   },
   "version" : "1.0"

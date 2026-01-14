@@ -11,7 +11,7 @@ import UIKit
 struct EditGroupView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var viewModel: GroupsViewModel
-    let group: Group
+    let group: SharedGroup
     let ownerId: String
 
     @State private var groupName: String
@@ -23,6 +23,7 @@ struct EditGroupView: View {
     @State private var serviceLogin: String
     @State private var servicePassword: String
     @State private var pixKey: String
+    @State private var ownerPhoneNumber: String
     @State private var splitEqually: Bool = true
     @State private var members: [GroupMemberDraft]
     @State private var memberValues: [String: Double] = [:]
@@ -32,7 +33,7 @@ struct EditGroupView: View {
     @StateObject private var inviteViewModel: GroupInviteViewModel
     private let isOwner: Bool
 
-    init(viewModel: GroupsViewModel, group: Group, ownerId: String) {
+    init(viewModel: GroupsViewModel, group: SharedGroup, ownerId: String) {
         self.viewModel = viewModel
         self.group = group
         self.ownerId = ownerId
@@ -46,6 +47,7 @@ struct EditGroupView: View {
         _serviceLogin = State(initialValue: group.serviceLogin ?? "")
         _servicePassword = State(initialValue: group.servicePassword ?? "")
         _pixKey = State(initialValue: group.pixKey ?? "")
+        _ownerPhoneNumber = State(initialValue: group.ownerPhoneNumber ?? "")
         _members = State(initialValue: group.members.map {
             GroupMemberDraft(
                 id: $0.id,
@@ -53,6 +55,7 @@ struct EditGroupView: View {
                 amountText: $0.amount.formatted(.number.precision(.fractionLength(2))),
                 status: $0.status,
                 userId: $0.userId,
+                photoURL: $0.photoURL,
                 receiptURL: $0.receiptURL
             )
         })
@@ -69,6 +72,7 @@ struct EditGroupView: View {
             groupSection
             credentialsSection
             paymentDataSection
+            contactSection
             notesSection
             membersSection
             if perPersonAmount > 0 {
@@ -98,6 +102,7 @@ struct EditGroupView: View {
                                 serviceLogin: serviceLogin.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : serviceLogin,
                                 servicePassword: servicePassword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : servicePassword,
                                 pixKey: pixKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : pixKey,
+                                ownerPhoneNumber: ownerPhoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : ownerPhoneNumber,
                                 members: normalizedMembers,
                                 ownerId: ownerId
                             )
@@ -213,6 +218,18 @@ struct EditGroupView: View {
                 .foregroundStyle(.secondary)
         }
 
+    }
+
+    private var contactSection: some View {
+        Section("Contato do organizador (Opcional)") {
+            TextField("Telefone para contato", text: $ownerPhoneNumber)
+                .keyboardType(.phonePad)
+                .textContentType(.telephoneNumber)
+                .disabled(!isOwner)
+            Text("Esse número ficará visível para os membros do grupo.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 
     private var notesSection: some View {
@@ -383,7 +400,7 @@ struct EditGroupView: View {
     private func addMember() {
         let trimmed = newMemberName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        members.append(GroupMemberDraft(id: UUID().uuidString, name: trimmed, amountText: "", status: .pending, userId: nil, receiptURL: nil))
+        members.append(GroupMemberDraft(id: UUID().uuidString, name: trimmed, amountText: "", status: .pending, userId: nil, photoURL: nil, receiptURL: nil))
         newMemberName = ""
         if splitEqually {
             applyEqualSplit()
@@ -453,7 +470,7 @@ struct EditGroupView: View {
     NavigationStack {
         EditGroupView(
             viewModel: GroupsViewModel(),
-            group: Group(
+            group: SharedGroup(
                 id: "preview",
                 name: "Netflix",
                 category: .streaming,
@@ -463,6 +480,7 @@ struct EditGroupView: View {
                 billingDay: 5,
                 notes: "Teste",
                 ownerId: "1",
+                ownerPhoneNumber: "31999999999",
                 subscriptionId: "sub",
                 subscriptionName: "Netflix",
                 subscriptionCategory: "streaming",
@@ -474,8 +492,8 @@ struct EditGroupView: View {
                 servicePassword: nil,
                 pixKey: nil,
                 members: [
-                    GroupMember(id: "1", name: "Leo", amount: 20, status: .paid, userId: "1", receiptURL: nil, submittedAt: nil, approvedAt: nil),
-                    GroupMember(id: "2", name: "Pessoa", amount: 20, status: .pending, userId: nil, receiptURL: nil, submittedAt: nil, approvedAt: nil)
+                    GroupMember(id: "1", name: "Leo", amount: 20, status: .paid, userId: "1", photoURL: nil, receiptURL: nil, submittedAt: nil, approvedAt: nil),
+                    GroupMember(id: "2", name: "Pessoa", amount: 20, status: .pending, userId: nil, photoURL: nil, receiptURL: nil, submittedAt: nil, approvedAt: nil)
                 ]
             ),
             ownerId: "preview"

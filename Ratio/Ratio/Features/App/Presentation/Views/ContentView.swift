@@ -13,7 +13,7 @@ struct ContentView: View {
     @StateObject private var navigationState = AppNavigationState()
 
     var body: some View {
-        SwiftUI.Group {
+        Group {
             if authViewModel.user != nil {
                 MainTabView()
                     .environmentObject(navigationState)

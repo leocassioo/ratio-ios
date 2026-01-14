@@ -1,5 +1,5 @@
 //
-//  Group.swift
+//  SharedGroup.swift
 //  Ratio
 //
 //  Created by Codex on 21/12/25.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Group: Identifiable, Equatable {
+struct SharedGroup: Identifiable, Equatable {
     let id: String
     let name: String
     let category: GroupCategory
@@ -17,6 +17,7 @@ struct Group: Identifiable, Equatable {
     let billingDay: Int?
     let notes: String?
     let ownerId: String?
+    let ownerPhoneNumber: String?
     let subscriptionId: String?
     let subscriptionName: String?
     let subscriptionCategory: String?

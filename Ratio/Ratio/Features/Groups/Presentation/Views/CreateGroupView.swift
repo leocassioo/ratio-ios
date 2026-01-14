@@ -22,6 +22,8 @@ struct CreateGroupView: View {
     @State private var notes = ""
     @State private var serviceLogin = ""
     @State private var servicePassword = ""
+    @State private var ownerPhoneNumber = ""
+    @State private var ownerPhotoURL: String?
 
     @State private var pixKey = ""
     @State private var splitEqually = true
@@ -46,6 +48,7 @@ struct CreateGroupView: View {
             groupSection
             credentialsSection
             paymentDataSection
+            contactSection
             notesSection
             membersSection
             if perPersonAmount > 0 {
@@ -72,6 +75,7 @@ struct CreateGroupView: View {
                                 serviceLogin: serviceLogin.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : serviceLogin,
                                 servicePassword: servicePassword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : servicePassword,
                                 pixKey: pixKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : pixKey,
+                                ownerPhoneNumber: ownerPhoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : ownerPhoneNumber,
                                 members: normalizedMembers,
                                 ownerId: ownerId
                             ) {
@@ -93,6 +97,7 @@ struct CreateGroupView: View {
                         amountText: "",
                         status: .paid,
                         userId: ownerId,
+                        photoURL: ownerPhotoURL,
                         receiptURL: nil
                     )
                 ]
@@ -100,8 +105,19 @@ struct CreateGroupView: View {
             updateSelectedSubscription()
             creationViewModel.startListening()
             Task {
-                if let profile = try? await UsersStore().fetchUserProfile(userId: ownerId), let key = profile.pixKey {
-                    pixKey = key
+                if let profile = try? await UsersStore().fetchUserProfile(userId: ownerId) {
+                    if let key = profile.pixKey {
+                        pixKey = key
+                    }
+                    if let phone = profile.phoneNumber, ownerPhoneNumber.isEmpty {
+                        ownerPhoneNumber = phone
+                    }
+                    if let photo = profile.photoURL, ownerPhotoURL == nil {
+                        ownerPhotoURL = photo
+                        if let index = members.firstIndex(where: { $0.userId == ownerId }) {
+                            members[index].photoURL = photo
+                        }
+                    }
                 }
             }
         }
@@ -196,6 +212,17 @@ struct CreateGroupView: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
             Text("Se deixado em branco, será usada a chave Pix do seu perfil ao cobrar.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var contactSection: some View {
+        Section("Contato do organizador (Opcional)") {
+            TextField("Telefone para contato", text: $ownerPhoneNumber)
+                .keyboardType(.phonePad)
+                .textContentType(.telephoneNumber)
+            Text("Esse número ficará visível para os membros do grupo.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -331,7 +358,7 @@ struct CreateGroupView: View {
     private func addMember() {
         let trimmed = newMemberName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        members.append(GroupMemberDraft(id: UUID().uuidString, name: trimmed, amountText: "", status: .pending, userId: nil, receiptURL: nil))
+        members.append(GroupMemberDraft(id: UUID().uuidString, name: trimmed, amountText: "", status: .pending, userId: nil, photoURL: nil, receiptURL: nil))
         newMemberName = ""
         if splitEqually {
             applyEqualSplit()

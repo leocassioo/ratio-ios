@@ -27,7 +27,7 @@ final class HomeViewModel: ObservableObject {
     private var listener: ListenerRegistration?
     private var groupsListener: ListenerRegistration?
     private var subscriptions: [SubscriptionItem] = []
-    private var groups: [Group] = []
+    private var groups: [SharedGroup] = []
     private var userId: String?
     private var didLoadInitial = false
 
@@ -370,7 +370,7 @@ final class HomeViewModel: ObservableObject {
         return nextDate
     }
 
-    private func periodFromGroup(_ group: Group) -> SubscriptionPeriod? {
+    private func periodFromGroup(_ group: SharedGroup) -> SubscriptionPeriod? {
         if let raw = group.subscriptionPeriod,
            let period = SubscriptionPeriod(rawValue: raw) {
             return period

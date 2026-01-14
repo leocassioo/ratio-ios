@@ -21,13 +21,21 @@ struct EditSubscriptionView: View {
     @State private var notes: String
 
     let subscriptionId: String
+    let canDelete: Bool
+    let onDelete: () -> Void
     let onSave: (SubscriptionItem) -> Void
+    @State private var showDeleteConfirm = false
 
     enum Field: Hashable {
         case amount
     }
 
-    init(subscription: SubscriptionItem, onSave: @escaping (SubscriptionItem) -> Void) {
+    init(
+        subscription: SubscriptionItem,
+        canDelete: Bool = false,
+        onDelete: @escaping () -> Void = {},
+        onSave: @escaping (SubscriptionItem) -> Void
+    ) {
         self.subscriptionId = subscription.id
         _name = State(initialValue: subscription.name)
         _amountValue = State(initialValue: subscription.amount)
@@ -37,6 +45,8 @@ struct EditSubscriptionView: View {
         _period = State(initialValue: subscription.period)
         _nextBillingDate = State(initialValue: subscription.nextBillingDate)
         _notes = State(initialValue: subscription.notes)
+        self.canDelete = canDelete
+        self.onDelete = onDelete
         self.onSave = onSave
     }
 
@@ -89,6 +99,20 @@ struct EditSubscriptionView: View {
                 TextField("Detalhes", text: $notes, axis: .vertical)
                     .lineLimit(3, reservesSpace: true)
             }
+
+            Section {
+                if canDelete {
+                    Button(role: .destructive) {
+                        showDeleteConfirm = true
+                    } label: {
+                        Text("Excluir assinatura")
+                    }
+                } else {
+                    Text("Esta assinatura está vinculada a um grupo e não pode ser excluída.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .navigationTitle("Editar assinatura")
         .toolbar {
@@ -114,6 +138,15 @@ struct EditSubscriptionView: View {
                 }
                 .disabled(!canSubmit)
             }
+        }
+        .alert("Excluir assinatura", isPresented: $showDeleteConfirm) {
+            Button("Cancelar", role: .cancel) {}
+            Button("Excluir", role: .destructive) {
+                onDelete()
+                dismiss()
+            }
+        } message: {
+            Text("Tem certeza que deseja excluir esta assinatura? Essa ação não pode ser desfeita.")
         }
     }
 
@@ -157,6 +190,8 @@ struct EditSubscriptionView: View {
                 nextBillingDate: Date(),
                 notes: ""
             ),
+            canDelete: true,
+            onDelete: {},
             onSave: { _ in }
         )
     }

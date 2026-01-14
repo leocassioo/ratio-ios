@@ -9,7 +9,7 @@ import FirebaseFirestore
 import Foundation
 
 enum GroupMapper {
-    nonisolated static func group(from document: QueryDocumentSnapshot) -> Group? {
+    nonisolated static func group(from document: QueryDocumentSnapshot) -> SharedGroup? {
         let data = document.data()
         guard let name = data["name"] as? String else { return nil }
 
@@ -21,6 +21,7 @@ enum GroupMapper {
         let billingDay = data["billingDay"] as? Int
         let notes = data["notes"] as? String
         let ownerId = data["ownerId"] as? String
+        let ownerPhoneNumber = data["ownerPhoneNumber"] as? String
         let subscriptionId = data["subscriptionId"] as? String
         let subscriptionName = data["subscriptionName"] as? String
         let subscriptionCategory = data["subscriptionCategory"] as? String
@@ -44,6 +45,7 @@ enum GroupMapper {
             let statusRaw = memberData["status"] as? String ?? GroupMemberStatus.pending.rawValue
             let status = GroupMemberStatus(rawValue: statusRaw) ?? .pending
             let userId = memberData["userId"] as? String
+            let photoURL = memberData["photoURL"] as? String
             let receiptURL = memberData["receiptURL"] as? String
             let submittedAtTimestamp = memberData["submittedAt"] as? Timestamp
             let approvedAtTimestamp = memberData["approvedAt"] as? Timestamp
@@ -53,13 +55,14 @@ enum GroupMapper {
                 amount: amount,
                 status: status,
                 userId: userId,
+                photoURL: photoURL,
                 receiptURL: receiptURL,
                 submittedAt: submittedAtTimestamp?.dateValue(),
                 approvedAt: approvedAtTimestamp?.dateValue()
             )
         }
 
-        return Group(
+        return SharedGroup(
             id: document.documentID,
             name: name,
             category: category,
@@ -69,6 +72,7 @@ enum GroupMapper {
             billingDay: billingDay,
             notes: notes,
             ownerId: ownerId,
+            ownerPhoneNumber: ownerPhoneNumber,
             subscriptionId: subscriptionId,
             subscriptionName: subscriptionName,
             subscriptionCategory: subscriptionCategory,

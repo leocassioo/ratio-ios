@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>OPENAI_API_KEY</key>
-	<string>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</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

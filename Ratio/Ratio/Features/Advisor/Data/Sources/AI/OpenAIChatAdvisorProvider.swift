@@ -8,6 +8,7 @@
 import Foundation
 
 final class OpenAIChatAdvisorProvider: AdvisorAIProvider {
+    private let remoteConfig = RemoteConfigService.shared
     private let requestBuilder: AdvisorAIRequestBuilder
 
     init(apiKey: String, session: URLSession = .shared) {
@@ -42,14 +43,18 @@ final class OpenAIChatAdvisorProvider: AdvisorAIProvider {
         - Não inclua texto fora do JSON.
         """
 
+        let model = remoteConfig.gptModel ?? "gpt-5-nano-2025-08-07"
+        let reasoningEffort = remoteConfig.reasoningEffortForAnalysis ?? "low"
+        let maxTokens = remoteConfig.maxCompletionTokensForAnalysis ?? 5000
+
         let body: [String: Any] = [
-            "model": "gpt-5-nano-2025-08-07",
+            "model": model,
             "messages": [
                 ["role": "system", "content": "Você responde apenas com JSON válido."],
                 ["role": "user", "content": prompt]
             ],
-            "reasoning_effort": "low",
-            "max_completion_tokens": 5000
+            "reasoning_effort": reasoningEffort,
+            "max_completion_tokens": maxTokens
         ]
 
         let request = try requestBuilder.makeRequest(.chatCompletions, body: body)

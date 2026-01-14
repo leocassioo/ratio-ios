@@ -13,7 +13,7 @@ struct GroupAvatarStack: View {
     var body: some View {
         ZStack {
             ForEach(Array(members.prefix(4).enumerated()), id: \.offset) { index, member in
-                MemberAvatarView(name: member.name)
+                MemberAvatarView(name: member.name, photoURL: member.photoURL)
                     .frame(width: 30, height: 30)
                     .padding(2)
                     .background(

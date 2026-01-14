@@ -8,6 +8,7 @@
 import FirebaseAuth
 import FirebaseCore
 import FirebaseMessaging
+import FirebaseRemoteConfig
 import SwiftUI
 import UserNotifications
 
@@ -19,6 +20,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         FirebaseApp.configure()
+        RemoteConfigService.shared.fetchAndActivate()
         Messaging.messaging().delegate = self
         NotificationManager.shared.configure()
         return true

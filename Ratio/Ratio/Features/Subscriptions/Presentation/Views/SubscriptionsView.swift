@@ -14,6 +14,8 @@ struct SubscriptionsView: View {
     @State private var showCreate = false
     @State private var showErrorAlert = false
     @State private var selectedSubscription: SubscriptionItem?
+    @State private var pendingDelete: SubscriptionItem?
+    @State private var showDeleteConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -79,6 +81,14 @@ struct SubscriptionsView: View {
                                     selectedSubscription = subscription
                                 }
                                 .tint(.blue)
+                                if canDelete(subscription) {
+                                    Button(role: .destructive) {
+                                        pendingDelete = subscription
+                                        showDeleteConfirm = true
+                                    } label: {
+                                        Text("Excluir")
+                                    }
+                                }
                             }
                         }
                         .onDelete(perform: deleteSubscription)
@@ -118,7 +128,14 @@ struct SubscriptionsView: View {
             .sheet(item: $selectedSubscription) { subscription in
                 if let userId = authViewModel.user?.uid {
                     NavigationStack {
-                        EditSubscriptionView(subscription: subscription) { updated in
+                        EditSubscriptionView(
+                            subscription: subscription,
+                            canDelete: canDelete(subscription),
+                            onDelete: {
+                                pendingDelete = subscription
+                                showDeleteConfirm = true
+                            }
+                        ) { updated in
                             Task {
                                 await viewModel.updateSubscription(
                                     id: updated.id,
@@ -152,6 +169,17 @@ struct SubscriptionsView: View {
             } message: {
                 Text(viewModel.errorMessage ?? "")
             }
+            .alert("Excluir assinatura", isPresented: $showDeleteConfirm) {
+                Button("Cancelar", role: .cancel) {}
+                Button("Excluir", role: .destructive) {
+                    if let subscription = pendingDelete {
+                        deleteSubscription(subscription)
+                    }
+                    pendingDelete = nil
+                }
+            } message: {
+                Text("Tem certeza que deseja excluir esta assinatura? Essa ação não pode ser desfeita.")
+            }
         }
     }
 
@@ -163,6 +191,18 @@ struct SubscriptionsView: View {
                 await viewModel.deleteSubscription(id: id, ownerId: userId)
             }
         }
+    }
+
+    private func deleteSubscription(_ subscription: SubscriptionItem) {
+        guard let userId = authViewModel.user?.uid else { return }
+        Task {
+            await viewModel.deleteSubscription(id: subscription.id, ownerId: userId)
+        }
+    }
+
+    private func canDelete(_ subscription: SubscriptionItem) -> Bool {
+        guard viewModel.hasLoadedGroups else { return false }
+        return !viewModel.linkedSubscriptionIds.contains(subscription.id)
     }
 
     private func formattedCurrency(_ value: Double, currencyCode: String) -> String {

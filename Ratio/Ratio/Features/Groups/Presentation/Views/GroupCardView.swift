@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct GroupCardView: View {
-     let group: Group
+     let group: SharedGroup
     let currentUserId: String?
     let currentUserPixKey: String?
     let onEdit: () -> Void
@@ -56,11 +56,18 @@ struct GroupCardView: View {
             VStack(spacing: 12) {
                 ForEach(orderedMembers) { member in
                     HStack(spacing: 12) {
-                        MemberAvatarView(name: member.name)
+                        MemberAvatarView(name: member.name, photoURL: member.photoURL)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(memberLabel(for: member))
-                                .font(.subheadline.weight(.semibold))
+                            HStack(spacing: 6) {
+                                Text(memberDisplayName(for: member))
+                                    .font(.subheadline.weight(.semibold))
+                                if let roleLabel = memberRoleLabel(for: member) {
+                                    Text(roleLabel)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                             Text(member.status.label)
                                 .font(.footnote)
                                 .foregroundStyle(statusColor(for: member.status))
@@ -120,20 +127,30 @@ struct GroupCardView: View {
         .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
     }
 
-    private func memberLabel(for member: GroupMember) -> String {
+    private func memberDisplayName(for member: GroupMember) -> String {
+        let displayName = firstName(from: member.name)
+        return displayName
+    }
+
+    private func memberRoleLabel(for member: GroupMember) -> String? {
         let isOwner = member.userId == group.ownerId
         let isCurrentUser = currentUserId == member.userId
 
         switch (isOwner, isCurrentUser) {
         case (true, true):
-            return "\(member.name) (Você • Organizador)"
+            return "Você • Organizador"
         case (true, false):
-            return "\(member.name) (Organizador)"
+            return "Organizador"
         case (false, true):
-            return "\(member.name) (Você)"
+            return "Você"
         default:
-            return member.name
+            return nil
         }
+    }
+
+    private func firstName(from name: String) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.split(separator: " ").first.map(String.init) ?? trimmed
     }
 
     private func formattedCurrency(_ value: Double) -> String {

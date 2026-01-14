@@ -16,7 +16,9 @@ struct SmartAdvisorView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    if viewModel.isLoading {
+                    if !viewModel.hasRequestedAnalysis {
+                        analysisCTA
+                    } else if viewModel.isLoading {
                         analyzingCard
                     } else {
                         insightsCard
@@ -78,6 +80,29 @@ struct SmartAdvisorView: View {
                     .font(.footnote)
                     .foregroundStyle(.red)
             }
+        }
+        .padding(18)
+        .background(cardBackground)
+        .overlay(cardSymbolOverlay)
+    }
+
+    private var analysisCTA: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Ative sua análise inteligente")
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+            Text("Descubra oportunidades de economia, assinaturas redundantes e dicas personalizadas para sua carteira.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Button {
+                viewModel.refreshInsights()
+            } label: {
+                Text("Gerar análise")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
         }
         .padding(18)
         .background(cardBackground)

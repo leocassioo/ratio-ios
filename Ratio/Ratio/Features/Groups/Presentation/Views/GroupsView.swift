@@ -13,8 +13,8 @@ struct GroupsView: View {
     @EnvironmentObject private var navigationState: AppNavigationState
     @StateObject private var viewModel = GroupsViewModel()
     @State private var showCreateGroup = false
-    @State private var selectedGroup: Group?
-    @State private var selectedGroupDetail: Group?
+    @State private var selectedGroup: SharedGroup?
+    @State private var selectedGroupDetail: SharedGroup?
 
     var body: some View {
         NavigationStack {

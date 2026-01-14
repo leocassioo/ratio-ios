@@ -97,6 +97,9 @@ final class InvitesStore {
             throw InviteError.alreadyMember
         }
 
+        let userProfile = try? await UsersStore().fetchUserProfile(userId: userId)
+        let photoURL = userProfile?.photoURL
+
         let totalAmount = inviteData["totalAmount"] as? Double ?? 0
         let existingCount = inviteData["memberCount"] as? Int ?? memberIds.count
         let newMemberCount = max(existingCount, memberIds.count) + 1
@@ -109,6 +112,7 @@ final class InvitesStore {
             "userId": userId,
             "status": GroupMemberStatus.pending.rawValue,
             "amount": perMember,
+            "photoURL": photoURL as Any,
             "role": "member",
             "createdAt": FieldValue.serverTimestamp()
         ]
@@ -125,7 +129,8 @@ final class InvitesStore {
             "name": userName,
             "amount": perMember,
             "status": GroupMemberStatus.pending.rawValue,
-            "userId": userId
+            "userId": userId,
+            "photoURL": photoURL as Any
         ]]
 
         batch.updateData([

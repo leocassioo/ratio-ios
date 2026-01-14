@@ -11,7 +11,7 @@ import Foundation
 
 @MainActor
 final class GroupsViewModel: ObservableObject {
-    @Published private(set) var groups: [Group] = []
+    @Published private(set) var groups: [SharedGroup] = []
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
 
@@ -61,6 +61,7 @@ final class GroupsViewModel: ObservableObject {
         serviceLogin: String?,
         servicePassword: String?,
         pixKey: String?,
+        ownerPhoneNumber: String?,
         members: [GroupMemberDraft],
         ownerId: String
     ) async -> String? {
@@ -72,6 +73,7 @@ final class GroupsViewModel: ObservableObject {
                 "amount": member.amountValue,
                 "status": member.status.rawValue,
                 "userId": member.userId as Any,
+                "photoURL": member.photoURL as Any,
                 "receiptURL": member.receiptURL as Any
             ]
         }
@@ -85,6 +87,7 @@ final class GroupsViewModel: ObservableObject {
             "billingDay": billingDay as Any,
             "notes": notes as Any,
             "ownerId": ownerId,
+            "ownerPhoneNumber": ownerPhoneNumber as Any,
             "memberIds": Array(Set(memberIds)),
             "membersPreview": membersPreview,
             "subscriptionId": subscription.id,
@@ -117,6 +120,7 @@ final class GroupsViewModel: ObservableObject {
         serviceLogin: String?,
         servicePassword: String?,
         pixKey: String?,
+        ownerPhoneNumber: String?,
         members: [GroupMemberDraft],
         ownerId: String
     ) async {
@@ -128,6 +132,7 @@ final class GroupsViewModel: ObservableObject {
                 "amount": member.amountValue,
                 "status": member.status.rawValue,
                 "userId": member.userId as Any,
+                "photoURL": member.photoURL as Any,
                 "receiptURL": member.receiptURL as Any
             ]
         }
@@ -140,6 +145,7 @@ final class GroupsViewModel: ObservableObject {
             "billingPeriod": subscription.period.label,
             "billingDay": billingDay as Any,
             "notes": notes as Any,
+            "ownerPhoneNumber": ownerPhoneNumber as Any,
             "memberIds": Array(Set(memberIds)),
             "membersPreview": membersPreview,
             "subscriptionId": subscription.id,

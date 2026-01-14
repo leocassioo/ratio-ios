@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MemberAvatarView: View {
     let name: String
+    let photoURL: String?
 
     var body: some View {
         ZStack {
@@ -19,6 +20,31 @@ struct MemberAvatarView: View {
                         .stroke(Color(.separator).opacity(0.4), lineWidth: 0.5)
                 )
 
+            if let urlString = photoURL, let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        placeholderView
+                    case .empty:
+                        ProgressView()
+                    @unknown default:
+                        placeholderView
+                    }
+                }
+                .clipShape(Circle())
+            } else {
+                placeholderView
+            }
+        }
+        .frame(width: 36, height: 36)
+    }
+
+    private var placeholderView: some View {
+        Group {
             if let initials = initials(from: name), !initials.isEmpty {
                 Text(initials)
                     .font(.caption.weight(.semibold))
@@ -29,7 +55,6 @@ struct MemberAvatarView: View {
                     .foregroundStyle(.white)
             }
         }
-        .frame(width: 36, height: 36)
     }
 
     private func initials(from name: String) -> String? {

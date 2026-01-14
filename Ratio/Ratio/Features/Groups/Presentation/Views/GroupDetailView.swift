@@ -8,15 +8,16 @@
 import SwiftUI
 
 struct GroupDetailView: View {
-    let group: Group
+    let group: SharedGroup
     let currentUserId: String?
-    @State private var currentGroup: Group
+    @Environment(\.openURL) private var openURL
+    @State private var currentGroup: SharedGroup
     @StateObject private var paymentsViewModel = GroupPaymentsViewModel()
     @State private var showPaymentSheet = false
     @State private var showPaymentError = false
     @State private var ownerPixKey: String?
 
-    init(group: Group, currentUserId: String?) {
+    init(group: SharedGroup, currentUserId: String?) {
         self.group = group
         self.currentUserId = currentUserId
         _currentGroup = State(initialValue: group)
@@ -120,6 +121,41 @@ struct GroupDetailView: View {
                     Text(notes)
                 }
             }
+
+            if let ownerPhone = currentGroup.ownerPhoneNumber,
+               !ownerPhone.isEmpty {
+                Section("Contato do organizador") {
+                    HStack {
+                        Text(ownerPhone)
+                            .font(.body)
+                        Spacer()
+                        CopyButton(textToCopy: ownerPhone)
+                    }
+
+                    let cleanedPhone = sanitizedPhoneNumber(ownerPhone)
+                    if !cleanedPhone.isEmpty {
+                        HStack {
+                            Button {
+                                if let url = URL(string: "tel://\(cleanedPhone)") {
+                                    openURL(url)
+                                }
+                            } label: {
+                                Label("Ligar", systemImage: "phone.fill")
+                            }
+
+                            Spacer()
+
+                            Button {
+                                if let url = URL(string: "https://wa.me/\(cleanedPhone)") {
+                                    openURL(url)
+                                }
+                            } label: {
+                                Label("WhatsApp", systemImage: "message.fill")
+                            }
+                        }
+                    }
+                }
+            }
             
             if (currentGroup.serviceLogin?.isEmpty == false) || (currentGroup.servicePassword?.isEmpty == false) {
                 Section("Credenciais de Acesso") {
@@ -156,10 +192,17 @@ struct GroupDetailView: View {
             Section("Membros") {
                 ForEach(orderedMembers) { member in
                     HStack(spacing: 12) {
-                        MemberAvatarView(name: member.name)
+                        MemberAvatarView(name: member.name, photoURL: member.photoURL)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(memberLabel(for: member))
-                                .font(.subheadline.weight(.semibold))
+                            HStack(spacing: 6) {
+                                Text(memberDisplayName(for: member))
+                                    .font(.subheadline.weight(.semibold))
+                                if let roleLabel = memberRoleLabel(for: member) {
+                                    Text(roleLabel)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                             Text(member.status.label)
                                 .font(.footnote)
                                 .foregroundStyle(statusColor(for: member.status))
@@ -264,19 +307,24 @@ struct GroupDetailView: View {
         }
     }
 
-    private func memberLabel(for member: GroupMember) -> String {
+    private func memberDisplayName(for member: GroupMember) -> String {
+        let trimmed = member.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.split(separator: " ").first.map(String.init) ?? trimmed
+    }
+
+    private func memberRoleLabel(for member: GroupMember) -> String? {
         let isOwner = member.userId == currentGroup.ownerId
         let isCurrentUser = currentUserId == member.userId
 
         switch (isOwner, isCurrentUser) {
         case (true, true):
-            return "\(member.name) (Você • Organizador)"
+            return "Você • Organizador"
         case (true, false):
-            return "\(member.name) (Organizador)"
+            return "Organizador"
         case (false, true):
-            return "\(member.name) (Você)"
+            return "Você"
         default:
-            return member.name
+            return nil
         }
     }
 
@@ -328,8 +376,12 @@ struct GroupDetailView: View {
         return ownerId == currentUserId
     }
 
+    private func sanitizedPhoneNumber(_ value: String) -> String {
+        value.filter { $0.isNumber }
+    }
+
     private func updateMemberStatus(_ memberId: String, status: GroupMemberStatus) {
-        currentGroup = Group(
+        currentGroup = SharedGroup(
             id: currentGroup.id,
             name: currentGroup.name,
             category: currentGroup.category,
@@ -339,6 +391,7 @@ struct GroupDetailView: View {
             billingDay: currentGroup.billingDay,
             notes: currentGroup.notes,
             ownerId: currentGroup.ownerId,
+            ownerPhoneNumber: currentGroup.ownerPhoneNumber,
             subscriptionId: currentGroup.subscriptionId,
             subscriptionName: currentGroup.subscriptionName,
             subscriptionCategory: currentGroup.subscriptionCategory,
@@ -357,6 +410,7 @@ struct GroupDetailView: View {
                     amount: member.amount,
                     status: status,
                     userId: member.userId,
+                    photoURL: member.photoURL,
                     receiptURL: member.receiptURL,
                     submittedAt: status == .submitted ? Date() : member.submittedAt,
                     approvedAt: status == .paid ? Date() : member.approvedAt
@@ -369,7 +423,7 @@ struct GroupDetailView: View {
 #Preview {
     NavigationStack {
         GroupDetailView(
-            group: Group(
+            group: SharedGroup(
                 id: "preview",
                 name: "Netflix",
                 category: .streaming,
@@ -379,6 +433,7 @@ struct GroupDetailView: View {
                 billingDay: 5,
                 notes: "Teste",
                 ownerId: "1",
+                ownerPhoneNumber: "31999999999",
                 subscriptionId: "sub",
                 subscriptionName: "Netflix",
                 subscriptionCategory: "streaming",
@@ -390,8 +445,8 @@ struct GroupDetailView: View {
                 servicePassword: nil,
                 pixKey: nil,
                 members: [
-                    GroupMember(id: "1", name: "Leo", amount: 20, status: .paid, userId: "1", receiptURL: nil, submittedAt: nil, approvedAt: nil),
-                    GroupMember(id: "2", name: "Pessoa", amount: 20, status: .pending, userId: nil, receiptURL: nil, submittedAt: nil, approvedAt: nil)
+                    GroupMember(id: "1", name: "Leo", amount: 20, status: .paid, userId: "1", photoURL: nil, receiptURL: nil, submittedAt: nil, approvedAt: nil),
+                    GroupMember(id: "2", name: "Pessoa", amount: 20, status: .pending, userId: nil, photoURL: nil, receiptURL: nil, submittedAt: nil, approvedAt: nil)
                 ]
             ),
             currentUserId: "1"

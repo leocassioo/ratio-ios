@@ -11,6 +11,7 @@ struct SettingsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @AppStorage("appTheme") private var appThemeRaw: String = AppTheme.system.rawValue
     @AppStorage("appLanguage") private var appLanguageRaw: String = AppLanguage.system.rawValue
+    @State private var showSignOutConfirm = false
 
     private var appTheme: Binding<AppTheme> {
         Binding(
@@ -42,6 +43,20 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink {
+                        BillingHistoryView()
+                    } label: {
+                        Label("Histórico de cobranças", systemImage: "clock.arrow.circlepath")
+                    }
+                } header: {
+                    Text("Histórico")
+                } footer: {
+                    Text("Em breve: histórico completo de assinaturas e grupos.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section {
                     Picker("Tema do app", selection: appTheme) {
                         ForEach(AppTheme.allCases) { theme in
                             Text(theme.label).tag(theme)
@@ -65,14 +80,6 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Button(role: .destructive) {
-                        authViewModel.signOut()
-                    } label: {
-                        Text("Sair")
-                    }
-                }
-
-                Section {
                     HStack {
                         Text("Versão do app")
                         Spacer()
@@ -90,8 +97,25 @@ struct SettingsView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.top, 8)
                 }
+
+                Section {
+                    Button(role: .destructive) {
+                        showSignOutConfirm = true
+                    } label: {
+                        Text("Sair")
+                    }
+                }
+
             }
             .navigationTitle("Ajustes")
+            .alert("Sair da conta?", isPresented: $showSignOutConfirm) {
+                Button("Cancelar", role: .cancel) {}
+                Button("Sair", role: .destructive) {
+                    authViewModel.signOut()
+                }
+            } message: {
+                Text("Você precisará fazer login novamente para acessar o app.")
+            }
         }
     }
 }

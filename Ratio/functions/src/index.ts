@@ -9,3 +9,5 @@ export {
   notifyOwnerOnPaymentSubmittedTest,
   markOverdueTest
 } from "./notifications";
+
+export { recordSubscriptionHistory, recordGroupPaymentHistory, recordHistoryTest } from "./history";

@@ -15,6 +15,7 @@
 		470F576E2EF89A35006D57A9 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 470F576D2EF89A35006D57A9 /* FirebaseMessaging */; };
 		470F57702EF89A35006D57A9 /* FirebasePerformance in Frameworks */ = {isa = PBXBuildFile; productRef = 470F576F2EF89A35006D57A9 /* FirebasePerformance */; };
 		470F57722EF89A35006D57A9 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 470F57712EF89A35006D57A9 /* FirebaseStorage */; };
+		47A9A6B82F17C42E00BEC507 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 47A9A6B72F17C42E00BEC507 /* FirebaseRemoteConfig */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +48,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				47A9A6B82F17C42E00BEC507 /* FirebaseRemoteConfig in Frameworks */,
 				470F57702EF89A35006D57A9 /* FirebasePerformance in Frameworks */,
 				470F576E2EF89A35006D57A9 /* FirebaseMessaging in Frameworks */,
 				470F57642EF89A35006D57A9 /* FirebaseAnalytics in Frameworks */,
@@ -113,6 +115,7 @@
 				470F576D2EF89A35006D57A9 /* FirebaseMessaging */,
 				470F576F2EF89A35006D57A9 /* FirebasePerformance */,
 				470F57712EF89A35006D57A9 /* FirebaseStorage */,
+				47A9A6B72F17C42E00BEC507 /* FirebaseRemoteConfig */,
 			);
 			productName = Ratio;
 			productReference = 470F57422EF894B0006D57A9 /* Ratio.app */;
@@ -326,7 +329,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.redpixel.Ratio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -373,7 +376,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.redpixel.Ratio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -464,6 +467,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 470F57622EF89A35006D57A9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		47A9A6B72F17C42E00BEC507 /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 470F57622EF89A35006D57A9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
