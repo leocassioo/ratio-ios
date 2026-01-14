@@ -26,6 +26,14 @@ final class SubscriptionsStore {
             }
     }
 
+    func fetchSubscriptions(userId: String) async throws -> [SubscriptionItem] {
+        let snapshot = try await db.collection("users")
+            .document(userId)
+            .collection("subscriptions")
+            .getDocuments()
+        return snapshot.documents.compactMap(SubscriptionMapper.item(from:))
+    }
+
     func createSubscription(userId: String, data: [String: Any]) async throws {
         _ = try await db.collection("users")
             .document(userId)

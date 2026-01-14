@@ -60,7 +60,10 @@ struct HomeView: View {
                         HomeInsightsRowView(insights: viewModel.insights)
                     }
 
-                    HomeUpcomingSectionView(items: viewModel.upcomingPayments)
+                    HomeUpcomingSectionView(
+                        items: viewModel.upcomingPayments,
+                        destinationTab: upcomingDestination
+                    )
 
                     HomeCategoryDonutCardView(items: viewModel.categorySpends)
                 }
@@ -74,6 +77,10 @@ struct HomeView: View {
                     viewModel.startListening(userId: userId)
                 }
             }
+            .onChange(of: authViewModel.user?.uid) { _, newValue in
+                guard let userId = newValue else { return }
+                viewModel.startListening(userId: userId)
+            }
             .onDisappear {
                 viewModel.stopListening()
             }
@@ -85,6 +92,16 @@ struct HomeView: View {
             return "Total exibido na moeda principal"
         }
         return "Baseado nas assinaturas ativas"
+    }
+
+    private var upcomingDestination: MainTab {
+        if viewModel.hasSubscriptions {
+            return .subscriptions
+        }
+        if viewModel.hasGroups {
+            return .groups
+        }
+        return .subscriptions
     }
 }
 

@@ -25,7 +25,14 @@ final class GroupsStore {
             }
     }
 
-    func createGroup(data: [String: Any], members: [GroupMemberDraft], ownerId: String) async throws {
+    func fetchGroups(userId: String) async throws -> [Group] {
+        let snapshot = try await db.collection("groups")
+            .whereField("memberIds", arrayContains: userId)
+            .getDocuments()
+        return snapshot.documents.compactMap(GroupMapper.group(from:))
+    }
+
+    func createGroup(data: [String: Any], members: [GroupMemberDraft], ownerId: String) async throws -> String {
         let groupRef = db.collection("groups").document()
         try await groupRef.setData(data)
 
@@ -46,6 +53,7 @@ final class GroupsStore {
         }
 
         try await batch.commit()
+        return groupRef.documentID
     }
 
     func updateGroup(groupId: String, data: [String: Any], members: [GroupMemberDraft], ownerId: String) async throws {

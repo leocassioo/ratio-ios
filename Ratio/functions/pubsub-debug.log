@@ -13,3 +13,5 @@ jan. 13, 2026 10:32:04 AM com.google.cloud.pubsub.testing.v1.Main main
 INFORMAÇÕES: Server started, listening on 8085
 jan. 13, 2026 10:32:12 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFORMAÇÕES: Detected HTTP/2 connection.
+*** shutting down gRPC server since JVM is shutting down
+*** server shut down

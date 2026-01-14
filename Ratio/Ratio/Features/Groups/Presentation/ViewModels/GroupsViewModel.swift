@@ -63,7 +63,7 @@ final class GroupsViewModel: ObservableObject {
         pixKey: String?,
         members: [GroupMemberDraft],
         ownerId: String
-    ) async {
+    ) async -> String? {
         let memberIds = members.compactMap { $0.userId }.unique() + [ownerId]
         let membersPreview: [[String: Any]] = members.map { member in
             [
@@ -101,9 +101,10 @@ final class GroupsViewModel: ObservableObject {
         ]
 
         do {
-            try await store.createGroup(data: data, members: members, ownerId: ownerId)
+            return try await store.createGroup(data: data, members: members, ownerId: ownerId)
         } catch {
             errorMessage = error.localizedDescription
+            return nil
         }
     }
 

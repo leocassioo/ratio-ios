@@ -10,6 +10,7 @@ import SwiftUI
 struct HomeUpcomingSectionView: View {
     @EnvironmentObject private var navigationState: AppNavigationState
     let items: [UpcomingPaymentItem]
+    let destinationTab: MainTab
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -20,7 +21,7 @@ struct HomeUpcomingSectionView: View {
                     .font(.headline)
                 Spacer()
                 Button {
-                    navigationState.route(to: .subscriptions)
+                    navigationState.route(to: destinationTab)
                 } label: {
                     Image(systemName: "chevron.right")
                         .font(.subheadline.weight(.semibold))

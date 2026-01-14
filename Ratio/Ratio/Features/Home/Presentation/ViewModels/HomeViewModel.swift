@@ -19,6 +19,8 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var insights: [HomeInsightItem] = []
     @Published private(set) var upcomingPayments: [UpcomingPaymentItem] = []
     @Published private(set) var categorySpends: [CategorySpendItem] = []
+    @Published private(set) var hasSubscriptions = false
+    @Published private(set) var hasGroups = false
 
     private let subscriptionsStore: SubscriptionsStore
     private let groupsStore: GroupsStore
@@ -27,6 +29,7 @@ final class HomeViewModel: ObservableObject {
     private var subscriptions: [SubscriptionItem] = []
     private var groups: [Group] = []
     private var userId: String?
+    private var didLoadInitial = false
 
     init(store: SubscriptionsStore? = nil, groupsStore: GroupsStore? = nil) {
         self.subscriptionsStore = store ?? SubscriptionsStore()
@@ -39,24 +42,57 @@ final class HomeViewModel: ObservableObject {
     }
 
     func startListening(userId: String) {
+        if self.userId != userId {
+            didLoadInitial = false
+        }
         self.userId = userId
         listener?.remove()
         groupsListener?.remove()
         Task {
             try? await subscriptionsStore.normalizeNextBillingDates(userId: userId)
             try? await groupsStore.normalizeChargeDates(for: userId)
+
+            if !didLoadInitial {
+                if let subscriptions = try? await subscriptionsStore.fetchSubscriptions(userId: userId) {
+                    await MainActor.run {
+                        self.subscriptions = subscriptions
+                        self.hasSubscriptions = !subscriptions.isEmpty
+                        self.updateTotals()
+                        self.updateInsights()
+                        self.updateUpcomingPayments()
+                        self.updateCategorySpends()
+                    }
+                }
+
+                if let groups = try? await groupsStore.fetchGroups(userId: userId) {
+                    await MainActor.run {
+                        self.groups = groups
+                        self.hasGroups = !groups.isEmpty
+                        self.updateTotals()
+                        self.updateInsights()
+                        self.updateUpcomingPayments()
+                        self.updateCategorySpends()
+                    }
+                }
+
+                await MainActor.run {
+                    self.didLoadInitial = true
+                }
+            }
         }
         listener = subscriptionsStore.listenSubscriptions(for: userId) { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
                 case .success(let items):
                     self?.subscriptions = items
-                    self?.updateTotals(with: items)
+                    self?.hasSubscriptions = !items.isEmpty
+                    self?.updateTotals()
                     self?.updateInsights()
                     self?.updateUpcomingPayments()
                     self?.updateCategorySpends()
                 case .failure:
                     self?.totalMonthlyAmount = 0
+                    self?.hasSubscriptions = false
                 }
             }
         }
@@ -66,11 +102,14 @@ final class HomeViewModel: ObservableObject {
                 switch result {
                 case .success(let groups):
                     self?.groups = groups
+                    self?.hasGroups = !groups.isEmpty
                     self?.updateInsights()
                     self?.updateUpcomingPayments()
                     self?.updateCategorySpends()
+                    self?.updateTotals()
                 case .failure:
                     self?.groups = []
+                    self?.hasGroups = false
                 }
             }
         }
@@ -85,10 +124,13 @@ final class HomeViewModel: ObservableObject {
         insights = []
         upcomingPayments = []
         categorySpends = []
+        hasSubscriptions = false
+        hasGroups = false
     }
 
-    private func updateTotals(with items: [SubscriptionItem]) {
-        guard let firstCurrency = items.first?.currencyCode, !firstCurrency.isEmpty else {
+    private func updateTotals() {
+        let contributions = buildContributions()
+        guard let firstCurrency = contributions.first?.currencyCode, !firstCurrency.isEmpty else {
             totalMonthlyAmount = 0
             currencyCode = "BRL"
             hasMixedCurrencies = false
@@ -96,27 +138,32 @@ final class HomeViewModel: ObservableObject {
             return
         }
 
-        currencyCode = firstCurrency
-        hasMixedCurrencies = items.contains { $0.currencyCode != firstCurrency }
-        totalsByCurrency = Dictionary(grouping: items, by: { $0.currencyCode })
+        totalsByCurrency = Dictionary(grouping: contributions, by: { $0.currencyCode })
             .mapValues { currencyItems in
                 currencyItems.reduce(0) { partial, item in
-                    partial + monthlyEquivalent(for: item)
+                    partial + item.monthlyAmount
                 }
             }
+        currencyCode = firstCurrency
+        hasMixedCurrencies = totalsByCurrency.keys.contains { $0 != firstCurrency }
         totalMonthlyAmount = totalsByCurrency[firstCurrency] ?? 0
     }
 
     private func monthlyEquivalent(for item: SubscriptionItem) -> Double {
-        switch item.period {
+        monthlyEquivalent(for: item.amount, period: item.period)
+    }
+
+    private func monthlyEquivalent(for amount: Double, period: SubscriptionPeriod?) -> Double {
+        guard let period else { return amount }
+        switch period {
         case .weekly:
-            return item.amount * 4.33
+            return amount * 4.33
         case .monthly:
-            return item.amount
+            return amount
         case .quarterly:
-            return item.amount / 3
+            return amount / 3
         case .yearly:
-            return item.amount / 12
+            return amount / 12
         }
     }
 
@@ -206,6 +253,9 @@ final class HomeViewModel: ObservableObject {
         }
 
         let groupItems = groups.compactMap { group -> UpcomingPaymentItem? in
+            if group.ownerId == userId {
+                return nil
+            }
             let dueDate = group.chargeNextBillingDate ?? group.subscriptionNextBillingDate
             guard let dueDate else { return nil }
             guard let member = group.members.first(where: { $0.userId == userId }) else { return nil }
@@ -227,13 +277,33 @@ final class HomeViewModel: ObservableObject {
     }
 
     private func updateCategorySpends() {
-        guard !subscriptions.isEmpty else {
+        guard let userId else {
             categorySpends = []
             return
         }
 
-        let grouped = Dictionary(grouping: subscriptions, by: { $0.category })
-        let sortedCategories = SubscriptionCategory.allCases.sorted { $0.label < $1.label }
+        let subscriptionTotals = Dictionary(grouping: subscriptions, by: { $0.category.label })
+            .mapValues { items in
+                items.reduce(0) { partial, item in
+                    partial + monthlyEquivalent(for: item)
+                }
+            }
+
+        let groupTotals = groups.reduce(into: [String: Double]()) { partial, group in
+            guard group.ownerId != userId,
+                  let member = group.members.first(where: { $0.userId == userId }) else {
+                return
+            }
+            let period = periodFromGroup(group)
+            partial[group.category.label, default: 0] += monthlyEquivalent(for: member.amount, period: period)
+        }
+
+        let mergedTotals = subscriptionTotals.merging(groupTotals, uniquingKeysWith: +)
+        if mergedTotals.isEmpty {
+            categorySpends = []
+            return
+        }
+
         let palette: [Color] = [
             Color(.systemIndigo),
             Color(.systemTeal),
@@ -243,23 +313,33 @@ final class HomeViewModel: ObservableObject {
             Color(.systemGreen)
         ]
 
-        var items: [CategorySpendItem] = []
-        var totals: [(category: SubscriptionCategory, total: Double)] = []
-        for category in sortedCategories {
-            guard let categoryItems = grouped[category] else { continue }
-            let total = categoryItems.reduce(0) { partial, item in
-                partial + monthlyEquivalent(for: item)
-            }
-            totals.append((category: category, total: total))
-        }
-
-        let sortedTotals = totals.sorted { $0.total > $1.total }
-        for (index, entry) in sortedTotals.enumerated() {
+        let sortedTotals = mergedTotals.sorted { $0.value > $1.value }
+        categorySpends = sortedTotals.enumerated().map { index, entry in
             let color = palette[index % palette.count]
-            items.append(CategorySpendItem(label: entry.category.label, amount: entry.total, color: color))
+            return CategorySpendItem(label: entry.key, amount: entry.value, color: color)
+        }
+    }
+
+    private func buildContributions() -> [(currencyCode: String, monthlyAmount: Double)] {
+        var contributions: [(currencyCode: String, monthlyAmount: Double)] = []
+
+        contributions.append(contentsOf: subscriptions.map { item in
+            (currencyCode: item.currencyCode, monthlyAmount: monthlyEquivalent(for: item))
+        })
+
+        guard let userId else { return contributions }
+
+        let groupContributions = groups.compactMap { group -> (String, Double)? in
+            guard group.ownerId != userId,
+                  let member = group.members.first(where: { $0.userId == userId }) else {
+                return nil
+            }
+            let period = periodFromGroup(group)
+            return (group.currencyCode, monthlyEquivalent(for: member.amount, period: period))
         }
 
-        categorySpends = items
+        contributions.append(contentsOf: groupContributions)
+        return contributions
     }
 
     private func initials(for text: String) -> String {

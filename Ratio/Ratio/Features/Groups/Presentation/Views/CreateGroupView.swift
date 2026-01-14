@@ -29,6 +29,10 @@ struct CreateGroupView: View {
     @State private var memberValues: [String: Double] = [:]
     @State private var newMemberName = ""
     @StateObject private var creationViewModel: GroupCreationViewModel
+    @State private var showInviteSheet = false
+    @State private var inviteURL: URL?
+    @State private var inviteError: String?
+    @State private var isGeneratingInvite = false
 
     init(viewModel: GroupsViewModel, ownerId: String, ownerName: String) {
         self.viewModel = viewModel
@@ -60,7 +64,7 @@ struct CreateGroupView: View {
                     Task {
                         if let subscription = selectedSubscription {
                             let normalizedMembers = normalizedMemberList()
-                            await viewModel.createGroup(
+                            if let groupId = await viewModel.createGroup(
                                 name: groupName,
                                 subscription: subscription,
                                 billingDay: billingDay,
@@ -70,8 +74,10 @@ struct CreateGroupView: View {
                                 pixKey: pixKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : pixKey,
                                 members: normalizedMembers,
                                 ownerId: ownerId
-                            )
-                            dismiss()
+                            ) {
+                                await generateInvite(groupId: groupId, groupName: groupName)
+                                showInviteSheet = true
+                            }
                         }
                     }
                 }
@@ -119,6 +125,11 @@ struct CreateGroupView: View {
         }
         .onChange(of: selectedSubscriptionId) { _, _ in
             updateSelectedSubscription()
+        }
+        .sheet(isPresented: $showInviteSheet, onDismiss: {
+            dismiss()
+        }) {
+            inviteSheet
         }
     }
 
@@ -351,6 +362,84 @@ struct CreateGroupView: View {
     private var selectedSubscription: SubscriptionItem? {
         guard let selectedSubscriptionId else { return nil }
         return creationViewModel.subscriptions.first { $0.id == selectedSubscriptionId }
+    }
+
+    private var inviteSheet: some View {
+        NavigationStack {
+            VStack(spacing: 16) {
+                Text("Convite do grupo")
+                    .font(.headline)
+
+                if isGeneratingInvite {
+                    ProgressView("Gerando link...")
+                } else if let inviteURL {
+                    let message = inviteMessage(for: inviteURL)
+                    Text("Compartilhe o link com os membros do grupo.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+
+                    ShareLink(item: message) {
+                        Label("Compartilhar convite", systemImage: "square.and.arrow.up")
+                    }
+
+                    Button("Copiar mensagem") {
+                        UIPasteboard.general.string = message
+                    }
+                } else if let inviteError {
+                    Text(inviteError)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                }
+
+                Spacer()
+            }
+            .padding(20)
+            .navigationTitle("Convite")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fechar") {
+                        showInviteSheet = false
+                    }
+                }
+            }
+        }
+    }
+
+    private func generateInvite(groupId: String, groupName: String) async {
+        isGeneratingInvite = true
+        inviteError = nil
+        inviteURL = nil
+
+        do {
+            let expiresAt = Date().addingTimeInterval(60 * 60 * 24)
+            let token = try await InvitesStore().createInvite(
+                groupId: groupId,
+                groupName: groupName,
+                createdBy: ownerId,
+                expiresAt: expiresAt,
+                maxUses: 0
+            )
+            inviteURL = URL(string: "https://uaipixel.com/invite?token=\(token)")
+        } catch {
+            inviteError = "Não foi possível gerar o link."
+        }
+
+        isGeneratingInvite = false
+    }
+
+    private func inviteMessage(for url: URL) -> String {
+        """
+        Você foi convidado(a) para o grupo "\(groupName)" no Ratio.
+
+        Baixe o app (em breve):
+        https://uaipixel.com/apps/ratio
+
+        Abra o convite:
+        \(url.absoluteString)
+        """
     }
 }
 

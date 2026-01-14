@@ -186,7 +186,7 @@ struct GroupDetailView: View {
                             }
                             .buttonStyle(.bordered)
                             .tint(.green)
-                        } else if member.status != .paid && member.userId != currentUserId {
+                        } else if isOwner, member.status != .paid, member.userId != currentUserId {
                             Button {
                                 Task {
                                     let usersStore = UsersStore()
@@ -321,6 +321,11 @@ struct GroupDetailView: View {
     private func canApprove(member: GroupMember) -> Bool {
         guard let ownerId = currentGroup.ownerId, ownerId == currentUserId else { return false }
         return member.status == .submitted
+    }
+
+    private var isOwner: Bool {
+        guard let ownerId = currentGroup.ownerId, let currentUserId else { return false }
+        return ownerId == currentUserId
     }
 
     private func updateMemberStatus(_ memberId: String, status: GroupMemberStatus) {

@@ -7,52 +7,6 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "321A5D3A-99F7-4ABF-B58A-55EA5BD30E1E"
-            shouldBeEnabled = "Yes"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "Ratio/Features/Groups/Domain/WhatsAppMessageBuilder.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "35"
-            endingLineNumber = "35"
-            landmarkName = "buildPaymentRequest(memberName:groupName:amount:currencyCode:pixKey:phoneNumber:)"
-            landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "321A5D3A-99F7-4ABF-B58A-55EA5BD30E1E - 1f098c52003d66c8"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "static Ratio.WhatsAppMessageBuilder.buildPaymentRequest(memberName: Swift.String, groupName: Swift.String, amount: Swift.Double, currencyCode: Swift.String, pixKey: Swift.Optional&lt;Swift.String&gt;, phoneNumber: Swift.Optional&lt;Swift.String&gt;) -&gt; Swift.Optional&lt;Foundation.URL&gt;"
-                  moduleName = "Ratio.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/leonardofigueiredo/Projetos%20Mobile/ratio-ios/Ratio/Ratio/Features/Groups/Domain/WhatsAppMessageBuilder.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "35"
-                  endingLineNumber = "35">
-               </Location>
-               <Location
-                  uuid = "321A5D3A-99F7-4ABF-B58A-55EA5BD30E1E - 1f098c52003d66c8"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "static Ratio.WhatsAppMessageBuilder.buildPaymentRequest(memberName: Swift.String, groupName: Swift.String, amount: Swift.Double, currencyCode: Swift.String, pixKey: Swift.Optional&lt;Swift.String&gt;, phoneNumber: Swift.Optional&lt;Swift.String&gt;) -&gt; Swift.Optional&lt;Foundation.URL&gt;"
-                  moduleName = "Ratio.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/leonardofigueiredo/Projetos%20Mobile/ratio-ios/Ratio/Ratio/Features/Groups/Domain/WhatsAppMessageBuilder.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "35"
-                  endingLineNumber = "35">
-               </Location>
-            </Locations>
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
             uuid = "DFB99135-872C-4482-9470-5EF25A2F0A58"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
