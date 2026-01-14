@@ -42,16 +42,25 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
 struct RatioApp: App {
     // register app delegate for Firebase setup
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    @AppStorage("appTheme") private var appThemeRaw: String = AppTheme.system.rawValue
-    @AppStorage("appLanguage") private var appLanguageRaw: String = AppLanguage.system.rawValue
+    @AppStorage(PreferencesStore.PrefKey.hasSeenOnboarding) private var hasSeenOnboarding: Bool = false
+    @AppStorage(PreferencesStore.PrefKey.appTheme) private var appThemeRaw: String = AppTheme.system.rawValue
+    @AppStorage(PreferencesStore.PrefKey.appLanguage) private var appLanguageRaw: String = AppLanguage.system.rawValue
 
     var body: some Scene {
         WindowGroup {
             let theme = AppTheme(rawValue: appThemeRaw) ?? .system
             let language = AppLanguage(rawValue: appLanguageRaw) ?? .system
-            ContentView()
-                .preferredColorScheme(theme.colorScheme)
-                .environment(\.locale, language.locale ?? Locale.current)
+            Group {
+                if hasSeenOnboarding {
+                    ContentView()
+                } else {
+                    OnboardingView {
+                        hasSeenOnboarding = true
+                    }
+                }
+            }
+            .preferredColorScheme(theme.colorScheme)
+            .environment(\.locale, language.locale ?? Locale.current)
         }
     }
 }

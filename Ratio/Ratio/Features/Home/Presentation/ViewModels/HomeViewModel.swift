@@ -21,6 +21,7 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var categorySpends: [CategorySpendItem] = []
     @Published private(set) var hasSubscriptions = false
     @Published private(set) var hasGroups = false
+    @Published private(set) var isLoading = false
 
     private let subscriptionsStore: SubscriptionsStore
     private let groupsStore: GroupsStore
@@ -30,6 +31,8 @@ final class HomeViewModel: ObservableObject {
     private var groups: [SharedGroup] = []
     private var userId: String?
     private var didLoadInitial = false
+    private var didLoadSubscriptions = false
+    private var didLoadGroups = false
 
     init(store: SubscriptionsStore? = nil, groupsStore: GroupsStore? = nil) {
         self.subscriptionsStore = store ?? SubscriptionsStore()
@@ -44,17 +47,21 @@ final class HomeViewModel: ObservableObject {
     func startListening(userId: String) {
         if self.userId != userId {
             didLoadInitial = false
+            didLoadSubscriptions = false
+            didLoadGroups = false
         }
         self.userId = userId
         listener?.remove()
         groupsListener?.remove()
+        isLoading = true
         Task {
             try? await subscriptionsStore.normalizeNextBillingDates(userId: userId)
             try? await groupsStore.normalizeChargeDates(for: userId)
 
             if !didLoadInitial {
-                if let subscriptions = try? await subscriptionsStore.fetchSubscriptions(userId: userId) {
-                    await MainActor.run {
+                let subscriptions = try? await subscriptionsStore.fetchSubscriptions(userId: userId)
+                await MainActor.run {
+                    if let subscriptions {
                         self.subscriptions = subscriptions
                         self.hasSubscriptions = !subscriptions.isEmpty
                         self.updateTotals()
@@ -62,10 +69,13 @@ final class HomeViewModel: ObservableObject {
                         self.updateUpcomingPayments()
                         self.updateCategorySpends()
                     }
+                    self.didLoadSubscriptions = true
+                    self.updateLoadingState()
                 }
 
-                if let groups = try? await groupsStore.fetchGroups(userId: userId) {
-                    await MainActor.run {
+                let groups = try? await groupsStore.fetchGroups(userId: userId)
+                await MainActor.run {
+                    if let groups {
                         self.groups = groups
                         self.hasGroups = !groups.isEmpty
                         self.updateTotals()
@@ -73,6 +83,8 @@ final class HomeViewModel: ObservableObject {
                         self.updateUpcomingPayments()
                         self.updateCategorySpends()
                     }
+                    self.didLoadGroups = true
+                    self.updateLoadingState()
                 }
 
                 await MainActor.run {
@@ -86,6 +98,8 @@ final class HomeViewModel: ObservableObject {
                 case .success(let items):
                     self?.subscriptions = items
                     self?.hasSubscriptions = !items.isEmpty
+                    self?.didLoadSubscriptions = true
+                    self?.updateLoadingState()
                     self?.updateTotals()
                     self?.updateInsights()
                     self?.updateUpcomingPayments()
@@ -93,6 +107,8 @@ final class HomeViewModel: ObservableObject {
                 case .failure:
                     self?.totalMonthlyAmount = 0
                     self?.hasSubscriptions = false
+                    self?.didLoadSubscriptions = true
+                    self?.updateLoadingState()
                 }
             }
         }
@@ -103,6 +119,8 @@ final class HomeViewModel: ObservableObject {
                 case .success(let groups):
                     self?.groups = groups
                     self?.hasGroups = !groups.isEmpty
+                    self?.didLoadGroups = true
+                    self?.updateLoadingState()
                     self?.updateInsights()
                     self?.updateUpcomingPayments()
                     self?.updateCategorySpends()
@@ -110,6 +128,8 @@ final class HomeViewModel: ObservableObject {
                 case .failure:
                     self?.groups = []
                     self?.hasGroups = false
+                    self?.didLoadGroups = true
+                    self?.updateLoadingState()
                 }
             }
         }
@@ -126,6 +146,13 @@ final class HomeViewModel: ObservableObject {
         categorySpends = []
         hasSubscriptions = false
         hasGroups = false
+        isLoading = false
+        didLoadSubscriptions = false
+        didLoadGroups = false
+    }
+
+    private func updateLoadingState() {
+        isLoading = !(didLoadSubscriptions && didLoadGroups)
     }
 
     private func updateTotals() {

@@ -45,32 +45,45 @@ struct HomeView: View {
     ]
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    HomeSummaryCardView(
-                        totalAmount: viewModel.totalMonthlyAmount,
-                        currencyCode: viewModel.currencyCode,
-                        deltaText: summarySubtitle
-                    )
-                    if viewModel.hasMixedCurrencies {
-                        HomeCurrencySummaryView(totalsByCurrency: viewModel.totalsByCurrency)
+            ZStack {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        HomeSummaryCardView(
+                            totalAmount: viewModel.totalMonthlyAmount,
+                            currencyCode: viewModel.currencyCode,
+                            deltaText: summarySubtitle
+                        )
+                        if viewModel.hasMixedCurrencies {
+                            HomeCurrencySummaryView(totalsByCurrency: viewModel.totalsByCurrency)
+                        }
+
+                        if !viewModel.insights.isEmpty {
+                            HomeInsightsRowView(insights: viewModel.insights)
+                        }
+
+                        HomeUpcomingSectionView(
+                            items: viewModel.upcomingPayments,
+                            destinationTab: upcomingDestination
+                        )
+
+                        HomeCategoryDonutCardView(items: viewModel.categorySpends)
                     }
-
-                    if !viewModel.insights.isEmpty {
-                        HomeInsightsRowView(insights: viewModel.insights)
-                    }
-
-                    HomeUpcomingSectionView(
-                        items: viewModel.upcomingPayments,
-                        destinationTab: upcomingDestination
-                    )
-
-                    HomeCategoryDonutCardView(items: viewModel.categorySpends)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
+                .background(Color(.systemGroupedBackground))
+
+                if viewModel.isLoading {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                        Text("Carregando dados...")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.ultraThinMaterial)
+                }
             }
-            .background(Color(.systemGroupedBackground))
             .navigationTitle("Resumo")
             .onAppear {
                 if let userId = authViewModel.user?.uid {

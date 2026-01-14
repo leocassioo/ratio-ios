@@ -9,9 +9,10 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
-    @AppStorage("appTheme") private var appThemeRaw: String = AppTheme.system.rawValue
-    @AppStorage("appLanguage") private var appLanguageRaw: String = AppLanguage.system.rawValue
+    @AppStorage(PreferencesStore.PrefKey.appTheme) private var appThemeRaw: String = AppTheme.system.rawValue
+    @AppStorage(PreferencesStore.PrefKey.appLanguage) private var appLanguageRaw: String = AppLanguage.system.rawValue
     @State private var showSignOutConfirm = false
+    @Environment(\.dismiss) private var dismiss
 
     private var appTheme: Binding<AppTheme> {
         Binding(
@@ -52,6 +53,22 @@ struct SettingsView: View {
                     Text("Histórico")
                 } footer: {
                     Text("Em breve: histórico completo de assinaturas e grupos.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section {
+                    NavigationLink {
+                        OnboardingView(showsFinishButton: false) {
+                            dismiss()
+                        }
+                    } label: {
+                        Label("Tutorial rápido", systemImage: "questionmark.circle")
+                    }
+                } header: {
+                    Text("Ajuda e tutorial")
+                } footer: {
+                    Text("Revise as principais funções do app.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

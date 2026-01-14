@@ -35,6 +35,9 @@
     "Aguardando confirmação do organizador." : {
 
     },
+    "Ajuda e tutorial" : {
+
+    },
     "Ajustes" : {
 
     },
@@ -74,6 +77,9 @@
     "Carregando convite..." : {
 
     },
+    "Carregando dados..." : {
+
+    },
     "Categoria" : {
 
     },
@@ -84,6 +90,9 @@
 
     },
     "Chave Pix para recebimento" : {
+
+    },
+    "Começar a usar" : {
 
     },
     "Compartilhar convite" : {
@@ -382,6 +391,9 @@
     "Resumo" : {
 
     },
+    "Revise as principais funções do app." : {
+
+    },
     "Sair" : {
 
     },
@@ -469,6 +481,9 @@
           }
         }
       }
+    },
+    "Tutorial rápido" : {
+
     },
     "USD" : {
 
