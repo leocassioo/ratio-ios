@@ -185,7 +185,7 @@ struct SubscriptionBenefitsView: View {
                     await subscriptionManager.refreshEntitlements()
                     isRestoring = false
 
-                    if subscriptionManager.isProUser {
+                    if subscriptionManager.hasProAccess {
                         restoreMessage = "Assinatura restaurada com sucesso."
                         showSuccess = true
                     } else {

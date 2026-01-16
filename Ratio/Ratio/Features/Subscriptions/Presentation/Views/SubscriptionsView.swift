@@ -147,7 +147,7 @@ struct SubscriptionsView: View {
     }
 
     private var canCreateSubscription: Bool {
-        subscriptionManager.isProUser || viewModel.subscriptions.count < freeSubscriptionLimit
+        subscriptionManager.hasProAccess || viewModel.subscriptions.count < freeSubscriptionLimit
     }
 
     private func deleteSubscription(at offsets: IndexSet) {

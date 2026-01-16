@@ -109,7 +109,7 @@ struct GroupsView: View {
     }
 
     private var canCreateGroup: Bool {
-        subscriptionManager.isProUser || viewModel.groups.count < freeGroupLimit
+        subscriptionManager.hasProAccess || viewModel.groups.count < freeGroupLimit
     }
 
     private func openPendingGroupIfNeeded() {

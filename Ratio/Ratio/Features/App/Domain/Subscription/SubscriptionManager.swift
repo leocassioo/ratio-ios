@@ -20,6 +20,10 @@ final class SubscriptionManager: ObservableObject {
 
     private var products: [SubscriptionProduct: Product] = [:]
 
+    var hasProAccess: Bool {
+        isProUser || RemoteConfigService.shared.premiumBypassEnabled
+    }
+
     init() {
         Task {
             await loadProducts()

@@ -13,6 +13,7 @@ enum FeatureFlagKey: String {
     case maxCompletionTokensForAnalysis
     case gptModel
     case openAiApiKey
+    case premiumBypass
 }
 
 /// Wrapper para leitura de flags do Firebase Remote Config.
@@ -54,11 +55,16 @@ final class RemoteConfigService {
         return number == 0 ? nil : number.intValue
     }
 
+    func bool(for key: FeatureFlagKey) -> Bool {
+        remoteConfig.configValue(forKey: key.rawValue).boolValue
+    }
+
     // Conveniências
     var reasoningEffortForAnalysis: String? { string(for: .reasoningEffortForAnalysis) }
     var maxCompletionTokensForAnalysis: Int? { int(for: .maxCompletionTokensForAnalysis) }
     var gptModel: String? { string(for: .gptModel) }
     var openAiApiKey: String? { string(for: .openAiApiKey) }
+    var premiumBypassEnabled: Bool { bool(for: .premiumBypass) }
 }
 
 private extension RemoteConfigService {
@@ -67,7 +73,8 @@ private extension RemoteConfigService {
             FeatureFlagKey.reasoningEffortForAnalysis.rawValue: "low" as NSString,
             FeatureFlagKey.maxCompletionTokensForAnalysis.rawValue: 5000 as NSNumber,
             FeatureFlagKey.gptModel.rawValue: "gpt-5-nano-2025-08-07" as NSString,
-            FeatureFlagKey.openAiApiKey.rawValue: "" as NSString
+            FeatureFlagKey.openAiApiKey.rawValue: "" as NSString,
+            FeatureFlagKey.premiumBypass.rawValue: false as NSNumber
         ]
     }
 }

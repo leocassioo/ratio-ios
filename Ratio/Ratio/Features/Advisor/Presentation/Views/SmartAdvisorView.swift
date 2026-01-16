@@ -198,7 +198,7 @@ struct SmartAdvisorView: View {
     }
 
     private func handleRefreshTap() {
-        guard subscriptionManager.isProUser else {
+        guard subscriptionManager.hasProAccess else {
             router.present(.upgradePrompt(
                 title: "Desbloqueie o Advisor inteligente",
                 subtitle: "O Advisor com IA está disponível apenas no Ratio Pro.",

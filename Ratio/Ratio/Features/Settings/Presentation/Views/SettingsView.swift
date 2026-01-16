@@ -82,7 +82,7 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if !subscriptionManager.isProUser {
+            if !subscriptionManager.hasProAccess {
                 Section {
                     Button {
                         router.present(.subscriptionBenefits)
