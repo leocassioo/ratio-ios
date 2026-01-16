@@ -88,6 +88,7 @@ struct EditProfileView: View {
             }
         }
         .navigationTitle("Perfil")
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.loadProfile()
         }

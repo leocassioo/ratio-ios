@@ -76,6 +76,7 @@ struct LoginView: View {
         }
         .padding()
         .navigationTitle("Entrar")
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showResetSheet) {
             NavigationStack {
                 VStack(spacing: 20) {

@@ -110,6 +110,9 @@
     "Categoria" : {
 
     },
+    "Chave Pix (opcional)" : {
+
+    },
     "Chave Pix do grupo" : {
 
     },
@@ -398,6 +401,9 @@
 
     },
     "Perfil atualizado com sucesso." : {
+
+    },
+    "Perfil indisponível" : {
 
     },
     "Periodicidade" : {

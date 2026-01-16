@@ -5,6 +5,7 @@
 //  Created by Codex on 23/12/25.
 //
 
+import FirebaseAuth
 import SwiftUI
 import Combine
 
@@ -12,6 +13,8 @@ enum AppRoute: Hashable {
     case settings
     case billingHistory
     case subscriptionBenefits
+    case editProfile
+    case onboardingTutorial
 }
 
 enum AppSheet: Identifiable, Equatable {
@@ -26,6 +29,8 @@ enum AppSheet: Identifiable, Equatable {
     case createGroup(ownerId: String, ownerName: String, viewModel: GroupsViewModel)
     case editGroup(group: SharedGroup, ownerId: String, viewModel: GroupsViewModel)
     case groupDetail(group: SharedGroup, currentUserId: String?)
+    case editProfile(user: User)
+    case onboardingTutorial
 
     var id: String {
         switch self {
@@ -41,6 +46,10 @@ enum AppSheet: Identifiable, Equatable {
             return "editGroup-\(group.id)"
         case .groupDetail(let group, _):
             return "groupDetail-\(group.id)"
+        case .editProfile(let user):
+            return "editProfile-\(user.uid)"
+        case .onboardingTutorial:
+            return "onboardingTutorial"
         }
     }
 

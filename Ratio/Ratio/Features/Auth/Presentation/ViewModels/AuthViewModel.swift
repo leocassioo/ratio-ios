@@ -54,7 +54,7 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    func signUp(email: String, password: String, displayName: String, phoneNumber: String, photoData: Data?) {
+    func signUp(email: String, password: String, displayName: String, phoneNumber: String, pixKey: String, photoData: Data?) {
         authenticate {
             let result = try await Auth.auth().createUser(withEmail: email, password: password)
             let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -73,13 +73,14 @@ final class AuthViewModel: ObservableObject {
             let profileName = trimmedName.isEmpty ? (result.user.displayName ?? "") : trimmedName
             let profileEmail = result.user.email ?? email
             let profilePhoto = changeRequest.photoURL?.absoluteString ?? result.user.photoURL?.absoluteString
+            let trimmedPixKey = pixKey.trimmingCharacters(in: .whitespacesAndNewlines)
             try await self.usersStore.upsertUser(
                 userId: result.user.uid,
                 name: profileName,
                 email: profileEmail,
                 phoneNumber: phoneNumber,
                 photoURL: profilePhoto,
-                pixKey: nil
+                pixKey: trimmedPixKey.isEmpty ? nil : trimmedPixKey
             )
             return result
         }

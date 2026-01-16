@@ -15,6 +15,7 @@ struct SignupView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var phoneNumber = ""
+    @State private var pixKey = ""
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var profileImageData: Data?
 
@@ -72,6 +73,11 @@ struct SignupView: View {
                     .textContentType(.telephoneNumber)
                     .submitLabel(.next)
 
+                TextField("Chave Pix (opcional)", text: $pixKey)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.next)
+
                 SecureField("Senha", text: $password)
                     .textContentType(.newPassword)
                     .submitLabel(.go)
@@ -102,6 +108,7 @@ struct SignupView: View {
         }
         .padding()
         .navigationTitle("Criar conta")
+        .navigationBarTitleDisplayMode(.inline)
         .onChange(of: selectedPhoto) { _, newValue in
             guard let newValue else {
                 profileImageData = nil
@@ -124,6 +131,7 @@ struct SignupView: View {
             password: password,
             displayName: displayName,
             phoneNumber: phoneNumber,
+            pixKey: pixKey,
             photoData: profileImageData
         )
     }

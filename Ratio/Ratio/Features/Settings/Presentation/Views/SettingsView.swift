@@ -10,10 +10,10 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
+    @EnvironmentObject private var router: AppRouter
     @AppStorage(PreferencesStore.PrefKey.appTheme) private var appThemeRaw: String = AppTheme.system.rawValue
     @AppStorage(PreferencesStore.PrefKey.appLanguage) private var appLanguageRaw: String = AppLanguage.system.rawValue
     @State private var showSignOutConfirm = false
-    @Environment(\.dismiss) private var dismiss
 
     private var appTheme: Binding<AppTheme> {
         Binding(
@@ -33,8 +33,8 @@ struct SettingsView: View {
         Form {
             Section {
                 if let user = authViewModel.user {
-                    NavigationLink {
-                        EditProfileView(user: user)
+                    Button {
+                        router.push(.editProfile, in: .settings)
                     } label: {
                         Label("Perfil", systemImage: "person.crop.circle")
                     }
@@ -44,8 +44,8 @@ struct SettingsView: View {
             }
 
             Section {
-                NavigationLink {
-                    BillingHistoryView()
+                Button {
+                    router.push(.billingHistory, in: .settings)
                 } label: {
                     Label("Histórico de cobranças", systemImage: "clock.arrow.circlepath")
                 }
@@ -59,9 +59,8 @@ struct SettingsView: View {
 
             if !subscriptionManager.isProUser {
                 Section {
-                    NavigationLink {
-                        SubscriptionBenefitsView()
-                            .environmentObject(subscriptionManager)
+                    Button {
+                        router.present(.subscriptionBenefits)
                     } label: {
                         Label("Ratio Pro", systemImage: "crown.fill")
                     }
@@ -75,10 +74,8 @@ struct SettingsView: View {
             }
 
             Section {
-                NavigationLink {
-                    OnboardingView(showsFinishButton: false) {
-                        dismiss()
-                    }
+                Button {
+                    router.push(.onboardingTutorial, in: .settings)
                 } label: {
                     Label("Tutorial rápido", systemImage: "questionmark.circle")
                 }

@@ -5,6 +5,7 @@
 //  Created by Codex on 21/12/25.
 //
 
+import FirebaseAuth
 import SwiftUI
 
 struct MainTabView: View {
@@ -84,6 +85,16 @@ struct MainTabView: View {
             BillingHistoryView()
         case .subscriptionBenefits:
             SubscriptionBenefitsView()
+        case .editProfile:
+            if let user = Auth.auth().currentUser {
+                EditProfileView(user: user)
+            } else {
+                Text("Perfil indisponível")
+            }
+        case .onboardingTutorial:
+            OnboardingView(showsFinishButton: false) {
+                router.pop(in: .settings)
+            }
         }
     }
 
@@ -137,6 +148,27 @@ struct MainTabView: View {
                     group: group,
                     currentUserId: currentUserId
                 )
+            }
+        case .editProfile(let user):
+            NavigationStack {
+                EditProfileView(user: user)
+            }
+        case .onboardingTutorial:
+            NavigationStack {
+                OnboardingView(showsFinishButton: false) {
+                    router.dismissSheet()
+                }
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            router.dismissSheet()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
             }
         }
     }
