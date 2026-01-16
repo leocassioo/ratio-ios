@@ -17,8 +17,18 @@ struct ContentView: View {
             if authViewModel.user != nil {
                 MainTabView()
             } else {
-                NavigationStack {
+                NavigationStack(path: $router.authPath) {
                     LoginView()
+                        .navigationDestination(for: AppRoute.self) { route in
+                            switch route {
+                            case .signup:
+                                SignupView()
+                            case .passwordReset:
+                                PasswordResetView()
+                            default:
+                                EmptyView()
+                            }
+                        }
                 }
             }
         }

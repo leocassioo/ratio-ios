@@ -9,10 +9,9 @@ import SwiftUI
 
 struct LoginView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @EnvironmentObject private var router: AppRouter
     @State private var email = ""
     @State private var password = ""
-    @State private var showResetSheet = false
-    @State private var resetEmail = ""
 
     var body: some View {
         VStack(spacing: 24) {
@@ -49,15 +48,12 @@ struct LoginView: View {
                 .disabled(isSubmitDisabled)
 
                 Button("Esqueci minha senha") {
-                    resetEmail = email
-                    authViewModel.errorMessage = nil
-                    authViewModel.passwordResetSent = false
-                    showResetSheet = true
+                    router.pushAuth(.passwordReset)
                 }
                 .font(.footnote)
 
-                NavigationLink("Criar nova conta") {
-                    SignupView()
+                Button("Criar nova conta") {
+                    router.pushAuth(.signup)
                 }
                 .font(.footnote)
             }
@@ -77,67 +73,6 @@ struct LoginView: View {
         .padding()
         .navigationTitle("Entrar")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showResetSheet) {
-            NavigationStack {
-                VStack(spacing: 20) {
-                    Text("Recuperar senha")
-                        .font(.title2.bold())
-                    Text("Enviaremos um link para redefinir sua senha.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-
-                    TextField("Email", text: $resetEmail)
-                        .textInputAutocapitalization(.never)
-                        .keyboardType(.emailAddress)
-                        .autocorrectionDisabled()
-                        .textContentType(.emailAddress)
-                        .textFieldStyle(.roundedBorder)
-
-                    Button {
-                        authViewModel.sendPasswordReset(email: resetEmail)
-                    } label: {
-                        if authViewModel.isLoading {
-                            ProgressView()
-                        } else {
-                            Text("Enviar link")
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(resetEmail.isEmpty || authViewModel.isLoading)
-
-                    if authViewModel.passwordResetSent {
-                        Text("Email enviado. Verifique sua caixa de entrada.")
-                            .font(.footnote)
-                            .foregroundStyle(.green)
-                            .multilineTextAlignment(.center)
-                    }
-
-                    if let message = authViewModel.errorMessage {
-                        Text(message)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                            .multilineTextAlignment(.center)
-                    }
-
-                    Spacer()
-                }
-                .padding()
-                .navigationTitle("Recuperar senha")
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Fechar") {
-                            showResetSheet = false
-                        }
-                    }
-                }
-            }
-            .onDisappear {
-                authViewModel.errorMessage = nil
-                authViewModel.passwordResetSent = false
-            }
-        }
     }
 
     private func submit() {
@@ -153,5 +88,6 @@ struct LoginView: View {
     NavigationStack {
         LoginView()
             .environmentObject(AuthViewModel())
+            .environmentObject(AppRouter())
     }
 }

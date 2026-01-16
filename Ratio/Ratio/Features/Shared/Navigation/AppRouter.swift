@@ -15,6 +15,8 @@ enum AppRoute: Hashable {
     case subscriptionBenefits
     case editProfile
     case onboardingTutorial
+    case signup
+    case passwordReset
 }
 
 enum AppSheet: Identifiable, Equatable {
@@ -82,6 +84,7 @@ final class AppRouter: ObservableObject {
     @Published var groupsPath = NavigationPath()
     @Published var advisorPath = NavigationPath()
     @Published var settingsPath = NavigationPath()
+    @Published var authPath = NavigationPath()
 
     @Published var sheet: AppSheet?
     @Published var fullScreenCover: AppFullScreenCover?
@@ -114,6 +117,14 @@ final class AppRouter: ObservableObject {
         case .settings:
             if !settingsPath.isEmpty { settingsPath.removeLast() }
         }
+    }
+
+    func pushAuth(_ route: AppRoute) {
+        authPath.append(route)
+    }
+
+    func popAuth() {
+        if !authPath.isEmpty { authPath.removeLast() }
     }
 
     func present(_ sheet: AppSheet) {

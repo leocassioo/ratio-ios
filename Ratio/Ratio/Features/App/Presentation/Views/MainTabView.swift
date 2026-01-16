@@ -95,6 +95,10 @@ struct MainTabView: View {
             OnboardingView(showsFinishButton: false) {
                 router.pop(in: .settings)
             }
+        case .signup:
+            SignupView()
+        case .passwordReset:
+            PasswordResetView()
         }
     }
 

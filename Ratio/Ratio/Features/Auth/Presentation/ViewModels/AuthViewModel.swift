@@ -154,21 +154,22 @@ final class AuthViewModel: ObservableObject {
 
     private func prepareProfilePhotoData(_ data: Data) -> Data {
         guard let image = UIImage(data: data) else { return data }
-        let maxDimension: CGFloat = 512
-        let resized = resizeImage(image, maxDimension: maxDimension)
-        return resized.jpegData(compressionQuality: 0.8) ?? data
+        let targetSize: CGFloat = 96
+        let resized = resizeImageToSquare(image, dimension: targetSize)
+        return resized.jpegData(compressionQuality: 0.6) ?? data
     }
 
-    private func resizeImage(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
+    private func resizeImageToSquare(_ image: UIImage, dimension: CGFloat) -> UIImage {
         let size = image.size
-        let maxSide = max(size.width, size.height)
-        guard maxSide > maxDimension else { return image }
-
-        let scale = maxDimension / maxSide
+        let scale = max(dimension / size.width, dimension / size.height)
         let newSize = CGSize(width: size.width * scale, height: size.height * scale)
-        let renderer = UIGraphicsImageRenderer(size: newSize)
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: dimension, height: dimension))
+        let origin = CGPoint(
+            x: (dimension - newSize.width) / 2,
+            y: (dimension - newSize.height) / 2
+        )
         return renderer.image { _ in
-            image.draw(in: CGRect(origin: .zero, size: newSize))
+            image.draw(in: CGRect(origin: origin, size: newSize))
         }
     }
 }

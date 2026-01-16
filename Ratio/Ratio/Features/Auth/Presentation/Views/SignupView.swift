@@ -151,4 +151,5 @@ struct SignupView: View {
         SignupView()
     }
     .environmentObject(AuthViewModel())
+    .environmentObject(AppRouter())
 }
