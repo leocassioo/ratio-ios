@@ -11,14 +11,11 @@ import FirebaseAuth
 struct SubscriptionsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
+    @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel = SubscriptionsViewModel()
-    @State private var showCreate = false
     @State private var showErrorAlert = false
-    @State private var selectedSubscription: SubscriptionItem?
     @State private var pendingDelete: SubscriptionItem?
     @State private var showDeleteConfirm = false
-    @State private var showUpgradePrompt = false
-    @State private var showPaywall = false
     private let freeSubscriptionLimit = 4
 
     var body: some View {
@@ -55,10 +52,10 @@ struct SubscriptionsView: View {
                 .padding()
             } else {
                 List {
-                    ForEach(viewModel.subscriptions) { subscription in
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Text(subscription.name)
+                        ForEach(viewModel.subscriptions) { subscription in
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    Text(subscription.name)
                                     .font(.headline)
                                 Spacer()
                                 Text(formattedCurrency(subscription.amount, currencyCode: subscription.currencyCode))
@@ -73,18 +70,18 @@ struct SubscriptionsView: View {
                             Text("Próxima cobrança: \(formattedDate(subscription.nextBillingDate))")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 6)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            selectedSubscription = subscription
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button("Editar") {
-                                selectedSubscription = subscription
                             }
-                            .tint(.blue)
-                            if canDelete(subscription) {
+                            .padding(.vertical, 6)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                openEdit(subscription)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button("Editar") {
+                                    openEdit(subscription)
+                                }
+                                .tint(.blue)
+                                if canDelete(subscription) {
                                 Button(role: .destructive) {
                                     pendingDelete = subscription
                                     showDeleteConfirm = true
@@ -103,60 +100,20 @@ struct SubscriptionsView: View {
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     if canCreateSubscription {
-                        showCreate = true
+                        openCreate()
                     } else {
-                        showUpgradePrompt = true
+                        router.present(.upgradePrompt(
+                            title: "Limite de assinaturas no plano gratuito",
+                            subtitle: "Você chegou ao limite de \(freeSubscriptionLimit) assinaturas. Assine o Ratio Pro para cadastrar ilimitadas.",
+                            benefits: [
+                                "Assinaturas pessoais ilimitadas",
+                                "Lembretes avançados de cobrança",
+                                "Insights inteligentes com IA"
+                            ]
+                        ))
                     }
                 } label: {
                     Image(systemName: "plus")
-                }
-            }
-        }
-        .sheet(isPresented: $showCreate) {
-            if let userId = authViewModel.user?.uid {
-                NavigationStack {
-                    CreateSubscriptionView { newSubscription in
-                        Task {
-                            await viewModel.createSubscription(
-                                name: newSubscription.name,
-                                amount: newSubscription.amount,
-                                currencyCode: newSubscription.currencyCode,
-                                category: newSubscription.category,
-                                period: newSubscription.period,
-                                nextBillingDate: newSubscription.nextBillingDate,
-                                notes: newSubscription.notes.isEmpty ? nil : newSubscription.notes,
-                                ownerId: userId
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        .sheet(item: $selectedSubscription) { subscription in
-            if let userId = authViewModel.user?.uid {
-                NavigationStack {
-                    EditSubscriptionView(
-                        subscription: subscription,
-                        canDelete: canDelete(subscription),
-                        onDelete: {
-                            pendingDelete = subscription
-                            showDeleteConfirm = true
-                        }
-                    ) { updated in
-                        Task {
-                            await viewModel.updateSubscription(
-                                id: updated.id,
-                                name: updated.name,
-                                amount: updated.amount,
-                                currencyCode: updated.currencyCode,
-                                category: updated.category,
-                                period: updated.period,
-                                nextBillingDate: updated.nextBillingDate,
-                                notes: updated.notes.isEmpty ? nil : updated.notes,
-                                ownerId: userId
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -187,26 +144,6 @@ struct SubscriptionsView: View {
         } message: {
             Text("Tem certeza que deseja excluir esta assinatura? Essa ação não pode ser desfeita.")
         }
-        .sheet(isPresented: $showUpgradePrompt) {
-            UpgradePromptView(
-                title: "Limite de assinaturas no plano gratuito",
-                subtitle: "Você chegou ao limite de \(freeSubscriptionLimit) assinaturas. Assine o Ratio Pro para cadastrar ilimitadas.",
-                benefits: [
-                    "Assinaturas pessoais ilimitadas",
-                    "Lembretes avançados de cobrança",
-                    "Insights inteligentes com IA"
-                ],
-                onViewPlans: {
-                    showPaywall = true
-                }
-            )
-        }
-        .fullScreenCover(isPresented: $showPaywall) {
-            NavigationStack {
-                SubscriptionBenefitsView()
-                    .environmentObject(subscriptionManager)
-            }
-        }
     }
 
     private var canCreateSubscription: Bool {
@@ -233,6 +170,51 @@ struct SubscriptionsView: View {
     private func canDelete(_ subscription: SubscriptionItem) -> Bool {
         guard viewModel.hasLoadedGroups else { return false }
         return !viewModel.linkedSubscriptionIds.contains(subscription.id)
+    }
+
+    private func openCreate() {
+        guard let userId = authViewModel.user?.uid else { return }
+        router.present(.createSubscription(ownerId: userId) { newSubscription in
+            Task {
+                await viewModel.createSubscription(
+                    name: newSubscription.name,
+                    amount: newSubscription.amount,
+                    currencyCode: newSubscription.currencyCode,
+                    category: newSubscription.category,
+                    period: newSubscription.period,
+                    nextBillingDate: newSubscription.nextBillingDate,
+                    notes: newSubscription.notes.isEmpty ? nil : newSubscription.notes,
+                    ownerId: userId
+                )
+            }
+        })
+    }
+
+    private func openEdit(_ subscription: SubscriptionItem) {
+        guard let userId = authViewModel.user?.uid else { return }
+        router.present(.editSubscription(
+            subscription: subscription,
+            canDelete: canDelete(subscription),
+            onDelete: {
+                pendingDelete = subscription
+                showDeleteConfirm = true
+            },
+            onSave: { updated in
+                Task {
+                    await viewModel.updateSubscription(
+                        id: updated.id,
+                        name: updated.name,
+                        amount: updated.amount,
+                        currencyCode: updated.currencyCode,
+                        category: updated.category,
+                        period: updated.period,
+                        nextBillingDate: updated.nextBillingDate,
+                        notes: updated.notes.isEmpty ? nil : updated.notes,
+                        ownerId: userId
+                    )
+                }
+            }
+        ))
     }
 
     private func formattedCurrency(_ value: Double, currencyCode: String) -> String {

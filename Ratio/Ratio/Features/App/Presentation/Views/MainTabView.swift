@@ -100,6 +100,21 @@ struct MainTabView: View {
                     router.present(.subscriptionBenefits)
                 }
             )
+        case .createSubscription(let ownerId, let onSave):
+            NavigationStack {
+                CreateSubscriptionView { newSubscription in
+                    onSave(newSubscription)
+                }
+            }
+        case .editSubscription(let subscription, let canDelete, let onDelete, let onSave):
+            NavigationStack {
+                EditSubscriptionView(
+                    subscription: subscription,
+                    canDelete: canDelete,
+                    onDelete: onDelete,
+                    onSave: onSave
+                )
+            }
         }
     }
 

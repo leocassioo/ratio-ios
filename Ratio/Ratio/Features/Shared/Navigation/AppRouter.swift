@@ -16,11 +16,22 @@ enum AppRoute: Hashable {
 
 enum AppSheet: Identifiable, Equatable {
     case upgradePrompt(title: String, subtitle: String, benefits: [String])
+    case createSubscription(ownerId: String, onSave: (SubscriptionItem) -> Void)
+    case editSubscription(
+        subscription: SubscriptionItem,
+        canDelete: Bool,
+        onDelete: () -> Void,
+        onSave: (SubscriptionItem) -> Void
+    )
 
     var id: String {
         switch self {
         case .upgradePrompt:
             return "upgradePrompt"
+        case .createSubscription:
+            return "createSubscription"
+        case .editSubscription(let subscription, _, _, _):
+            return "editSubscription-\(subscription.id)"
         }
     }
 
