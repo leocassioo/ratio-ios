@@ -45,70 +45,68 @@ struct HomeView: View {
         CategorySpendItem(label: "Outros", amount: 57.02, color: Color(.systemOrange))
     ]
     var body: some View {
-        NavigationStack {
-            ZStack {
-                ScrollView {
-                    VStack(spacing: 20) {
-                        HomeSummaryCardView(
-                            totalAmount: viewModel.totalMonthlyAmount,
-                            currencyCode: viewModel.currencyCode,
-                            deltaText: summarySubtitle
+        ZStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    HomeSummaryCardView(
+                        totalAmount: viewModel.totalMonthlyAmount,
+                        currencyCode: viewModel.currencyCode,
+                        deltaText: summarySubtitle
+                    )
+
+                    if !viewModel.isLoading && !viewModel.hasSubscriptions && !viewModel.hasGroups {
+                        HomeEmptyStateView(
+                            onAddSubscription: {
+                                navigationState.selectedTab = .subscriptions
+                            },
+                            onCreateGroup: {
+                                navigationState.selectedTab = .groups
+                            }
                         )
-
-                        if !viewModel.isLoading && !viewModel.hasSubscriptions && !viewModel.hasGroups {
-                            HomeEmptyStateView(
-                                onAddSubscription: {
-                                    navigationState.selectedTab = .subscriptions
-                                },
-                                onCreateGroup: {
-                                    navigationState.selectedTab = .groups
-                                }
-                            )
-                        }
-                        if viewModel.hasMixedCurrencies {
-                            HomeCurrencySummaryView(totalsByCurrency: viewModel.totalsByCurrency)
-                        }
-
-                        if !viewModel.insights.isEmpty {
-                            HomeInsightsRowView(insights: viewModel.insights)
-                        }
-
-                        HomeUpcomingSectionView(
-                            items: viewModel.upcomingPayments,
-                            destinationTab: upcomingDestination
-                        )
-
-                        HomeCategoryDonutCardView(items: viewModel.categorySpends)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 16)
-                }
-                .background(Color(.systemGroupedBackground))
-
-                if viewModel.isLoading {
-                    VStack(spacing: 12) {
-                        ProgressView()
-                        Text("Carregando dados...")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                    if viewModel.hasMixedCurrencies {
+                        HomeCurrencySummaryView(totalsByCurrency: viewModel.totalsByCurrency)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(.ultraThinMaterial)
+
+                    if !viewModel.insights.isEmpty {
+                        HomeInsightsRowView(insights: viewModel.insights)
+                    }
+
+                    HomeUpcomingSectionView(
+                        items: viewModel.upcomingPayments,
+                        destinationTab: upcomingDestination
+                    )
+
+                    HomeCategoryDonutCardView(items: viewModel.categorySpends)
                 }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
             }
-            .navigationTitle("Resumo")
-            .onAppear {
-                if let userId = authViewModel.user?.uid {
-                    viewModel.startListening(userId: userId)
+            .background(Color(.systemGroupedBackground))
+
+            if viewModel.isLoading {
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("Carregando dados...")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(.ultraThinMaterial)
             }
-            .onChange(of: authViewModel.user?.uid) { _, newValue in
-                guard let userId = newValue else { return }
+        }
+        .navigationTitle("Resumo")
+        .onAppear {
+            if let userId = authViewModel.user?.uid {
                 viewModel.startListening(userId: userId)
             }
-            .onDisappear {
-                viewModel.stopListening()
-            }
+        }
+        .onChange(of: authViewModel.user?.uid) { _, newValue in
+            guard let userId = newValue else { return }
+            viewModel.startListening(userId: userId)
+        }
+        .onDisappear {
+            viewModel.stopListening()
         }
     }
 
@@ -133,4 +131,5 @@ struct HomeView: View {
 #Preview {
     HomeView()
         .environmentObject(AppNavigationState())
+        .environmentObject(AppRouter())
 }

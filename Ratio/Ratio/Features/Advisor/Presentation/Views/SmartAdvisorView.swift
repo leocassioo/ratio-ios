@@ -16,40 +16,38 @@ struct SmartAdvisorView: View {
     @State private var showPaywall = false
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    if !viewModel.hasRequestedAnalysis {
-                        analysisCTA
-                    } else if viewModel.isLoading {
-                        analyzingCard
-                    } else {
-                        insightsCard
-                    }
+        ScrollView {
+            VStack(spacing: 16) {
+                if !viewModel.hasRequestedAnalysis {
+                    analysisCTA
+                } else if viewModel.isLoading {
+                    analyzingCard
+                } else {
+                    insightsCard
+                }
 
-                    statsRow
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, 24)
+                statsRow
             }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("Smart Advisor")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        handleRefreshTap()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .disabled(viewModel.isLoading)
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 24)
+        }
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle("Smart Advisor")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    handleRefreshTap()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
                 }
+                .disabled(viewModel.isLoading)
             }
-            .onAppear {
-                if let userId = authViewModel.user?.uid {
-                    viewModel.start(userId: userId)
-                }
+        }
+        .onAppear {
+            if let userId = authViewModel.user?.uid {
+                viewModel.start(userId: userId)
             }
         }
         .sheet(isPresented: $showUpgradePrompt) {

@@ -30,127 +30,125 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    if let user = authViewModel.user {
-                        NavigationLink {
-                            EditProfileView(user: user)
-                        } label: {
-                            Label("Perfil", systemImage: "person.crop.circle")
-                        }
+        Form {
+            Section {
+                if let user = authViewModel.user {
+                    NavigationLink {
+                        EditProfileView(user: user)
+                    } label: {
+                        Label("Perfil", systemImage: "person.crop.circle")
                     }
-                } header: {
-                    Text("Conta")
                 }
+            } header: {
+                Text("Conta")
+            }
 
+            Section {
+                NavigationLink {
+                    BillingHistoryView()
+                } label: {
+                    Label("Histórico de cobranças", systemImage: "clock.arrow.circlepath")
+                }
+            } header: {
+                Text("Histórico")
+            } footer: {
+                Text("Em breve: histórico completo de assinaturas e grupos.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            if !subscriptionManager.isProUser {
                 Section {
                     NavigationLink {
-                        BillingHistoryView()
+                        SubscriptionBenefitsView()
+                            .environmentObject(subscriptionManager)
                     } label: {
-                        Label("Histórico de cobranças", systemImage: "clock.arrow.circlepath")
+                        Label("Ratio Pro", systemImage: "crown.fill")
                     }
                 } header: {
-                    Text("Histórico")
+                    Text("Assinatura")
                 } footer: {
-                    Text("Em breve: histórico completo de assinaturas e grupos.")
+                    Text("Conheça os benefícios do Ratio Pro e escolha seu plano.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+            }
 
-                if !subscriptionManager.isProUser {
-                    Section {
-                        NavigationLink {
-                            SubscriptionBenefitsView()
-                                .environmentObject(subscriptionManager)
-                        } label: {
-                            Label("Ratio Pro", systemImage: "crown.fill")
-                        }
-                    } header: {
-                        Text("Assinatura")
-                    } footer: {
-                        Text("Conheça os benefícios do Ratio Pro e escolha seu plano.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+            Section {
+                NavigationLink {
+                    OnboardingView(showsFinishButton: false) {
+                        dismiss()
+                    }
+                } label: {
+                    Label("Tutorial rápido", systemImage: "questionmark.circle")
+                }
+            } header: {
+                Text("Ajuda e tutorial")
+            } footer: {
+                Text("Revise as principais funções do app.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Picker("Tema do app", selection: appTheme) {
+                    ForEach(AppTheme.allCases) { theme in
+                        Text(theme.label).tag(theme)
                     }
                 }
 
-                Section {
-                    NavigationLink {
-                        OnboardingView(showsFinishButton: false) {
-                            dismiss()
-                        }
-                    } label: {
-                        Label("Tutorial rápido", systemImage: "questionmark.circle")
+                Picker("Idioma do app", selection: appLanguage) {
+                    ForEach(AppLanguage.allCases) { language in
+                        Text(language.label).tag(language)
                     }
-                } header: {
-                    Text("Ajuda e tutorial")
-                } footer: {
-                    Text("Revise as principais funções do app.")
+                }
+            } header: {
+                Text("Aparência")
+            } footer: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Personalize o visual do app.")
+                    Text("O idioma pode exigir reiniciar o app.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+            }
 
-                Section {
-                    Picker("Tema do app", selection: appTheme) {
-                        ForEach(AppTheme.allCases) { theme in
-                            Text(theme.label).tag(theme)
-                        }
-                    }
-
-                    Picker("Idioma do app", selection: appLanguage) {
-                        ForEach(AppLanguage.allCases) { language in
-                            Text(language.label).tag(language)
-                        }
-                    }
-                } header: {
-                    Text("Aparência")
-                } footer: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Personalize o visual do app.")
-                        Text("O idioma pode exigir reiniciar o app.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Section {
-                    HStack {
-                        Text("Versão do app")
-                        Spacer()
-                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
-                            .foregroundStyle(.secondary)
-                    }
-                    Link("Termos de uso", destination: URL(string: "https://uaipixel.com/legal/ratio/terms")!)
-                    Link("Política de privacidade", destination: URL(string: "https://uaipixel.com/legal/ratio/privacy")!)
-                } header: {
-                    Text("Sobre")
-                } footer: {
-                    Text("Ratio © 2026 Red Pixel Tecnologia")
-                        .font(.caption)
+            Section {
+                HStack {
+                    Text("Versão do app")
+                    Spacer()
+                    Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
                         .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 8)
                 }
-
-                Section {
-                    Button(role: .destructive) {
-                        showSignOutConfirm = true
-                    } label: {
-                        Text("Sair")
-                    }
-                }
-
+                Link("Termos de uso", destination: URL(string: "https://uaipixel.com/legal/ratio/terms")!)
+                Link("Política de privacidade", destination: URL(string: "https://uaipixel.com/legal/ratio/privacy")!)
+            } header: {
+                Text("Sobre")
+            } footer: {
+                Text("Ratio © 2026 Red Pixel Tecnologia")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 8)
             }
-            .navigationTitle("Ajustes")
-            .alert("Sair da conta?", isPresented: $showSignOutConfirm) {
-                Button("Cancelar", role: .cancel) {}
-                Button("Sair", role: .destructive) {
-                    authViewModel.signOut()
+
+            Section {
+                Button(role: .destructive) {
+                    showSignOutConfirm = true
+                } label: {
+                    Text("Sair")
                 }
-            } message: {
-                Text("Você precisará fazer login novamente para acessar o app.")
             }
+
+        }
+        .navigationTitle("Ajustes")
+        .alert("Sair da conta?", isPresented: $showSignOutConfirm) {
+            Button("Cancelar", role: .cancel) {}
+            Button("Sair", role: .destructive) {
+                authViewModel.signOut()
+            }
+        } message: {
+            Text("Você precisará fazer login novamente para acessar o app.")
         }
     }
 }
@@ -159,4 +157,5 @@ struct SettingsView: View {
     SettingsView()
         .environmentObject(AuthViewModel())
         .environmentObject(SubscriptionManager.shared)
+        .environmentObject(AppRouter())
 }

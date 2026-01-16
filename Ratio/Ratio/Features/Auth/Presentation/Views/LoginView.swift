@@ -15,69 +15,67 @@ struct LoginView: View {
     @State private var resetEmail = ""
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 24) {
-                VStack(spacing: 8) {
-                    Text("Ratio")
-                        .font(.largeTitle.bold())
-                    Text("Entre para gerenciar suas assinaturas.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-
-                VStack(spacing: 16) {
-                    TextField("Email", text: $email)
-                        .textInputAutocapitalization(.never)
-                        .keyboardType(.emailAddress)
-                        .autocorrectionDisabled()
-                        .textContentType(.emailAddress)
-                        .submitLabel(.next)
-
-                    SecureField("Senha", text: $password)
-                        .textContentType(.password)
-                        .submitLabel(.go)
-
-                    Button(action: submit) {
-                        if authViewModel.isLoading {
-                            ProgressView()
-                        } else {
-                            Text("Entrar")
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isSubmitDisabled)
-
-                    Button("Esqueci minha senha") {
-                        resetEmail = email
-                        authViewModel.errorMessage = nil
-                        authViewModel.passwordResetSent = false
-                        showResetSheet = true
-                    }
-                    .font(.footnote)
-
-                    NavigationLink("Criar nova conta") {
-                        SignupView()
-                    }
-                    .font(.footnote)
-                }
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 420)
-
-                if let message = authViewModel.errorMessage {
-                    Text(message)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 420)
-                }
-
-                Spacer()
+        VStack(spacing: 24) {
+            VStack(spacing: 8) {
+                Text("Ratio")
+                    .font(.largeTitle.bold())
+                Text("Entre para gerenciar suas assinaturas.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
-            .padding()
-            .navigationTitle("Entrar")
+
+            VStack(spacing: 16) {
+                TextField("Email", text: $email)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.emailAddress)
+                    .autocorrectionDisabled()
+                    .textContentType(.emailAddress)
+                    .submitLabel(.next)
+
+                SecureField("Senha", text: $password)
+                    .textContentType(.password)
+                    .submitLabel(.go)
+
+                Button(action: submit) {
+                    if authViewModel.isLoading {
+                        ProgressView()
+                    } else {
+                        Text("Entrar")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isSubmitDisabled)
+
+                Button("Esqueci minha senha") {
+                    resetEmail = email
+                    authViewModel.errorMessage = nil
+                    authViewModel.passwordResetSent = false
+                    showResetSheet = true
+                }
+                .font(.footnote)
+
+                NavigationLink("Criar nova conta") {
+                    SignupView()
+                }
+                .font(.footnote)
+            }
+            .textFieldStyle(.roundedBorder)
+            .frame(maxWidth: 420)
+
+            if let message = authViewModel.errorMessage {
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 420)
+            }
+
+            Spacer()
         }
+        .padding()
+        .navigationTitle("Entrar")
         .sheet(isPresented: $showResetSheet) {
             NavigationStack {
                 VStack(spacing: 20) {
@@ -151,6 +149,8 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView()
-        .environmentObject(AuthViewModel())
+    NavigationStack {
+        LoginView()
+            .environmentObject(AuthViewModel())
+    }
 }

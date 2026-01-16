@@ -11,6 +11,7 @@ struct ContentView: View {
     @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var inviteCoordinator = InviteCoordinator()
     @StateObject private var navigationState = AppNavigationState()
+    @EnvironmentObject private var router: AppRouter
 
     var body: some View {
         Group {
@@ -18,10 +19,13 @@ struct ContentView: View {
                 MainTabView()
                     .environmentObject(navigationState)
             } else {
-                LoginView()
+                NavigationStack {
+                    LoginView()
+                }
             }
         }
         .environmentObject(authViewModel)
+        .environmentObject(router)
         .sheet(item: $inviteCoordinator.pendingToken) { token in
             InviteAcceptanceView(token: token.id)
                 .environmentObject(authViewModel)

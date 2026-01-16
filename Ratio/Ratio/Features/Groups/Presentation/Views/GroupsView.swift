@@ -21,138 +21,136 @@ struct GroupsView: View {
     private let freeGroupLimit = 2
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(.systemGroupedBackground)
-                    .ignoresSafeArea()
+        ZStack {
+            Color(.systemGroupedBackground)
+                .ignoresSafeArea()
 
-                if viewModel.isLoading {
-                    ProgressView()
-                } else if let message = viewModel.errorMessage {
-                    VStack(spacing: 12) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 32))
-                            .foregroundStyle(.secondary)
-                        Text(message)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding()
-                } else if viewModel.groups.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "person.3")
-                            .font(.system(size: 40))
-                            .foregroundStyle(.secondary)
-                        Text("Nenhum grupo ainda")
-                            .font(.headline)
-                        Text("Crie seu primeiro grupo para compartilhar assinaturas.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: 260)
-                    }
-                    .padding()
-                } else {
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            ForEach(viewModel.groups) { group in
-                                GroupCardView(
-                                    group: group,
-                                    currentUserId: authViewModel.user?.uid,
-                                    currentUserPixKey: authViewModel.userPixKey,
-                                    onEdit: {
-                                        selectedGroup = group
-                                    }
-                                )
-                                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .onTapGesture {
-                                    selectedGroupDetail = group
+            if viewModel.isLoading {
+                ProgressView()
+            } else if let message = viewModel.errorMessage {
+                VStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.secondary)
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+            } else if viewModel.groups.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "person.3")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.secondary)
+                    Text("Nenhum grupo ainda")
+                        .font(.headline)
+                    Text("Crie seu primeiro grupo para compartilhar assinaturas.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 260)
+                }
+                .padding()
+            } else {
+                ScrollView {
+                    VStack(spacing: 16) {
+                        ForEach(viewModel.groups) { group in
+                            GroupCardView(
+                                group: group,
+                                currentUserId: authViewModel.user?.uid,
+                                currentUserPixKey: authViewModel.userPixKey,
+                                onEdit: {
+                                    selectedGroup = group
                                 }
+                            )
+                            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .onTapGesture {
+                                selectedGroupDetail = group
                             }
                         }
-                        .padding()
                     }
+                    .padding()
                 }
             }
-            .navigationTitle("Grupos")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        if canCreateGroup {
-                            showCreateGroup = true
-                        } else {
-                            showUpgradePrompt = true
-                        }
-                    } label: {
-                        Image(systemName: "plus")
+        }
+        .navigationTitle("Grupos")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    if canCreateGroup {
+                        showCreateGroup = true
+                    } else {
+                        showUpgradePrompt = true
                     }
+                } label: {
+                    Image(systemName: "plus")
                 }
             }
-            .onAppear {
-                if let userId = authViewModel.user?.uid {
-                    viewModel.startListening(userId: userId)
-                }
+        }
+        .onAppear {
+            if let userId = authViewModel.user?.uid {
+                viewModel.startListening(userId: userId)
             }
-            .onChange(of: viewModel.groups) { _, _ in
-                openPendingGroupIfNeeded()
-                refreshSelectedGroupDetailIfNeeded()
-            }
-            .onChange(of: navigationState.pendingGroupId) { _, _ in
-                openPendingGroupIfNeeded()
-            }
-            .onDisappear {
-                viewModel.stopListening()
-            }
-            .sheet(isPresented: $showCreateGroup) {
-                if let userId = authViewModel.user?.uid {
-                    NavigationStack {
-                        CreateGroupView(
-                            viewModel: viewModel,
-                            ownerId: userId,
-                            ownerName: authViewModel.user?.displayName ?? ""
-                        )
-                    }
-                }
-            }
-            .sheet(item: $selectedGroup) { group in
-                if let userId = authViewModel.user?.uid {
-                    NavigationStack {
-                        EditGroupView(
-                            viewModel: viewModel,
-                            group: group,
-                            ownerId: userId
-                        )
-                    }
-                }
-            }
-            .sheet(item: $selectedGroupDetail) { group in
+        }
+        .onChange(of: viewModel.groups) { _, _ in
+            openPendingGroupIfNeeded()
+            refreshSelectedGroupDetailIfNeeded()
+        }
+        .onChange(of: navigationState.pendingGroupId) { _, _ in
+            openPendingGroupIfNeeded()
+        }
+        .onDisappear {
+            viewModel.stopListening()
+        }
+        .sheet(isPresented: $showCreateGroup) {
+            if let userId = authViewModel.user?.uid {
                 NavigationStack {
-                    GroupDetailView(
-                        group: group,
-                        currentUserId: authViewModel.user?.uid
+                    CreateGroupView(
+                        viewModel: viewModel,
+                        ownerId: userId,
+                        ownerName: authViewModel.user?.displayName ?? ""
                     )
                 }
             }
-            .sheet(isPresented: $showUpgradePrompt) {
-                UpgradePromptView(
-                    title: "Limite de grupos no plano gratuito",
-                    subtitle: "Você chegou ao limite de \(freeGroupLimit) grupos. Assine o Ratio Pro para criar grupos ilimitados.",
-                    benefits: [
-                        "Grupos compartilhados ilimitados",
-                        "Mais controle sobre cobranças e rateios",
-                        "Prioridade para novos recursos"
-                    ],
-                    onViewPlans: {
-                        showPaywall = true
-                    }
+        }
+        .sheet(item: $selectedGroup) { group in
+            if let userId = authViewModel.user?.uid {
+                NavigationStack {
+                    EditGroupView(
+                        viewModel: viewModel,
+                        group: group,
+                        ownerId: userId
+                    )
+                }
+            }
+        }
+        .sheet(item: $selectedGroupDetail) { group in
+            NavigationStack {
+                GroupDetailView(
+                    group: group,
+                    currentUserId: authViewModel.user?.uid
                 )
             }
-            .fullScreenCover(isPresented: $showPaywall) {
-                NavigationStack {
-                    SubscriptionBenefitsView()
-                        .environmentObject(subscriptionManager)
+        }
+        .sheet(isPresented: $showUpgradePrompt) {
+            UpgradePromptView(
+                title: "Limite de grupos no plano gratuito",
+                subtitle: "Você chegou ao limite de \(freeGroupLimit) grupos. Assine o Ratio Pro para criar grupos ilimitados.",
+                benefits: [
+                    "Grupos compartilhados ilimitados",
+                    "Mais controle sobre cobranças e rateios",
+                    "Prioridade para novos recursos"
+                ],
+                onViewPlans: {
+                    showPaywall = true
                 }
+            )
+        }
+        .fullScreenCover(isPresented: $showPaywall) {
+            NavigationStack {
+                SubscriptionBenefitsView()
+                    .environmentObject(subscriptionManager)
             }
         }
     }
@@ -179,4 +177,6 @@ struct GroupsView: View {
     GroupsView()
         .environmentObject(AuthViewModel())
         .environmentObject(SubscriptionManager.shared)
+        .environmentObject(AppNavigationState())
+        .environmentObject(AppRouter())
 }

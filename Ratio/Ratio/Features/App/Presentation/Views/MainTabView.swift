@@ -9,38 +9,108 @@ import SwiftUI
 
 struct MainTabView: View {
     @EnvironmentObject private var navigationState: AppNavigationState
+    @EnvironmentObject private var router: AppRouter
 
     var body: some View {
         TabView(selection: $navigationState.selectedTab) {
-            HomeView()
-                .tabItem {
-                    Label("Home", systemImage: "house")
-                }
-                .tag(MainTab.home)
+            NavigationStack(path: $router.homePath) {
+                HomeView()
+                    .navigationDestination(for: AppRoute.self) { route in
+                        routeDestination(for: route)
+                    }
+            }
+            .tabItem {
+                Label("Home", systemImage: "house")
+            }
+            .tag(MainTab.home)
 
-            SubscriptionsView()
-                .tabItem {
-                    Label("Assinaturas", systemImage: "creditcard")
-                }
-                .tag(MainTab.subscriptions)
+            NavigationStack(path: $router.subscriptionsPath) {
+                SubscriptionsView()
+                    .navigationDestination(for: AppRoute.self) { route in
+                        routeDestination(for: route)
+                    }
+            }
+            .tabItem {
+                Label("Assinaturas", systemImage: "creditcard")
+            }
+            .tag(MainTab.subscriptions)
 
-            GroupsView()
-                .tabItem {
-                    Label("Grupos", systemImage: "person.3")
-                }
-                .tag(MainTab.groups)
+            NavigationStack(path: $router.groupsPath) {
+                GroupsView()
+                    .navigationDestination(for: AppRoute.self) { route in
+                        routeDestination(for: route)
+                    }
+            }
+            .tabItem {
+                Label("Grupos", systemImage: "person.3")
+            }
+            .tag(MainTab.groups)
 
-            SmartAdvisorView()
-                .tabItem {
-                    Label("Advisor", systemImage: "sparkles")
-                }
-                .tag(MainTab.advisor)
+            NavigationStack(path: $router.advisorPath) {
+                SmartAdvisorView()
+                    .navigationDestination(for: AppRoute.self) { route in
+                        routeDestination(for: route)
+                    }
+            }
+            .tabItem {
+                Label("Advisor", systemImage: "sparkles")
+            }
+            .tag(MainTab.advisor)
 
+            NavigationStack(path: $router.settingsPath) {
+                SettingsView()
+                    .navigationDestination(for: AppRoute.self) { route in
+                        routeDestination(for: route)
+                    }
+            }
+            .tabItem {
+                Label("Ajustes", systemImage: "gearshape")
+            }
+            .tag(MainTab.settings)
+        }
+        .sheet(item: $router.sheet) { sheet in
+            sheetContent(for: sheet)
+        }
+        .fullScreenCover(item: $router.fullScreenCover) { cover in
+            coverContent(for: cover)
+        }
+    }
+
+    @ViewBuilder
+    private func routeDestination(for route: AppRoute) -> some View {
+        switch route {
+        case .settings:
             SettingsView()
-                .tabItem {
-                    Label("Ajustes", systemImage: "gearshape")
+        case .billingHistory:
+            BillingHistoryView()
+        case .subscriptionBenefits:
+            SubscriptionBenefitsView()
+        }
+    }
+
+    @ViewBuilder
+    private func sheetContent(for sheet: AppSheet) -> some View {
+        switch sheet {
+        case .upgradePrompt(let title, let subtitle, let benefits):
+            UpgradePromptView(
+                title: title,
+                subtitle: subtitle,
+                benefits: benefits,
+                onViewPlans: {
+                    router.dismissSheet()
+                    router.present(.subscriptionBenefits)
                 }
-                .tag(MainTab.settings)
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func coverContent(for cover: AppFullScreenCover) -> some View {
+        switch cover {
+        case .subscriptionBenefits:
+            NavigationStack {
+                SubscriptionBenefitsView()
+            }
         }
     }
 }
@@ -48,4 +118,5 @@ struct MainTabView: View {
 #Preview {
     MainTabView()
         .environmentObject(AppNavigationState())
+        .environmentObject(AppRouter())
 }

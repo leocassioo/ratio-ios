@@ -22,191 +22,189 @@ struct SubscriptionsView: View {
     private let freeSubscriptionLimit = 4
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(.systemGroupedBackground)
-                    .ignoresSafeArea()
+        ZStack {
+            Color(.systemGroupedBackground)
+                .ignoresSafeArea()
 
-                if viewModel.isLoading {
-                    ProgressView()
-                } else if let message = viewModel.errorMessage, viewModel.subscriptions.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 32))
-                            .foregroundStyle(.secondary)
-                        Text(message)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding()
-                } else if viewModel.subscriptions.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "creditcard")
-                            .font(.system(size: 40))
-                            .foregroundStyle(.secondary)
-                        Text("Sem assinaturas ainda")
-                            .font(.headline)
-                        Text("Cadastre sua primeira assinatura.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: 260)
-                    }
-                    .padding()
-                } else {
-                    List {
-                        ForEach(viewModel.subscriptions) { subscription in
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack {
-                                    Text(subscription.name)
-                                        .font(.headline)
-                                    Spacer()
-                                    Text(formattedCurrency(subscription.amount, currencyCode: subscription.currencyCode))
-                                        .font(.subheadline.weight(.semibold))
-                                }
-                                Text(subscription.period.label)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text(subscription.category.label)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text("Próxima cobrança: \(formattedDate(subscription.nextBillingDate))")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
+            if viewModel.isLoading {
+                ProgressView()
+            } else if let message = viewModel.errorMessage, viewModel.subscriptions.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.secondary)
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+            } else if viewModel.subscriptions.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "creditcard")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.secondary)
+                    Text("Sem assinaturas ainda")
+                        .font(.headline)
+                    Text("Cadastre sua primeira assinatura.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 260)
+                }
+                .padding()
+            } else {
+                List {
+                    ForEach(viewModel.subscriptions) { subscription in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text(subscription.name)
+                                    .font(.headline)
+                                Spacer()
+                                Text(formattedCurrency(subscription.amount, currencyCode: subscription.currencyCode))
+                                    .font(.subheadline.weight(.semibold))
                             }
-                            .padding(.vertical, 6)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
+                            Text(subscription.period.label)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(subscription.category.label)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text("Próxima cobrança: \(formattedDate(subscription.nextBillingDate))")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 6)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedSubscription = subscription
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button("Editar") {
                                 selectedSubscription = subscription
                             }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button("Editar") {
-                                    selectedSubscription = subscription
-                                }
-                                .tint(.blue)
-                                if canDelete(subscription) {
-                                    Button(role: .destructive) {
-                                        pendingDelete = subscription
-                                        showDeleteConfirm = true
-                                    } label: {
-                                        Text("Excluir")
-                                    }
+                            .tint(.blue)
+                            if canDelete(subscription) {
+                                Button(role: .destructive) {
+                                    pendingDelete = subscription
+                                    showDeleteConfirm = true
+                                } label: {
+                                    Text("Excluir")
                                 }
                             }
                         }
-                        .onDelete(perform: deleteSubscription)
                     }
+                    .onDelete(perform: deleteSubscription)
                 }
             }
-            .navigationTitle("Assinaturas")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        if canCreateSubscription {
-                            showCreate = true
-                        } else {
-                            showUpgradePrompt = true
-                        }
-                    } label: {
-                        Image(systemName: "plus")
+        }
+        .navigationTitle("Assinaturas")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    if canCreateSubscription {
+                        showCreate = true
+                    } else {
+                        showUpgradePrompt = true
                     }
+                } label: {
+                    Image(systemName: "plus")
                 }
             }
-            .sheet(isPresented: $showCreate) {
-                if let userId = authViewModel.user?.uid {
-                    NavigationStack {
-                        CreateSubscriptionView { newSubscription in
-                            Task {
-                                await viewModel.createSubscription(
-                                    name: newSubscription.name,
-                                    amount: newSubscription.amount,
-                                    currencyCode: newSubscription.currencyCode,
-                                    category: newSubscription.category,
-                                    period: newSubscription.period,
-                                    nextBillingDate: newSubscription.nextBillingDate,
-                                    notes: newSubscription.notes.isEmpty ? nil : newSubscription.notes,
-                                    ownerId: userId
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            .sheet(item: $selectedSubscription) { subscription in
-                if let userId = authViewModel.user?.uid {
-                    NavigationStack {
-                        EditSubscriptionView(
-                            subscription: subscription,
-                            canDelete: canDelete(subscription),
-                            onDelete: {
-                                pendingDelete = subscription
-                                showDeleteConfirm = true
-                            }
-                        ) { updated in
-                            Task {
-                                await viewModel.updateSubscription(
-                                    id: updated.id,
-                                    name: updated.name,
-                                    amount: updated.amount,
-                                    currencyCode: updated.currencyCode,
-                                    category: updated.category,
-                                    period: updated.period,
-                                    nextBillingDate: updated.nextBillingDate,
-                                    notes: updated.notes.isEmpty ? nil : updated.notes,
-                                    ownerId: userId
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            .onAppear {
-                if let userId = authViewModel.user?.uid {
-                    viewModel.startListening(userId: userId)
-                }
-            }
-            .onDisappear {
-                viewModel.stopListening()
-            }
-            .onChange(of: viewModel.errorMessage) { _, newValue in
-                showErrorAlert = newValue != nil
-            }
-            .alert("Não foi possível excluir", isPresented: $showErrorAlert) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(viewModel.errorMessage ?? "")
-            }
-            .alert("Excluir assinatura", isPresented: $showDeleteConfirm) {
-                Button("Cancelar", role: .cancel) {}
-                Button("Excluir", role: .destructive) {
-                    if let subscription = pendingDelete {
-                        deleteSubscription(subscription)
-                    }
-                    pendingDelete = nil
-                }
-            } message: {
-                Text("Tem certeza que deseja excluir esta assinatura? Essa ação não pode ser desfeita.")
-            }
-            .sheet(isPresented: $showUpgradePrompt) {
-                UpgradePromptView(
-                    title: "Limite de assinaturas no plano gratuito",
-                    subtitle: "Você chegou ao limite de \(freeSubscriptionLimit) assinaturas. Assine o Ratio Pro para cadastrar ilimitadas.",
-                    benefits: [
-                        "Assinaturas pessoais ilimitadas",
-                        "Lembretes avançados de cobrança",
-                        "Insights inteligentes com IA"
-                    ],
-                    onViewPlans: {
-                        showPaywall = true
-                    }
-                )
-            }
-            .fullScreenCover(isPresented: $showPaywall) {
+        }
+        .sheet(isPresented: $showCreate) {
+            if let userId = authViewModel.user?.uid {
                 NavigationStack {
-                    SubscriptionBenefitsView()
-                        .environmentObject(subscriptionManager)
+                    CreateSubscriptionView { newSubscription in
+                        Task {
+                            await viewModel.createSubscription(
+                                name: newSubscription.name,
+                                amount: newSubscription.amount,
+                                currencyCode: newSubscription.currencyCode,
+                                category: newSubscription.category,
+                                period: newSubscription.period,
+                                nextBillingDate: newSubscription.nextBillingDate,
+                                notes: newSubscription.notes.isEmpty ? nil : newSubscription.notes,
+                                ownerId: userId
+                            )
+                        }
+                    }
                 }
+            }
+        }
+        .sheet(item: $selectedSubscription) { subscription in
+            if let userId = authViewModel.user?.uid {
+                NavigationStack {
+                    EditSubscriptionView(
+                        subscription: subscription,
+                        canDelete: canDelete(subscription),
+                        onDelete: {
+                            pendingDelete = subscription
+                            showDeleteConfirm = true
+                        }
+                    ) { updated in
+                        Task {
+                            await viewModel.updateSubscription(
+                                id: updated.id,
+                                name: updated.name,
+                                amount: updated.amount,
+                                currencyCode: updated.currencyCode,
+                                category: updated.category,
+                                period: updated.period,
+                                nextBillingDate: updated.nextBillingDate,
+                                notes: updated.notes.isEmpty ? nil : updated.notes,
+                                ownerId: userId
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        .onAppear {
+            if let userId = authViewModel.user?.uid {
+                viewModel.startListening(userId: userId)
+            }
+        }
+        .onDisappear {
+            viewModel.stopListening()
+        }
+        .onChange(of: viewModel.errorMessage) { _, newValue in
+            showErrorAlert = newValue != nil
+        }
+        .alert("Não foi possível excluir", isPresented: $showErrorAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(viewModel.errorMessage ?? "")
+        }
+        .alert("Excluir assinatura", isPresented: $showDeleteConfirm) {
+            Button("Cancelar", role: .cancel) {}
+            Button("Excluir", role: .destructive) {
+                if let subscription = pendingDelete {
+                    deleteSubscription(subscription)
+                }
+                pendingDelete = nil
+            }
+        } message: {
+            Text("Tem certeza que deseja excluir esta assinatura? Essa ação não pode ser desfeita.")
+        }
+        .sheet(isPresented: $showUpgradePrompt) {
+            UpgradePromptView(
+                title: "Limite de assinaturas no plano gratuito",
+                subtitle: "Você chegou ao limite de \(freeSubscriptionLimit) assinaturas. Assine o Ratio Pro para cadastrar ilimitadas.",
+                benefits: [
+                    "Assinaturas pessoais ilimitadas",
+                    "Lembretes avançados de cobrança",
+                    "Insights inteligentes com IA"
+                ],
+                onViewPlans: {
+                    showPaywall = true
+                }
+            )
+        }
+        .fullScreenCover(isPresented: $showPaywall) {
+            NavigationStack {
+                SubscriptionBenefitsView()
+                    .environmentObject(subscriptionManager)
             }
         }
     }
@@ -257,4 +255,5 @@ struct SubscriptionsView: View {
     SubscriptionsView()
         .environmentObject(AuthViewModel())
         .environmentObject(SubscriptionManager.shared)
+        .environmentObject(AppRouter())
 }

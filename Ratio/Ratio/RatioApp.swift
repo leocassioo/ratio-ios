@@ -48,6 +48,7 @@ struct RatioApp: App {
     @AppStorage(PreferencesStore.PrefKey.didSkipPushPermission) private var didSkipPushPermission: Bool = false
     @StateObject private var pushPermissionState = PushPermissionState()
     @StateObject private var subscriptionManager = SubscriptionManager.shared
+    @StateObject private var router = AppRouter()
 
     var body: some Scene {
         WindowGroup {
@@ -84,6 +85,7 @@ struct RatioApp: App {
             .preferredColorScheme(theme.colorScheme)
             .environment(\.locale, language.locale ?? Locale.current)
             .environmentObject(subscriptionManager)
+            .environmentObject(router)
             .onAppear {
                 pushPermissionState.refresh()
             }
