@@ -13,11 +13,6 @@ struct GroupsView: View {
     @EnvironmentObject private var router: AppRouter
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @StateObject private var viewModel = GroupsViewModel()
-    @State private var showCreateGroup = false
-    @State private var selectedGroup: SharedGroup?
-    @State private var selectedGroupDetail: SharedGroup?
-    @State private var showUpgradePrompt = false
-    @State private var showPaywall = false
     private let freeGroupLimit = 2
 
     var body: some View {
@@ -61,12 +56,12 @@ struct GroupsView: View {
                                 currentUserId: authViewModel.user?.uid,
                                 currentUserPixKey: authViewModel.userPixKey,
                                 onEdit: {
-                                    selectedGroup = group
+                                    openEdit(group)
                                 }
                             )
                             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .onTapGesture {
-                                selectedGroupDetail = group
+                                openDetail(group)
                             }
                         }
                     }
@@ -79,9 +74,17 @@ struct GroupsView: View {
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     if canCreateGroup {
-                        showCreateGroup = true
+                        openCreate()
                     } else {
-                        showUpgradePrompt = true
+                        router.present(.upgradePrompt(
+                            title: "Limite de grupos no plano gratuito",
+                            subtitle: "Você chegou ao limite de \(freeGroupLimit) grupos. Assine o Ratio Pro para criar grupos ilimitados.",
+                            benefits: [
+                                "Grupos compartilhados ilimitados",
+                                "Mais controle sobre cobranças e rateios",
+                                "Prioridade para novos recursos"
+                            ]
+                        ))
                     }
                 } label: {
                     Image(systemName: "plus")
@@ -95,63 +98,13 @@ struct GroupsView: View {
         }
         .onChange(of: viewModel.groups) { _, _ in
             openPendingGroupIfNeeded()
-            refreshSelectedGroupDetailIfNeeded()
+            refreshGroupDetailIfNeeded()
         }
         .onChange(of: router.pendingGroupId) { _, _ in
             openPendingGroupIfNeeded()
         }
         .onDisappear {
             viewModel.stopListening()
-        }
-        .sheet(isPresented: $showCreateGroup) {
-            if let userId = authViewModel.user?.uid {
-                NavigationStack {
-                    CreateGroupView(
-                        viewModel: viewModel,
-                        ownerId: userId,
-                        ownerName: authViewModel.user?.displayName ?? ""
-                    )
-                }
-            }
-        }
-        .sheet(item: $selectedGroup) { group in
-            if let userId = authViewModel.user?.uid {
-                NavigationStack {
-                    EditGroupView(
-                        viewModel: viewModel,
-                        group: group,
-                        ownerId: userId
-                    )
-                }
-            }
-        }
-        .sheet(item: $selectedGroupDetail) { group in
-            NavigationStack {
-                GroupDetailView(
-                    group: group,
-                    currentUserId: authViewModel.user?.uid
-                )
-            }
-        }
-        .sheet(isPresented: $showUpgradePrompt) {
-            UpgradePromptView(
-                title: "Limite de grupos no plano gratuito",
-                subtitle: "Você chegou ao limite de \(freeGroupLimit) grupos. Assine o Ratio Pro para criar grupos ilimitados.",
-                benefits: [
-                    "Grupos compartilhados ilimitados",
-                    "Mais controle sobre cobranças e rateios",
-                    "Prioridade para novos recursos"
-                ],
-                onViewPlans: {
-                    showPaywall = true
-                }
-            )
-        }
-        .fullScreenCover(isPresented: $showPaywall) {
-            NavigationStack {
-                SubscriptionBenefitsView()
-                    .environmentObject(subscriptionManager)
-            }
         }
     }
 
@@ -162,14 +115,32 @@ struct GroupsView: View {
     private func openPendingGroupIfNeeded() {
         guard let groupId = router.pendingGroupId else { return }
         guard let group = viewModel.groups.first(where: { $0.id == groupId }) else { return }
-        selectedGroupDetail = group
+        router.present(.groupDetail(group: group, currentUserId: authViewModel.user?.uid))
         router.pendingGroupId = nil
     }
 
-    private func refreshSelectedGroupDetailIfNeeded() {
-        guard let selectedGroupDetail else { return }
-        guard let updated = viewModel.groups.first(where: { $0.id == selectedGroupDetail.id }) else { return }
-        self.selectedGroupDetail = updated
+    private func refreshGroupDetailIfNeeded() {
+        guard case .groupDetail(let currentGroup, let currentUserId) = router.sheet else { return }
+        guard let updated = viewModel.groups.first(where: { $0.id == currentGroup.id }) else { return }
+        router.present(.groupDetail(group: updated, currentUserId: currentUserId))
+    }
+
+    private func openCreate() {
+        guard let userId = authViewModel.user?.uid else { return }
+        router.present(.createGroup(
+            ownerId: userId,
+            ownerName: authViewModel.user?.displayName ?? "",
+            viewModel: viewModel
+        ))
+    }
+
+    private func openEdit(_ group: SharedGroup) {
+        guard let userId = authViewModel.user?.uid else { return }
+        router.present(.editGroup(group: group, ownerId: userId, viewModel: viewModel))
+    }
+
+    private func openDetail(_ group: SharedGroup) {
+        router.present(.groupDetail(group: group, currentUserId: authViewModel.user?.uid))
     }
 }
 

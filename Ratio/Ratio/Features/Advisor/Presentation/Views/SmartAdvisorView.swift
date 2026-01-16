@@ -11,9 +11,8 @@ import FirebaseAuth
 struct SmartAdvisorView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
+    @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel = SmartAdvisorViewModel()
-    @State private var showUpgradePrompt = false
-    @State private var showPaywall = false
 
     var body: some View {
         ScrollView {
@@ -48,26 +47,6 @@ struct SmartAdvisorView: View {
         .onAppear {
             if let userId = authViewModel.user?.uid {
                 viewModel.start(userId: userId)
-            }
-        }
-        .sheet(isPresented: $showUpgradePrompt) {
-            UpgradePromptView(
-                title: "Desbloqueie o Advisor inteligente",
-                subtitle: "O Advisor com IA está disponível apenas no Ratio Pro.",
-                benefits: [
-                    "Insights personalizados sobre seus gastos",
-                    "Sugestões de economia com IA",
-                    "Relatórios avançados"
-                ],
-                onViewPlans: {
-                    showPaywall = true
-                }
-            )
-        }
-        .fullScreenCover(isPresented: $showPaywall) {
-            NavigationStack {
-                SubscriptionBenefitsView()
-                    .environmentObject(subscriptionManager)
             }
         }
     }
@@ -221,7 +200,15 @@ struct SmartAdvisorView: View {
 
     private func handleRefreshTap() {
         guard subscriptionManager.isProUser else {
-            showUpgradePrompt = true
+            router.present(.upgradePrompt(
+                title: "Desbloqueie o Advisor inteligente",
+                subtitle: "O Advisor com IA está disponível apenas no Ratio Pro.",
+                benefits: [
+                    "Insights personalizados sobre seus gastos",
+                    "Sugestões de economia com IA",
+                    "Relatórios avançados"
+                ]
+            ))
             return
         }
         viewModel.refreshInsights()
@@ -231,4 +218,5 @@ struct SmartAdvisorView: View {
 #Preview {
     SmartAdvisorView()
         .environmentObject(SubscriptionManager.shared)
+        .environmentObject(AppRouter())
 }

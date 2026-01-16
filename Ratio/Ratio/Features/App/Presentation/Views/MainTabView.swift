@@ -115,6 +115,29 @@ struct MainTabView: View {
                     onSave: onSave
                 )
             }
+        case .createGroup(let ownerId, let ownerName, let viewModel):
+            NavigationStack {
+                CreateGroupView(
+                    viewModel: viewModel,
+                    ownerId: ownerId,
+                    ownerName: ownerName
+                )
+            }
+        case .editGroup(let group, let ownerId, let viewModel):
+            NavigationStack {
+                EditGroupView(
+                    viewModel: viewModel,
+                    group: group,
+                    ownerId: ownerId
+                )
+            }
+        case .groupDetail(let group, let currentUserId):
+            NavigationStack {
+                GroupDetailView(
+                    group: group,
+                    currentUserId: currentUserId
+                )
+            }
         }
     }
 

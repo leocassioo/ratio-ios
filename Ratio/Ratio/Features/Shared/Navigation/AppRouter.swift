@@ -23,6 +23,9 @@ enum AppSheet: Identifiable, Equatable {
         onDelete: () -> Void,
         onSave: (SubscriptionItem) -> Void
     )
+    case createGroup(ownerId: String, ownerName: String, viewModel: GroupsViewModel)
+    case editGroup(group: SharedGroup, ownerId: String, viewModel: GroupsViewModel)
+    case groupDetail(group: SharedGroup, currentUserId: String?)
 
     var id: String {
         switch self {
@@ -32,6 +35,12 @@ enum AppSheet: Identifiable, Equatable {
             return "createSubscription"
         case .editSubscription(let subscription, _, _, _):
             return "editSubscription-\(subscription.id)"
+        case .createGroup:
+            return "createGroup"
+        case .editGroup(let group, _, _):
+            return "editGroup-\(group.id)"
+        case .groupDetail(let group, _):
+            return "groupDetail-\(group.id)"
         }
     }
 
