@@ -10,7 +10,7 @@ import SwiftUI
 
 struct GroupsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
-    @EnvironmentObject private var navigationState: AppNavigationState
+    @EnvironmentObject private var router: AppRouter
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @StateObject private var viewModel = GroupsViewModel()
     @State private var showCreateGroup = false
@@ -97,7 +97,7 @@ struct GroupsView: View {
             openPendingGroupIfNeeded()
             refreshSelectedGroupDetailIfNeeded()
         }
-        .onChange(of: navigationState.pendingGroupId) { _, _ in
+        .onChange(of: router.pendingGroupId) { _, _ in
             openPendingGroupIfNeeded()
         }
         .onDisappear {
@@ -160,10 +160,10 @@ struct GroupsView: View {
     }
 
     private func openPendingGroupIfNeeded() {
-        guard let groupId = navigationState.pendingGroupId else { return }
+        guard let groupId = router.pendingGroupId else { return }
         guard let group = viewModel.groups.first(where: { $0.id == groupId }) else { return }
         selectedGroupDetail = group
-        navigationState.pendingGroupId = nil
+        router.pendingGroupId = nil
     }
 
     private func refreshSelectedGroupDetailIfNeeded() {
@@ -177,6 +177,5 @@ struct GroupsView: View {
     GroupsView()
         .environmentObject(AuthViewModel())
         .environmentObject(SubscriptionManager.shared)
-        .environmentObject(AppNavigationState())
         .environmentObject(AppRouter())
 }

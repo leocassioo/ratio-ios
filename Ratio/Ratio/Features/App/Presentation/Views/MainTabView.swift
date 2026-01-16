@@ -8,11 +8,10 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @EnvironmentObject private var navigationState: AppNavigationState
     @EnvironmentObject private var router: AppRouter
 
     var body: some View {
-        TabView(selection: $navigationState.selectedTab) {
+        TabView(selection: $router.selectedTab) {
             NavigationStack(path: $router.homePath) {
                 HomeView()
                     .navigationDestination(for: AppRoute.self) { route in
@@ -117,6 +116,5 @@ struct MainTabView: View {
 
 #Preview {
     MainTabView()
-        .environmentObject(AppNavigationState())
         .environmentObject(AppRouter())
 }

@@ -10,14 +10,12 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var inviteCoordinator = InviteCoordinator()
-    @StateObject private var navigationState = AppNavigationState()
     @EnvironmentObject private var router: AppRouter
 
     var body: some View {
         Group {
             if authViewModel.user != nil {
                 MainTabView()
-                    .environmentObject(navigationState)
             } else {
                 NavigationStack {
                     LoginView()
@@ -37,13 +35,13 @@ struct ContentView: View {
             if let payload = NotificationRouteHandler.shared.consumePendingPayload() {
                 switch payload.route {
                 case .home:
-                    navigationState.route(to: .home)
+                    router.route(to: .home)
                 case .subscriptions:
-                    navigationState.route(to: .subscriptions)
+                    router.route(to: .subscriptions)
                 case .groups:
-                    navigationState.route(to: .groups, groupId: payload.groupId)
+                    router.route(to: .groups, groupId: payload.groupId)
                 case .settings:
-                    navigationState.route(to: .settings)
+                    router.route(to: .settings)
                 }
             }
         }
@@ -51,13 +49,13 @@ struct ContentView: View {
             guard let payload = notification.object as? NotificationRoutePayload else { return }
             switch payload.route {
             case .home:
-                navigationState.route(to: .home)
+                router.route(to: .home)
             case .subscriptions:
-                navigationState.route(to: .subscriptions)
+                router.route(to: .subscriptions)
             case .groups:
-                navigationState.route(to: .groups, groupId: payload.groupId)
+                router.route(to: .groups, groupId: payload.groupId)
             case .settings:
-                navigationState.route(to: .settings)
+                router.route(to: .settings)
             }
         }
     }

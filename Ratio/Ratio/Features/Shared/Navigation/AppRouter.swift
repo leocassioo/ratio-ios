@@ -46,6 +46,8 @@ enum AppFullScreenCover: Identifiable, Equatable {
 
 @MainActor
 final class AppRouter: ObservableObject {
+    @Published var selectedTab: MainTab = .home
+    @Published var pendingGroupId: String?
     @Published var homePath = NavigationPath()
     @Published var subscriptionsPath = NavigationPath()
     @Published var groupsPath = NavigationPath()
@@ -99,5 +101,10 @@ final class AppRouter: ObservableObject {
 
     func dismissFullScreenCover() {
         fullScreenCover = nil
+    }
+
+    func route(to tab: MainTab, groupId: String? = nil) {
+        selectedTab = tab
+        pendingGroupId = groupId
     }
 }

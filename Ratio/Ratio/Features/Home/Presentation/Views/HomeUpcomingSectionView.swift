@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct HomeUpcomingSectionView: View {
-    @EnvironmentObject private var navigationState: AppNavigationState
+    @EnvironmentObject private var router: AppRouter
     let items: [UpcomingPaymentItem]
     let destinationTab: MainTab
 
@@ -21,7 +21,7 @@ struct HomeUpcomingSectionView: View {
                     .font(.headline)
                 Spacer()
                 Button {
-                    navigationState.route(to: destinationTab)
+                    router.route(to: destinationTab)
                 } label: {
                     Image(systemName: "chevron.right")
                         .font(.subheadline.weight(.semibold))
