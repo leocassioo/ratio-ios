@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HomeCurrencySummaryView: View {
     let totalsByCurrency: [String: Double]
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -33,12 +34,20 @@ struct HomeCurrencySummaryView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color(.separator).opacity(0.2), lineWidth: 1)
+                .stroke(Color(.separator).opacity(borderOpacity), lineWidth: 1)
         )
+    }
+
+    private var cardBackground: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground)
+    }
+
+    private var borderOpacity: Double {
+        colorScheme == .dark ? 0.4 : 0.25
     }
 
     private var orderedTotals: [(code: String, amount: Double)] {

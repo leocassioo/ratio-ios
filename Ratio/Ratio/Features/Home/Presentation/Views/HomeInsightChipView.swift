@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HomeInsightChipView: View {
     let item: HomeInsightItem
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(spacing: 8) {
@@ -23,11 +24,19 @@ struct HomeInsightChipView: View {
         .padding(.vertical, 8)
         .background(
             Capsule()
-                .fill(Color(.secondarySystemBackground))
+                .fill(cardBackground)
         )
         .overlay(
             Capsule()
-                .stroke(Color(.separator).opacity(0.2), lineWidth: 1)
+                .stroke(Color(.separator).opacity(borderOpacity), lineWidth: 1)
         )
+    }
+
+    private var cardBackground: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground)
+    }
+
+    private var borderOpacity: Double {
+        colorScheme == .dark ? 0.4 : 0.25
     }
 }

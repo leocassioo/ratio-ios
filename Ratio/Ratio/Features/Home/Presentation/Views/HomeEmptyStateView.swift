@@ -10,6 +10,7 @@ import SwiftUI
 struct HomeEmptyStateView: View {
     let onAddSubscription: () -> Void
     let onCreateGroup: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(spacing: 14) {
@@ -46,11 +47,19 @@ struct HomeEmptyStateView: View {
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(cardBackground)
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color(.separator), lineWidth: 1)
+                        .stroke(Color(.separator).opacity(borderOpacity), lineWidth: 1)
                 )
         )
+    }
+
+    private var cardBackground: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground)
+    }
+
+    private var borderOpacity: Double {
+        colorScheme == .dark ? 0.4 : 0.25
     }
 }

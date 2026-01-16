@@ -8,10 +8,11 @@
 import SwiftUI
 
 struct GroupCardView: View {
-     let group: SharedGroup
+    let group: SharedGroup
     let currentUserId: String?
     let currentUserPixKey: String?
     let onEdit: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(spacing: 12) {
@@ -118,13 +119,21 @@ struct GroupCardView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color(.separator).opacity(0.2), lineWidth: 1)
+                .stroke(Color(.separator).opacity(borderOpacity), lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
+    }
+
+    private var cardBackground: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground)
+    }
+
+    private var borderOpacity: Double {
+        colorScheme == .dark ? 0.4 : 0.25
     }
 
     private func memberDisplayName(for member: GroupMember) -> String {

@@ -12,6 +12,7 @@ struct SmartAdvisorView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @EnvironmentObject private var router: AppRouter
+    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel = SmartAdvisorViewModel()
 
     var body: some View {
@@ -140,12 +141,10 @@ struct SmartAdvisorView: View {
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .fill(
-                Color(.secondarySystemBackground)
-            )
+            .fill(cardFill)
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(Color(.separator), lineWidth: 1)
+                    .stroke(Color(.separator).opacity(borderOpacity), lineWidth: 1)
             )
     }
 
@@ -170,10 +169,10 @@ struct SmartAdvisorView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(cardFill)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color(.separator), lineWidth: 1)
+                        .stroke(Color(.separator).opacity(borderOpacity), lineWidth: 1)
                 )
         )
     }
@@ -212,6 +211,14 @@ struct SmartAdvisorView: View {
             return
         }
         viewModel.refreshInsights()
+    }
+
+    private var cardFill: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground)
+    }
+
+    private var borderOpacity: Double {
+        colorScheme == .dark ? 0.4 : 0.25
     }
 }
 

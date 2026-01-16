@@ -10,6 +10,7 @@ import FirebaseAuth
 
 struct BillingHistoryView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel = BillingHistoryViewModel()
 
     var body: some View {
@@ -87,11 +88,11 @@ struct BillingHistoryView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color(.separator).opacity(0.2), lineWidth: 1)
+                .stroke(Color(.separator).opacity(borderOpacity), lineWidth: 1)
         )
     }
 
@@ -114,12 +115,20 @@ struct BillingHistoryView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color(.separator).opacity(0.2), lineWidth: 1)
+                .stroke(Color(.separator).opacity(borderOpacity), lineWidth: 1)
         )
+    }
+
+    private var cardBackground: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground)
+    }
+
+    private var borderOpacity: Double {
+        colorScheme == .dark ? 0.4 : 0.2
     }
 
     private func subscriptionSummaryText() -> String {

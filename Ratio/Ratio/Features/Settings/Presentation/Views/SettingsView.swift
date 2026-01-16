@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct SettingsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
@@ -36,7 +37,31 @@ struct SettingsView: View {
                     Button {
                         router.push(.editProfile, in: .settings)
                     } label: {
-                        Label("Perfil", systemImage: "person.crop.circle")
+                        if let url = user.photoURL {
+                            HStack(spacing: 12) {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let image):
+                                        image.resizable().scaledToFill()
+                                    case .failure:
+                                        Image(systemName: "person.crop.circle.fill")
+                                            .foregroundStyle(.secondary)
+                                    case .empty:
+                                        ProgressView()
+                                    @unknown default:
+                                        Image(systemName: "person.crop.circle.fill")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                .frame(width: 32, height: 32)
+                                .background(Color(.secondarySystemBackground))
+                                .clipShape(Circle())
+
+                                Text("Perfil")
+                            }
+                        } else {
+                            Label("Perfil", systemImage: "person.crop.circle")
+                        }
                     }
                 }
             } header: {

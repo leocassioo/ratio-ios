@@ -10,6 +10,7 @@ import SwiftUI
 struct GroupDetailView: View {
     let group: SharedGroup
     let currentUserId: String?
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @State private var currentGroup: SharedGroup
     @StateObject private var paymentsViewModel = GroupPaymentsViewModel()
@@ -269,6 +270,13 @@ struct GroupDetailView: View {
             }
         }
         .navigationTitle("Detalhes do grupo")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Fechar") {
+                    dismiss()
+                }
+            }
+        }
         .task {
             if let currentUserId {
                 await paymentsViewModel.fetchUserPixKey(userId: currentUserId)
