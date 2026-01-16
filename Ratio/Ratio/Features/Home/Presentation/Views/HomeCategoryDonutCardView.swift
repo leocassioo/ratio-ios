@@ -15,16 +15,31 @@ struct HomeCategoryDonutCardView: View {
             Text("Gastos por categoria")
                 .font(.headline)
 
-            HStack(spacing: 16) {
-                HomeCategoryDonutView(items: items)
-                    .frame(width: 140, height: 140)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(items) { item in
-                        HomeCategoryLegendRowView(item: item)
-                    }
+            if items.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "chart.pie")
+                        .font(.system(size: 28))
+                        .foregroundStyle(.secondary)
+                    Text("Sem dados ainda")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Adicione assinaturas para ver os gastos por categoria.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: 140)
+            } else {
+                HStack(spacing: 16) {
+                    HomeCategoryDonutView(items: items)
+                        .frame(width: 140, height: 140)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(items) { item in
+                            HomeCategoryLegendRowView(item: item)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
         .padding(16)

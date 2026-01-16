@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @AppStorage(PreferencesStore.PrefKey.appTheme) private var appThemeRaw: String = AppTheme.system.rawValue
     @AppStorage(PreferencesStore.PrefKey.appLanguage) private var appLanguageRaw: String = AppLanguage.system.rawValue
     @State private var showSignOutConfirm = false
@@ -55,6 +56,23 @@ struct SettingsView: View {
                     Text("Em breve: histórico completo de assinaturas e grupos.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                }
+
+                if !subscriptionManager.isProUser {
+                    Section {
+                        NavigationLink {
+                            SubscriptionBenefitsView()
+                                .environmentObject(subscriptionManager)
+                        } label: {
+                            Label("Ratio Pro", systemImage: "crown.fill")
+                        }
+                    } header: {
+                        Text("Assinatura")
+                    } footer: {
+                        Text("Conheça os benefícios do Ratio Pro e escolha seu plano.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Section {
@@ -139,4 +157,6 @@ struct SettingsView: View {
 
 #Preview {
     SettingsView()
+        .environmentObject(AuthViewModel())
+        .environmentObject(SubscriptionManager.shared)
 }

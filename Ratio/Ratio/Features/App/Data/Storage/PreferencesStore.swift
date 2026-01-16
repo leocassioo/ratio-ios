@@ -14,6 +14,8 @@ final class PreferencesStore {
         static let hasSeenOnboarding = "hasSeenOnboarding"
         static let appTheme = "appTheme"
         static let appLanguage = "appLanguage"
+        static let didSkipPushPermission = "didSkipPushPermission"
+        static let isProUser = "isProUser"
     }
 
     private let defaults: UserDefaults
@@ -29,5 +31,14 @@ final class PreferencesStore {
 
     func setHasSeenOnboarding(_ value: Bool) {
         defaults.setValue(value, forKey: PrefKey.hasSeenOnboarding)
+    }
+
+    func isProUser(defaultValue: Bool = false) -> Bool {
+        if defaults.object(forKey: PrefKey.isProUser) == nil { return defaultValue }
+        return defaults.bool(forKey: PrefKey.isProUser)
+    }
+
+    func setIsProUser(_ value: Bool) {
+        defaults.setValue(value, forKey: PrefKey.isProUser)
     }
 }

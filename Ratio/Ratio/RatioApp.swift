@@ -45,6 +45,9 @@ struct RatioApp: App {
     @AppStorage(PreferencesStore.PrefKey.hasSeenOnboarding) private var hasSeenOnboarding: Bool = false
     @AppStorage(PreferencesStore.PrefKey.appTheme) private var appThemeRaw: String = AppTheme.system.rawValue
     @AppStorage(PreferencesStore.PrefKey.appLanguage) private var appLanguageRaw: String = AppLanguage.system.rawValue
+    @AppStorage(PreferencesStore.PrefKey.didSkipPushPermission) private var didSkipPushPermission: Bool = false
+    @StateObject private var pushPermissionState = PushPermissionState()
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
 
     var body: some Scene {
         WindowGroup {
@@ -52,7 +55,26 @@ struct RatioApp: App {
             let language = AppLanguage(rawValue: appLanguageRaw) ?? .system
             Group {
                 if hasSeenOnboarding {
-                    ContentView()
+                    switch pushPermissionState.status {
+                    case .unknown:
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    case .notDetermined:
+                        if didSkipPushPermission {
+                            ContentView()
+                        } else {
+                        PushPermissionView(
+                            onRequestDone: {
+                            pushPermissionState.refresh()
+                            },
+                            onSkip: {
+                                didSkipPushPermission = true
+                            }
+                        )
+                        }
+                    case .authorized, .denied:
+                        ContentView()
+                    }
                 } else {
                     OnboardingView {
                         hasSeenOnboarding = true
@@ -61,6 +83,10 @@ struct RatioApp: App {
             }
             .preferredColorScheme(theme.colorScheme)
             .environment(\.locale, language.locale ?? Locale.current)
+            .environmentObject(subscriptionManager)
+            .onAppear {
+                pushPermissionState.refresh()
+            }
         }
     }
 }

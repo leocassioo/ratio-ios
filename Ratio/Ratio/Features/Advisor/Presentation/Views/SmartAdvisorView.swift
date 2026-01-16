@@ -10,7 +10,10 @@ import FirebaseAuth
 
 struct SmartAdvisorView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @StateObject private var viewModel = SmartAdvisorViewModel()
+    @State private var showUpgradePrompt = false
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -36,7 +39,7 @@ struct SmartAdvisorView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        viewModel.refreshInsights()
+                        handleRefreshTap()
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
@@ -47,6 +50,26 @@ struct SmartAdvisorView: View {
                 if let userId = authViewModel.user?.uid {
                     viewModel.start(userId: userId)
                 }
+            }
+        }
+        .sheet(isPresented: $showUpgradePrompt) {
+            UpgradePromptView(
+                title: "Desbloqueie o Advisor inteligente",
+                subtitle: "O Advisor com IA está disponível apenas no Ratio Pro.",
+                benefits: [
+                    "Insights personalizados sobre seus gastos",
+                    "Sugestões de economia com IA",
+                    "Relatórios avançados"
+                ],
+                onViewPlans: {
+                    showPaywall = true
+                }
+            )
+        }
+        .fullScreenCover(isPresented: $showPaywall) {
+            NavigationStack {
+                SubscriptionBenefitsView()
+                    .environmentObject(subscriptionManager)
             }
         }
     }
@@ -97,7 +120,7 @@ struct SmartAdvisorView: View {
                 .foregroundStyle(.secondary)
 
             Button {
-                viewModel.refreshInsights()
+                handleRefreshTap()
             } label: {
                 Text("Gerar análise")
                     .frame(maxWidth: .infinity)
@@ -197,8 +220,17 @@ struct SmartAdvisorView: View {
         }
         return viewModel.stats
     }
+
+    private func handleRefreshTap() {
+        guard subscriptionManager.isProUser else {
+            showUpgradePrompt = true
+            return
+        }
+        viewModel.refreshInsights()
+    }
 }
 
 #Preview {
     SmartAdvisorView()
+        .environmentObject(SubscriptionManager.shared)
 }

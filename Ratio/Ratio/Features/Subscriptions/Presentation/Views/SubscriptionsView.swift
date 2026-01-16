@@ -10,12 +10,16 @@ import FirebaseAuth
 
 struct SubscriptionsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @StateObject private var viewModel = SubscriptionsViewModel()
     @State private var showCreate = false
     @State private var showErrorAlert = false
     @State private var selectedSubscription: SubscriptionItem?
     @State private var pendingDelete: SubscriptionItem?
     @State private var showDeleteConfirm = false
+    @State private var showUpgradePrompt = false
+    @State private var showPaywall = false
+    private let freeSubscriptionLimit = 4
 
     var body: some View {
         NavigationStack {
@@ -99,7 +103,11 @@ struct SubscriptionsView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        showCreate = true
+                        if canCreateSubscription {
+                            showCreate = true
+                        } else {
+                            showUpgradePrompt = true
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -180,7 +188,31 @@ struct SubscriptionsView: View {
             } message: {
                 Text("Tem certeza que deseja excluir esta assinatura? Essa ação não pode ser desfeita.")
             }
+            .sheet(isPresented: $showUpgradePrompt) {
+                UpgradePromptView(
+                    title: "Limite de assinaturas no plano gratuito",
+                    subtitle: "Você chegou ao limite de \(freeSubscriptionLimit) assinaturas. Assine o Ratio Pro para cadastrar ilimitadas.",
+                    benefits: [
+                        "Assinaturas pessoais ilimitadas",
+                        "Lembretes avançados de cobrança",
+                        "Insights inteligentes com IA"
+                    ],
+                    onViewPlans: {
+                        showPaywall = true
+                    }
+                )
+            }
+            .fullScreenCover(isPresented: $showPaywall) {
+                NavigationStack {
+                    SubscriptionBenefitsView()
+                        .environmentObject(subscriptionManager)
+                }
+            }
         }
+    }
+
+    private var canCreateSubscription: Bool {
+        subscriptionManager.isProUser || viewModel.subscriptions.count < freeSubscriptionLimit
     }
 
     private func deleteSubscription(at offsets: IndexSet) {
@@ -224,4 +256,5 @@ struct SubscriptionsView: View {
 #Preview {
     SubscriptionsView()
         .environmentObject(AuthViewModel())
+        .environmentObject(SubscriptionManager.shared)
 }

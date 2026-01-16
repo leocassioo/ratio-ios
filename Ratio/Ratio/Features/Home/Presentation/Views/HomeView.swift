@@ -10,6 +10,7 @@ import FirebaseAuth
 
 struct HomeView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @EnvironmentObject private var navigationState: AppNavigationState
     @StateObject private var viewModel = HomeViewModel()
     private let upcomingPayments: [UpcomingPaymentItem] = [
         UpcomingPaymentItem(
@@ -53,6 +54,17 @@ struct HomeView: View {
                             currencyCode: viewModel.currencyCode,
                             deltaText: summarySubtitle
                         )
+
+                        if !viewModel.isLoading && !viewModel.hasSubscriptions && !viewModel.hasGroups {
+                            HomeEmptyStateView(
+                                onAddSubscription: {
+                                    navigationState.selectedTab = .subscriptions
+                                },
+                                onCreateGroup: {
+                                    navigationState.selectedTab = .groups
+                                }
+                            )
+                        }
                         if viewModel.hasMixedCurrencies {
                             HomeCurrencySummaryView(totalsByCurrency: viewModel.totalsByCurrency)
                         }
@@ -120,4 +132,5 @@ struct HomeView: View {
 
 #Preview {
     HomeView()
+        .environmentObject(AppNavigationState())
 }

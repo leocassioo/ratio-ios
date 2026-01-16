@@ -35,6 +35,7 @@ struct CreateGroupView: View {
     @State private var inviteURL: URL?
     @State private var inviteError: String?
     @State private var isGeneratingInvite = false
+    @State private var isSaving = false
 
     init(viewModel: GroupsViewModel, ownerId: String, ownerName: String) {
         self.viewModel = viewModel
@@ -44,15 +45,29 @@ struct CreateGroupView: View {
     }
 
     var body: some View {
-        Form {
-            groupSection
-            credentialsSection
-            paymentDataSection
-            contactSection
-            notesSection
-            membersSection
-            if perPersonAmount > 0 {
-                summarySection
+        ZStack {
+            Form {
+                groupSection
+                credentialsSection
+                paymentDataSection
+                contactSection
+                notesSection
+                membersSection
+                if perPersonAmount > 0 {
+                    summarySection
+                }
+            }
+            .disabled(isSaving)
+
+            if isSaving {
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("Salvando grupo...")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(.ultraThinMaterial)
             }
         }
         .navigationTitle("Novo grupo")
@@ -61,10 +76,14 @@ struct CreateGroupView: View {
                 Button("Cancelar") {
                     dismiss()
                 }
+                .disabled(isSaving)
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Salvar") {
                     Task {
+                        guard !isSaving else { return }
+                        isSaving = true
+                        defer { isSaving = false }
                         if let subscription = selectedSubscription {
                             let normalizedMembers = normalizedMemberList()
                             if let groupId = await viewModel.createGroup(
@@ -85,7 +104,7 @@ struct CreateGroupView: View {
                         }
                     }
                 }
-                .disabled(!canSubmit)
+                .disabled(!canSubmit || isSaving)
             }
         }
         .onAppear {

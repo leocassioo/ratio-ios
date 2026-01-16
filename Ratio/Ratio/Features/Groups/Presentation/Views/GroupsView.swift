@@ -11,10 +11,14 @@ import SwiftUI
 struct GroupsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var navigationState: AppNavigationState
+    @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @StateObject private var viewModel = GroupsViewModel()
     @State private var showCreateGroup = false
     @State private var selectedGroup: SharedGroup?
     @State private var selectedGroupDetail: SharedGroup?
+    @State private var showUpgradePrompt = false
+    @State private var showPaywall = false
+    private let freeGroupLimit = 2
 
     var body: some View {
         NavigationStack {
@@ -75,7 +79,11 @@ struct GroupsView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        showCreateGroup = true
+                        if canCreateGroup {
+                            showCreateGroup = true
+                        } else {
+                            showUpgradePrompt = true
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -126,7 +134,31 @@ struct GroupsView: View {
                     )
                 }
             }
+            .sheet(isPresented: $showUpgradePrompt) {
+                UpgradePromptView(
+                    title: "Limite de grupos no plano gratuito",
+                    subtitle: "Você chegou ao limite de \(freeGroupLimit) grupos. Assine o Ratio Pro para criar grupos ilimitados.",
+                    benefits: [
+                        "Grupos compartilhados ilimitados",
+                        "Mais controle sobre cobranças e rateios",
+                        "Prioridade para novos recursos"
+                    ],
+                    onViewPlans: {
+                        showPaywall = true
+                    }
+                )
+            }
+            .fullScreenCover(isPresented: $showPaywall) {
+                NavigationStack {
+                    SubscriptionBenefitsView()
+                        .environmentObject(subscriptionManager)
+                }
+            }
         }
+    }
+
+    private var canCreateGroup: Bool {
+        subscriptionManager.isProUser || viewModel.groups.count < freeGroupLimit
     }
 
     private func openPendingGroupIfNeeded() {
@@ -146,4 +178,5 @@ struct GroupsView: View {
 #Preview {
     GroupsView()
         .environmentObject(AuthViewModel())
+        .environmentObject(SubscriptionManager.shared)
 }
