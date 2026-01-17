@@ -9,6 +9,8 @@ import SwiftUI
 
 struct HomeCurrencySummaryView: View {
     let totalsByCurrency: [String: Double]
+    let estimatedByCurrency: [String: Double]
+    let preferredCurrencyCode: String
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -24,8 +26,15 @@ struct HomeCurrencySummaryView: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Text(formattedCurrency(item.amount, currencyCode: item.code))
-                            .font(.caption.weight(.semibold))
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(formattedCurrency(item.amount, currencyCode: item.code))
+                                .font(.caption.weight(.semibold))
+                            if let estimated = estimatedByCurrency[item.code], item.code != preferredCurrencyCode {
+                                Text("≈ \(formattedCurrency(estimated, currencyCode: preferredCurrencyCode))")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
             }

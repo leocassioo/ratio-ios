@@ -14,6 +14,7 @@ struct SettingsView: View {
     @EnvironmentObject private var router: AppRouter
     @AppStorage(PreferencesStore.PrefKey.appTheme) private var appThemeRaw: String = AppTheme.system.rawValue
     @AppStorage(PreferencesStore.PrefKey.appLanguage) private var appLanguageRaw: String = AppLanguage.system.rawValue
+    @AppStorage(PreferencesStore.PrefKey.primaryCurrencyCode) private var primaryCurrencyCodeRaw: String = "BRL"
     @State private var showSignOutConfirm = false
 
     private var appTheme: Binding<AppTheme> {
@@ -27,6 +28,13 @@ struct SettingsView: View {
         Binding(
             get: { AppLanguage(rawValue: appLanguageRaw) ?? .system },
             set: { appLanguageRaw = $0.rawValue }
+        )
+    }
+
+    private var primaryCurrency: Binding<PrimaryCurrencyOption> {
+        Binding(
+            get: { PrimaryCurrencyOption(rawValue: primaryCurrencyCodeRaw) ?? .brl },
+            set: { primaryCurrencyCodeRaw = $0.rawValue }
         )
     }
 
@@ -66,6 +74,20 @@ struct SettingsView: View {
                 }
             } header: {
                 Text("Conta")
+            }
+
+            Section {
+                Picker("Moeda principal", selection: primaryCurrency) {
+                    ForEach(PrimaryCurrencyOption.allCases) { currency in
+                        Text(currency.label).tag(currency)
+                    }
+                }
+            } header: {
+                Text("Moeda")
+            } footer: {
+                Text("Usamos essa moeda para destacar os totais e estimativas.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
 
             Section {

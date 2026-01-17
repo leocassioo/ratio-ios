@@ -16,6 +16,7 @@ final class PreferencesStore {
         static let appLanguage = "appLanguage"
         static let didSkipPushPermission = "didSkipPushPermission"
         static let isProUser = "isProUser"
+        static let primaryCurrencyCode = "primaryCurrencyCode"
     }
 
     private let defaults: UserDefaults
@@ -40,5 +41,13 @@ final class PreferencesStore {
 
     func setIsProUser(_ value: Bool) {
         defaults.setValue(value, forKey: PrefKey.isProUser)
+    }
+
+    func primaryCurrencyCode(defaultValue: String = "BRL") -> String {
+        defaults.string(forKey: PrefKey.primaryCurrencyCode) ?? defaultValue
+    }
+
+    func setPrimaryCurrencyCode(_ value: String) {
+        defaults.setValue(value, forKey: PrefKey.primaryCurrencyCode)
     }
 }

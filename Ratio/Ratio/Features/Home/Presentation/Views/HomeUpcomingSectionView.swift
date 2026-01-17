@@ -11,6 +11,7 @@ struct HomeUpcomingSectionView: View {
     @EnvironmentObject private var router: AppRouter
     let items: [UpcomingPaymentItem]
     let destinationTab: MainTab
+    let estimated: (UpcomingPaymentItem) -> (Double, String)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -36,7 +37,12 @@ struct HomeUpcomingSectionView: View {
             } else {
                 VStack(spacing: 10) {
                     ForEach(items) { item in
-                        HomeUpcomingRowView(item: item)
+                        let estimate = estimated(item)
+                        HomeUpcomingRowView(
+                            item: item,
+                            estimatedAmount: estimate?.0,
+                            estimatedCurrencyCode: estimate?.1
+                        )
                     }
                 }
             }

@@ -11,6 +11,7 @@ struct HomeSummaryCardView: View {
     let totalAmount: Double
     let currencyCode: String
     let deltaText: String
+    let estimatedBRL: Double?
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {

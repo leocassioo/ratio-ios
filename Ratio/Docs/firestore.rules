@@ -68,6 +68,11 @@ service cloud.firestore {
       allow update, delete: if isSignedIn();
     }
 
+    match /exchangeRates/{rateId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && request.auth.uid == userId;

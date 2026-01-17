@@ -9,6 +9,7 @@ Arquivo de regras: `Docs/firestore.rules`
 - Membros podem atualizar **apenas o status/recibo** do proprio pagamento.
 - Convites abertos para leitura/criacao por usuarios autenticados.
 - Subscriptions so podem ser lidas/escritas pelo proprio usuario.
+- Cambio USD/BRL fica em `exchangeRates/usd` com leitura para usuarios autenticados (escrita somente server).
 
 ## Como publicar
 1. Firebase Console -> Firestore Database -> Rules.

@@ -14,20 +14,26 @@ final class GroupsViewModel: ObservableObject {
     @Published private(set) var groups: [SharedGroup] = []
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
+    @Published private(set) var usdRate: ExchangeRate?
 
     private let store: GroupsStore
+    private let exchangeRateStore: ExchangeRateStore
     private var listener: ListenerRegistration?
+    private var exchangeRateListener: ListenerRegistration?
 
-    init(store: GroupsStore? = nil) {
+    init(store: GroupsStore? = nil, exchangeRateStore: ExchangeRateStore? = nil) {
         self.store = store ?? GroupsStore()
+        self.exchangeRateStore = exchangeRateStore ?? ExchangeRateStore()
     }
 
     deinit {
         listener?.remove()
+        exchangeRateListener?.remove()
     }
 
     func startListening(userId: String) {
         listener?.remove()
+        exchangeRateListener?.remove()
         isLoading = true
         errorMessage = nil
 
@@ -45,12 +51,35 @@ final class GroupsViewModel: ObservableObject {
                 }
             }
         }
+
+        exchangeRateListener = exchangeRateStore.listenUsdRate { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let rate):
+                    self?.usdRate = rate
+                case .failure:
+                    self?.usdRate = nil
+                }
+            }
+        }
     }
 
     func stopListening() {
         listener?.remove()
         listener = nil
+        exchangeRateListener?.remove()
+        exchangeRateListener = nil
         groups = []
+        usdRate = nil
+    }
+
+    func estimatedBRL(for amount: Double, currencyCode: String) -> Double? {
+        guard currencyCode == "USD", let rate = usdRate, rate.rate > 0 else {
+            return nil
+        }
+        let base = amount * rate.rate
+        let margin = base * max(rate.marginPct, 0)
+        return base + margin
     }
 
     func createGroup(

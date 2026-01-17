@@ -22,26 +22,36 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var hasSubscriptions = false
     @Published private(set) var hasGroups = false
     @Published private(set) var isLoading = false
+    @Published private(set) var usdRate: ExchangeRate?
 
     private let subscriptionsStore: SubscriptionsStore
     private let groupsStore: GroupsStore
+    private let exchangeRateStore: ExchangeRateStore
     private var listener: ListenerRegistration?
     private var groupsListener: ListenerRegistration?
+    private var exchangeRateListener: ListenerRegistration?
     private var subscriptions: [SubscriptionItem] = []
     private var groups: [SharedGroup] = []
     private var userId: String?
     private var didLoadInitial = false
     private var didLoadSubscriptions = false
     private var didLoadGroups = false
+    private var preferredCurrencyCode: String?
 
-    init(store: SubscriptionsStore? = nil, groupsStore: GroupsStore? = nil) {
+    init(
+        store: SubscriptionsStore? = nil,
+        groupsStore: GroupsStore? = nil,
+        exchangeRateStore: ExchangeRateStore? = nil
+    ) {
         self.subscriptionsStore = store ?? SubscriptionsStore()
         self.groupsStore = groupsStore ?? GroupsStore()
+        self.exchangeRateStore = exchangeRateStore ?? ExchangeRateStore()
     }
 
     deinit {
         listener?.remove()
         groupsListener?.remove()
+        exchangeRateListener?.remove()
     }
 
     func startListening(userId: String) {
@@ -53,6 +63,7 @@ final class HomeViewModel: ObservableObject {
         self.userId = userId
         listener?.remove()
         groupsListener?.remove()
+        exchangeRateListener?.remove()
         isLoading = true
         Task {
             try? await subscriptionsStore.normalizeNextBillingDates(userId: userId)
@@ -133,13 +144,28 @@ final class HomeViewModel: ObservableObject {
                 }
             }
         }
+
+        exchangeRateListener = exchangeRateStore.listenUsdRate { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let rate):
+                    self?.usdRate = rate
+                    self?.updateTotals()
+                    self?.updateCategorySpends()
+                case .failure:
+                    self?.usdRate = nil
+                }
+            }
+        }
     }
 
     func stopListening() {
         listener?.remove()
         groupsListener?.remove()
+        exchangeRateListener?.remove()
         listener = nil
         groupsListener = nil
+        exchangeRateListener = nil
         totalMonthlyAmount = 0
         insights = []
         upcomingPayments = []
@@ -149,6 +175,37 @@ final class HomeViewModel: ObservableObject {
         isLoading = false
         didLoadSubscriptions = false
         didLoadGroups = false
+        usdRate = nil
+        preferredCurrencyCode = nil
+    }
+
+    func setPreferredCurrencyCode(_ code: String?) {
+        preferredCurrencyCode = code
+        updateTotals()
+    }
+
+    func estimatedBRL(forAmount amount: Double, currencyCode: String) -> Double? {
+        estimatedAmount(forAmount: amount, currencyCode: currencyCode, preferredCurrencyCode: "BRL")
+    }
+
+    func estimatedAmount(forAmount amount: Double, currencyCode: String, preferredCurrencyCode: String) -> Double? {
+        guard let rate = usdRate, rate.rate > 0 else {
+            return nil
+        }
+        return convert(amount: amount, from: currencyCode, to: preferredCurrencyCode, rate: rate)
+    }
+
+    func estimatedTotalsByCurrency(preferredCurrencyCode: String) -> [String: Double] {
+        var estimates: [String: Double] = [:]
+        totalsByCurrency.forEach { code, amount in
+            if code == preferredCurrencyCode {
+                return
+            }
+            if let estimated = estimatedAmount(forAmount: amount, currencyCode: code, preferredCurrencyCode: preferredCurrencyCode) {
+                estimates[code] = estimated
+            }
+        }
+        return estimates
     }
 
     private func updateLoadingState() {
@@ -171,9 +228,52 @@ final class HomeViewModel: ObservableObject {
                     partial + item.monthlyAmount
                 }
             }
-        currencyCode = firstCurrency
-        hasMixedCurrencies = totalsByCurrency.keys.contains { $0 != firstCurrency }
-        totalMonthlyAmount = totalsByCurrency[firstCurrency] ?? 0
+        let preferred = preferredCurrencyCode ?? "BRL"
+        let supported = Set(["BRL", "USD"])
+        let currencyCodes = Set(totalsByCurrency.keys)
+        if currencyCodes.isSubset(of: supported),
+           let usdRate,
+           usdRate.rate > 0,
+           supported.contains(preferred) {
+            var convertedTotal: Double = 0
+            var didConvertAll = true
+            for (code, amount) in totalsByCurrency {
+                guard let converted = convert(amount: amount, from: code, to: preferred, rate: usdRate) else {
+                    didConvertAll = false
+                    break
+                }
+                convertedTotal += converted
+            }
+            if didConvertAll {
+                currencyCode = preferred
+                hasMixedCurrencies = currencyCodes.count > 1
+                totalMonthlyAmount = convertedTotal
+                return
+            }
+        }
+
+        let selectedCurrency = totalsByCurrency[preferred] != nil ? preferred : firstCurrency
+        currencyCode = selectedCurrency
+        hasMixedCurrencies = totalsByCurrency.keys.contains { $0 != selectedCurrency }
+        totalMonthlyAmount = totalsByCurrency[selectedCurrency] ?? 0
+    }
+
+    private func convert(amount: Double, from: String, to: String, rate: ExchangeRate) -> Double? {
+        if from == to {
+            return amount
+        }
+        if rate.rate <= 0 {
+            return nil
+        }
+        if from == "USD" && to == "BRL" {
+            let base = amount * rate.rate
+            let margin = base * max(rate.marginPct, 0)
+            return base + margin
+        }
+        if from == "BRL" && to == "USD" {
+            return amount / rate.rate
+        }
+        return nil
     }
 
     private func monthlyEquivalent(for item: SubscriptionItem) -> Double {
@@ -309,10 +409,19 @@ final class HomeViewModel: ObservableObject {
             return
         }
 
+        let preferredCurrency = preferredCurrencyCode ?? "BRL"
         let subscriptionTotals = Dictionary(grouping: subscriptions, by: { $0.category.label })
             .mapValues { items in
                 items.reduce(0) { partial, item in
-                    partial + monthlyEquivalent(for: item)
+                    guard let converted = convert(
+                        amount: monthlyEquivalent(for: item),
+                        from: item.currencyCode,
+                        to: preferredCurrency,
+                        rate: usdRate ?? ExchangeRate(rate: 0, marginPct: 0, asOf: Date(), source: "")
+                    ) else {
+                        return partial
+                    }
+                    return partial + converted
                 }
             }
 
@@ -322,7 +431,16 @@ final class HomeViewModel: ObservableObject {
                 return
             }
             let period = periodFromGroup(group)
-            partial[group.category.label, default: 0] += monthlyEquivalent(for: member.amount, period: period)
+            let amount = monthlyEquivalent(for: member.amount, period: period)
+            guard let converted = convert(
+                amount: amount,
+                from: group.currencyCode,
+                to: preferredCurrency,
+                rate: usdRate ?? ExchangeRate(rate: 0, marginPct: 0, asOf: Date(), source: "")
+            ) else {
+                return
+            }
+            partial[group.category.label, default: 0] += converted
         }
 
         let mergedTotals = subscriptionTotals.merging(groupTotals, uniquingKeysWith: +)
@@ -343,7 +461,7 @@ final class HomeViewModel: ObservableObject {
         let sortedTotals = mergedTotals.sorted { $0.value > $1.value }
         categorySpends = sortedTotals.enumerated().map { index, entry in
             let color = palette[index % palette.count]
-            return CategorySpendItem(label: entry.key, amount: entry.value, color: color)
+            return CategorySpendItem(label: entry.key, amount: entry.value, currencyCode: preferredCurrency, color: color)
         }
     }
 

@@ -5,6 +5,7 @@
 //  Created by Codex on 21/12/25.
 //
 
+import FirebaseFirestore
 import SwiftUI
 
 struct GroupDetailView: View {
@@ -17,6 +18,8 @@ struct GroupDetailView: View {
     @State private var showPaymentSheet = false
     @State private var showPaymentError = false
     @State private var ownerPixKey: String?
+    @State private var usdRate: ExchangeRate?
+    @State private var exchangeRateListener: ListenerRegistration?
 
     init(group: SharedGroup, currentUserId: String?) {
         self.group = group
@@ -43,6 +46,15 @@ struct GroupDetailView: View {
                     Spacer()
                     Text(formattedCurrency(currentGroup.totalAmount))
                         .font(.headline)
+                }
+                if let estimated = estimatedBRL(for: currentGroup.totalAmount) {
+                    HStack {
+                        Text("Estimado em reais")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(formattedCurrency(estimated, currencyCode: "BRL"))
+                            .font(.subheadline.weight(.semibold))
+                    }
                 }
 
                 HStack {
@@ -80,6 +92,15 @@ struct GroupDetailView: View {
                         Spacer()
                         Text(currentMember.status.label)
                             .foregroundStyle(statusColor(for: currentMember.status))
+                    }
+                    if let estimated = estimatedBRL(for: currentMember.amount) {
+                        HStack {
+                            Text("Estimado em reais")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text(formattedCurrency(estimated, currencyCode: "BRL"))
+                                .font(.subheadline.weight(.semibold))
+                        }
                     }
 
                     if let receiptURL = currentMember.receiptURL,
@@ -264,8 +285,15 @@ struct GroupDetailView: View {
                         }
                     }
 
-                    Text(formattedCurrency(member.amount))
-                        .font(.subheadline.weight(.semibold))
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(formattedCurrency(member.amount))
+                            .font(.subheadline.weight(.semibold))
+                        if let estimated = estimatedBRL(for: member.amount) {
+                            Text("≈ \(formattedCurrency(estimated, currencyCode: "BRL"))")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
         }
@@ -286,6 +314,20 @@ struct GroupDetailView: View {
                     ownerPixKey = profile.pixKey
                 }
             }
+            exchangeRateListener = ExchangeRateStore().listenUsdRate { result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let rate):
+                        usdRate = rate
+                    case .failure:
+                        usdRate = nil
+                    }
+                }
+            }
+        }
+        .onDisappear {
+            exchangeRateListener?.remove()
+            exchangeRateListener = nil
         }
         .sheet(isPresented: $showPaymentSheet) {
             if let currentMember = currentMember {
@@ -336,12 +378,21 @@ struct GroupDetailView: View {
         }
     }
 
-    private func formattedCurrency(_ value: Double) -> String {
+    private func formattedCurrency(_ value: Double, currencyCode: String? = nil) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        formatter.currencyCode = currentGroup.currencyCode
+        formatter.currencyCode = currencyCode ?? currentGroup.currencyCode
         formatter.locale = Locale(identifier: "pt_BR")
         return formatter.string(from: NSNumber(value: value)) ?? "R$ 0,00"
+    }
+
+    private func estimatedBRL(for amount: Double) -> Double? {
+        guard currentGroup.currencyCode == "USD", let rate = usdRate, rate.rate > 0 else {
+            return nil
+        }
+        let base = amount * rate.rate
+        let margin = base * max(rate.marginPct, 0)
+        return base + margin
     }
 
     private func statusColor(for status: GroupMemberStatus) -> Color {

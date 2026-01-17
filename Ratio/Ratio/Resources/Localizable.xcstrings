@@ -23,6 +23,9 @@
     "• %@" : {
 
     },
+    "≈ %@" : {
+
+    },
     "0,00" : {
 
     },
@@ -263,6 +266,12 @@
     "Esta assinatura está vinculada a um grupo e não pode ser excluída." : {
 
     },
+    "Estimado em reais" : {
+
+    },
+    "Estimado em reais: %@" : {
+
+    },
     "Excluir" : {
 
     },
@@ -347,6 +356,9 @@
 
     },
     "Moeda" : {
+
+    },
+    "Moeda principal" : {
 
     },
     "Não foi possível excluir" : {
@@ -549,6 +561,9 @@
       }
     },
     "Tutorial rápido" : {
+
+    },
+    "Usamos essa moeda para destacar os totais e estimativas." : {
 
     },
     "Usamos notificações apenas para avisos essenciais do app, como lembretes de cobrança e confirmações de pagamento." : {

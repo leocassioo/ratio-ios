@@ -11,3 +11,5 @@ export {
 } from "./notifications";
 
 export { recordSubscriptionHistory, recordGroupPaymentHistory, recordHistoryTest } from "./history";
+
+export { fetchUsdRateDaily, fetchUsdRateTest } from "./exchangeRates";

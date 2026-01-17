@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.recordHistoryTest = exports.recordGroupPaymentHistory = exports.recordSubscriptionHistory = exports.markOverdueTest = exports.notifyOwnerOnPaymentSubmittedTest = exports.notifyOwnerOnPaymentSubmitted = exports.sendBillingRemindersTest = exports.sendBillingReminders = void 0;
+exports.fetchUsdRateTest = exports.fetchUsdRateDaily = exports.recordHistoryTest = exports.recordGroupPaymentHistory = exports.recordSubscriptionHistory = exports.markOverdueTest = exports.notifyOwnerOnPaymentSubmittedTest = exports.notifyOwnerOnPaymentSubmitted = exports.sendBillingRemindersTest = exports.sendBillingReminders = void 0;
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 var notifications_1 = require("./notifications");
@@ -46,3 +46,6 @@ var history_1 = require("./history");
 Object.defineProperty(exports, "recordSubscriptionHistory", { enumerable: true, get: function () { return history_1.recordSubscriptionHistory; } });
 Object.defineProperty(exports, "recordGroupPaymentHistory", { enumerable: true, get: function () { return history_1.recordGroupPaymentHistory; } });
 Object.defineProperty(exports, "recordHistoryTest", { enumerable: true, get: function () { return history_1.recordHistoryTest; } });
+var exchangeRates_1 = require("./exchangeRates");
+Object.defineProperty(exports, "fetchUsdRateDaily", { enumerable: true, get: function () { return exchangeRates_1.fetchUsdRateDaily; } });
+Object.defineProperty(exports, "fetchUsdRateTest", { enumerable: true, get: function () { return exchangeRates_1.fetchUsdRateTest; } });

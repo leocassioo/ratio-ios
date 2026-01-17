@@ -11,5 +11,6 @@ struct CategorySpendItem: Identifiable {
     let id = UUID()
     let label: String
     let amount: Double
+    let currencyCode: String
     let color: Color
 }

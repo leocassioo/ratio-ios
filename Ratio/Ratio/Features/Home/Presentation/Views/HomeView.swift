@@ -12,6 +12,7 @@ struct HomeView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel = HomeViewModel()
+    @AppStorage(PreferencesStore.PrefKey.primaryCurrencyCode) private var primaryCurrencyCodeRaw: String = "BRL"
     private let upcomingPayments: [UpcomingPaymentItem] = [
         UpcomingPaymentItem(
             name: "SmartFit",
@@ -39,10 +40,10 @@ struct HomeView: View {
         )
     ]
     private let categorySpends: [CategorySpendItem] = [
-        CategorySpendItem(label: "Streaming", amount: 132.80, color: Color(.systemIndigo)),
-        CategorySpendItem(label: "Saúde", amount: 119.90, color: Color(.systemTeal)),
-        CategorySpendItem(label: "Música", amount: 27.90, color: Color(.systemPink)),
-        CategorySpendItem(label: "Outros", amount: 57.02, color: Color(.systemOrange))
+        CategorySpendItem(label: "Streaming", amount: 132.80, currencyCode: "BRL", color: Color(.systemIndigo)),
+        CategorySpendItem(label: "Saúde", amount: 119.90, currencyCode: "BRL", color: Color(.systemTeal)),
+        CategorySpendItem(label: "Música", amount: 27.90, currencyCode: "BRL", color: Color(.systemPink)),
+        CategorySpendItem(label: "Outros", amount: 57.02, currencyCode: "BRL", color: Color(.systemOrange))
     ]
     var body: some View {
         ZStack {
@@ -51,7 +52,8 @@ struct HomeView: View {
                     HomeSummaryCardView(
                         totalAmount: viewModel.totalMonthlyAmount,
                         currencyCode: viewModel.currencyCode,
-                        deltaText: summarySubtitle
+                        deltaText: summarySubtitle,
+                        estimatedBRL: viewModel.estimatedBRL(forAmount: viewModel.totalMonthlyAmount, currencyCode: viewModel.currencyCode)
                     )
 
                         if !viewModel.isLoading && !viewModel.hasSubscriptions && !viewModel.hasGroups {
@@ -65,7 +67,12 @@ struct HomeView: View {
                             )
                         }
                     if viewModel.hasMixedCurrencies {
-                        HomeCurrencySummaryView(totalsByCurrency: viewModel.totalsByCurrency)
+                        let preferredCurrencyCode = primaryCurrencyCodeRaw
+                        HomeCurrencySummaryView(
+                            totalsByCurrency: viewModel.totalsByCurrency,
+                            estimatedByCurrency: viewModel.estimatedTotalsByCurrency(preferredCurrencyCode: preferredCurrencyCode),
+                            preferredCurrencyCode: preferredCurrencyCode
+                        )
                     }
 
                     if !viewModel.insights.isEmpty {
@@ -74,7 +81,18 @@ struct HomeView: View {
 
                     HomeUpcomingSectionView(
                         items: viewModel.upcomingPayments,
-                        destinationTab: upcomingDestination
+                        destinationTab: upcomingDestination,
+                        estimated: { item in
+                            let preferredCurrency = primaryCurrencyCodeRaw
+                            guard let estimated = viewModel.estimatedAmount(
+                                forAmount: item.amount,
+                                currencyCode: item.currencyCode,
+                                preferredCurrencyCode: preferredCurrency
+                            ) else {
+                                return nil
+                            }
+                            return (estimated, preferredCurrency)
+                        }
                     )
 
                     HomeCategoryDonutCardView(items: viewModel.categorySpends)
@@ -100,10 +118,14 @@ struct HomeView: View {
             if let userId = authViewModel.user?.uid {
                 viewModel.startListening(userId: userId)
             }
+            viewModel.setPreferredCurrencyCode(primaryCurrencyCodeRaw)
         }
         .onChange(of: authViewModel.user?.uid) { _, newValue in
             guard let userId = newValue else { return }
             viewModel.startListening(userId: userId)
+        }
+        .onChange(of: primaryCurrencyCodeRaw) { _, newValue in
+            viewModel.setPreferredCurrencyCode(newValue)
         }
         .onDisappear {
             viewModel.stopListening()

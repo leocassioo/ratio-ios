@@ -11,6 +11,8 @@ struct GroupCardView: View {
     let group: SharedGroup
     let currentUserId: String?
     let currentUserPixKey: String?
+    let estimatedTotalBRL: Double?
+    let estimatedMemberBRL: (Double) -> Double?
     let onEdit: () -> Void
     @Environment(\.colorScheme) private var colorScheme
 
@@ -23,6 +25,11 @@ struct GroupCardView: View {
                     Text("Total: \(formattedCurrency(group.totalAmount)) / \(group.billingPeriod)")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                    if let estimatedTotalBRL, group.currencyCode != "BRL" {
+                        Text("Estimado em reais: \(formattedCurrency(estimatedTotalBRL, currencyCode: "BRL"))")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                     if let nextChargeDate = nextChargeDate {
                         Text("Próxima cobrança: \(formattedDate(nextChargeDate))")
                             .font(.footnote)
@@ -110,8 +117,15 @@ struct GroupCardView: View {
                             .buttonStyle(.plain)
                         }
 
-                        Text(formattedCurrency(member.amount))
-                            .font(.subheadline.weight(.semibold))
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(formattedCurrency(member.amount))
+                                .font(.subheadline.weight(.semibold))
+                            if let estimated = estimatedMemberBRL(member.amount), group.currencyCode != "BRL" {
+                                Text("≈ \(formattedCurrency(estimated, currencyCode: "BRL"))")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
             }
@@ -162,10 +176,10 @@ struct GroupCardView: View {
         return trimmed.split(separator: " ").first.map(String.init) ?? trimmed
     }
 
-    private func formattedCurrency(_ value: Double) -> String {
+    private func formattedCurrency(_ value: Double, currencyCode: String? = nil) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        formatter.currencyCode = group.currencyCode
+        formatter.currencyCode = currencyCode ?? group.currencyCode
         formatter.locale = Locale(identifier: "pt_BR")
         return formatter.string(from: NSNumber(value: value)) ?? "R$ 0,00"
     }

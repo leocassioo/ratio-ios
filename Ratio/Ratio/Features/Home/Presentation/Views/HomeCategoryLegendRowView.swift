@@ -22,16 +22,16 @@ struct HomeCategoryLegendRowView: View {
 
             Spacer()
 
-            Text(formattedCurrency(item.amount))
+            Text(formattedCurrency(item.amount, currencyCode: item.currencyCode))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.primary)
         }
     }
 
-    private func formattedCurrency(_ value: Double) -> String {
+    private func formattedCurrency(_ value: Double, currencyCode: String) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        formatter.currencyCode = "BRL"
+        formatter.currencyCode = currencyCode
         formatter.locale = Locale(identifier: "pt_BR")
         return formatter.string(from: NSNumber(value: value)) ?? "R$ 0,00"
     }

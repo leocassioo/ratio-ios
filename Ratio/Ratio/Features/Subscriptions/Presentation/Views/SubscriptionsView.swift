@@ -70,6 +70,11 @@ struct SubscriptionsView: View {
                             Text("Próxima cobrança: \(formattedDate(subscription.nextBillingDate))")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
+                            if let estimated = viewModel.estimatedBRL(for: subscription) {
+                                Text("Estimado em reais: \(formattedCurrency(estimated, currencyCode: "BRL"))")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
                             }
                             .padding(.vertical, 6)
                             .contentShape(Rectangle())

@@ -9,6 +9,8 @@ import SwiftUI
 
 struct HomeUpcomingRowView: View {
     let item: UpcomingPaymentItem
+    let estimatedAmount: Double?
+    let estimatedCurrencyCode: String?
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -34,6 +36,11 @@ struct HomeUpcomingRowView: View {
             VStack(alignment: .trailing, spacing: 4) {
                 Text(formattedCurrency(item.amount, currencyCode: item.currencyCode))
                     .font(.subheadline.weight(.semibold))
+                if let estimatedAmount, let estimatedCurrencyCode, item.currencyCode != estimatedCurrencyCode {
+                    Text("≈ \(formattedCurrency(estimatedAmount, currencyCode: estimatedCurrencyCode))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
                 Text(item.period)
                     .font(.caption)
                     .foregroundStyle(.secondary)

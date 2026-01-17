@@ -55,6 +55,10 @@ struct GroupsView: View {
                                 group: group,
                                 currentUserId: authViewModel.user?.uid,
                                 currentUserPixKey: authViewModel.userPixKey,
+                                estimatedTotalBRL: viewModel.estimatedBRL(for: group.totalAmount, currencyCode: group.currencyCode),
+                                estimatedMemberBRL: { amount in
+                                    viewModel.estimatedBRL(for: amount, currencyCode: group.currencyCode)
+                                },
                                 onEdit: {
                                     openEdit(group)
                                 }
