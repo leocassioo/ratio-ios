@@ -21,17 +21,13 @@ struct MemberAvatarView: View {
                 )
 
             if let urlString = photoURL, let url = URL(string: urlString) {
-                AsyncImage(url: url) { phase in
+                CachedAsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
                         image
                             .resizable()
                             .scaledToFill()
-                    case .failure:
-                        placeholderView
-                    case .empty:
-                        ProgressView()
-                    @unknown default:
+                    case .failure, .empty:
                         placeholderView
                     }
                 }

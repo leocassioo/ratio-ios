@@ -56,6 +56,9 @@
     "Ajustes" : {
 
     },
+    "Alterar email" : {
+
+    },
     "Alterar foto" : {
 
     },
@@ -96,6 +99,9 @@
 
     },
     "Ative sua análise inteligente" : {
+
+    },
+    "Atualizar email" : {
 
     },
     "BRL" : {
@@ -234,6 +240,9 @@
 
     },
     "Email" : {
+
+    },
+    "Email alterado: confirme no link enviado e faça login novamente." : {
 
     },
     "Email enviado. Verifique sua caixa de entrada." : {
@@ -394,6 +403,9 @@
     "Nova assinatura" : {
 
     },
+    "Novo email" : {
+
+    },
     "Novo grupo" : {
 
     },
@@ -415,10 +427,13 @@
     "OK" : {
 
     },
+    "Ok, entendi" : {
+
+    },
     "Pagamento" : {
 
     },
-    "Para alterar o email, utilize o suporte." : {
+    "Para alterar o email," : {
 
     },
     "Perfil" : {
@@ -440,6 +455,9 @@
 
     },
     "Por pessoa" : {
+
+    },
+    "Por segurança, confirme sua senha atual." : {
 
     },
     "Próxima cobrança" : {
@@ -520,6 +538,9 @@
     "Senha" : {
 
     },
+    "Senha atual" : {
+
+    },
     "Senha do serviço" : {
 
     },
@@ -554,6 +575,9 @@
 
     },
     "Tipo" : {
+
+    },
+    "toque aqui." : {
 
     },
     "Totais por moeda" : {

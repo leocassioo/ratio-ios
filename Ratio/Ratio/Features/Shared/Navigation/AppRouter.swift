@@ -14,6 +14,7 @@ enum AppRoute: Hashable {
     case billingHistory
     case subscriptionBenefits
     case editProfile
+    case changeEmail
     case onboardingTutorial
     case signup
     case passwordReset

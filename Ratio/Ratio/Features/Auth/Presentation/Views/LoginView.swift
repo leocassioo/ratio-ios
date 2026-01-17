@@ -10,6 +10,7 @@ import SwiftUI
 struct LoginView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var router: AppRouter
+    @AppStorage(PreferencesStore.PrefKey.pendingEmailChangeNotice) private var showEmailChangeNotice = false
     @State private var email = ""
     @State private var password = ""
 
@@ -66,6 +67,20 @@ struct LoginView: View {
                     .foregroundStyle(.red)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 420)
+            }
+
+            if showEmailChangeNotice {
+                VStack(spacing: 8) {
+                    Text("Email alterado: confirme no link enviado e faça login novamente.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                    Button("Ok, entendi") {
+                        showEmailChangeNotice = false
+                    }
+                    .font(.footnote.weight(.semibold))
+                }
+                .frame(maxWidth: 420)
             }
 
             Spacer()

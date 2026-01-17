@@ -17,6 +17,7 @@ final class PreferencesStore {
         static let didSkipPushPermission = "didSkipPushPermission"
         static let isProUser = "isProUser"
         static let primaryCurrencyCode = "primaryCurrencyCode"
+        static let pendingEmailChangeNotice = "pendingEmailChangeNotice"
     }
 
     private let defaults: UserDefaults
@@ -49,5 +50,14 @@ final class PreferencesStore {
 
     func setPrimaryCurrencyCode(_ value: String) {
         defaults.setValue(value, forKey: PrefKey.primaryCurrencyCode)
+    }
+
+    func pendingEmailChangeNotice(defaultValue: Bool = false) -> Bool {
+        if defaults.object(forKey: PrefKey.pendingEmailChangeNotice) == nil { return defaultValue }
+        return defaults.bool(forKey: PrefKey.pendingEmailChangeNotice)
+    }
+
+    func setPendingEmailChangeNotice(_ value: Bool) {
+        defaults.setValue(value, forKey: PrefKey.pendingEmailChangeNotice)
     }
 }

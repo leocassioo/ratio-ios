@@ -102,7 +102,8 @@ final class SubscriptionManager: ObservableObject {
         let monthlyYearlyPrice = NSDecimalNumber(decimal: monthlyProduct.price).doubleValue * 12
         guard monthlyYearlyPrice > 0 else { return nil }
         let discount = (1 - (annualPrice / monthlyYearlyPrice)) * 100
-        return Int(discount.rounded())
+        guard discount > 0 else { return nil }
+        return Int(discount.rounded(.down))
     }
 
     func hasTrial(_ product: SubscriptionProduct) -> Bool {

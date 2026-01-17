@@ -91,6 +91,8 @@ struct MainTabView: View {
             } else {
                 Text("Perfil indisponível")
             }
+        case .changeEmail:
+            ChangeEmailView()
         case .onboardingTutorial:
             OnboardingView(showsFinishButton: false) {
                 router.pop(in: .settings)

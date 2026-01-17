@@ -10,6 +10,7 @@ import PhotosUI
 import SwiftUI
 
 struct EditProfileView: View {
+    @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel: EditProfileViewModel
 
     init(user: User) {
@@ -40,6 +41,7 @@ struct EditProfileView: View {
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .foregroundStyle(.secondary)
                     .disabled(true)
 
                 TextField("Telefone", text: $viewModel.phoneNumber)
@@ -52,9 +54,16 @@ struct EditProfileView: View {
             } header: {
                 Text("Dados pessoais")
             } footer: {
-                Text("Para alterar o email, utilize o suporte.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Text("Para alterar o email,")
+                    Button("toque aqui.") {
+                        router.push(.changeEmail, in: .settings)
+                    }
+                    .buttonStyle(.plain)
+                    .underline()
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
             }
 
             Section {
@@ -91,6 +100,7 @@ struct EditProfileView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.loadProfile()
+            viewModel.saveSuccess = false
         }
         .onChange(of: viewModel.selectedPhoto) { _, _ in
             viewModel.handleSelectedPhotoChange()
@@ -105,17 +115,11 @@ struct EditProfileView: View {
                     .resizable()
                     .scaledToFill()
             } else if let url = viewModel.remotePhotoURL {
-                AsyncImage(url: url) { phase in
+                CachedAsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
                         image.resizable().scaledToFill()
-                    case .failure:
-                        Image(systemName: "person.crop.circle.fill")
-                            .font(.system(size: 54))
-                            .foregroundStyle(.secondary)
-                    case .empty:
-                        ProgressView()
-                    @unknown default:
+                    case .failure, .empty:
                         Image(systemName: "person.crop.circle.fill")
                             .font(.system(size: 54))
                             .foregroundStyle(.secondary)

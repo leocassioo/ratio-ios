@@ -32,7 +32,7 @@ enum SubscriptionProduct: String, CaseIterable, Identifiable {
         case .semiannual:
             return 7
         case .annual:
-            return 7
+            return 14
         }
     }
 

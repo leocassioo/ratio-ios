@@ -23,7 +23,7 @@ final class EditProfileViewModel: ObservableObject {
     @Published private(set) var remotePhotoURL: URL?
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
-    @Published private(set) var saveSuccess = false
+    @Published var saveSuccess = false
 
     private let user: User
     private let usersStore: UsersStore
@@ -63,6 +63,9 @@ final class EditProfileViewModel: ObservableObject {
         Task {
             if let data = try? await selectedPhoto.loadTransferable(type: Data.self) {
                 profileImageData = data
+                await MainActor.run {
+                    saveChanges()
+                }
             }
         }
     }
@@ -108,6 +111,12 @@ final class EditProfileViewModel: ObservableObject {
 
                 remotePhotoURL = updatedPhotoURL
                 saveSuccess = true
+                Task { [weak self] in
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    await MainActor.run {
+                        self?.saveSuccess = false
+                    }
+                }
             } catch {
                 errorMessage = "Não foi possível salvar o perfil."
             }

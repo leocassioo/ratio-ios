@@ -45,18 +45,13 @@ struct SettingsView: View {
                     Button {
                         router.push(.editProfile, in: .settings)
                     } label: {
-                        if let url = user.photoURL {
-                            HStack(spacing: 12) {
-                                AsyncImage(url: url) { phase in
+                        HStack(spacing: 12) {
+                            if let url = user.photoURL {
+                                CachedAsyncImage(url: url) { phase in
                                     switch phase {
                                     case .success(let image):
                                         image.resizable().scaledToFill()
-                                    case .failure:
-                                        Image(systemName: "person.crop.circle.fill")
-                                            .foregroundStyle(.secondary)
-                                    case .empty:
-                                        ProgressView()
-                                    @unknown default:
+                                    case .failure, .empty:
                                         Image(systemName: "person.crop.circle.fill")
                                             .foregroundStyle(.secondary)
                                     }
@@ -64,11 +59,14 @@ struct SettingsView: View {
                                 .frame(width: 32, height: 32)
                                 .background(Color(.secondarySystemBackground))
                                 .clipShape(Circle())
-
-                                Text("Perfil")
+                            } else {
+                                Image(systemName: "person.crop.circle")
+                                    .foregroundStyle(.secondary)
                             }
-                        } else {
-                            Label("Perfil", systemImage: "person.crop.circle")
+
+                            Text("Perfil")
+
+                            Spacer()
                         }
                     }
                 }
