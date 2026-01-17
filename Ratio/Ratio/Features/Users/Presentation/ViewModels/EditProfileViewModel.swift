@@ -27,10 +27,12 @@ final class EditProfileViewModel: ObservableObject {
 
     private let user: User
     private let usersStore: UsersStore
+    private let groupsStore: GroupsStore
 
-    init(user: User, usersStore: UsersStore? = nil) {
+    init(user: User, usersStore: UsersStore? = nil, groupsStore: GroupsStore? = nil) {
         self.user = user
         self.usersStore = usersStore ?? UsersStore()
+        self.groupsStore = groupsStore ?? GroupsStore()
         self.name = user.displayName ?? ""
         self.email = user.email ?? ""
         self.phoneNumber = ""
@@ -98,6 +100,10 @@ final class EditProfileViewModel: ObservableObject {
                     phoneNumber: phoneNumber,
                     photoURL: updatedPhotoURL?.absoluteString,
                     pixKey: pixKey
+                )
+                try await groupsStore.updateMemberPhoto(
+                    userId: user.uid,
+                    photoURL: updatedPhotoURL?.absoluteString
                 )
 
                 remotePhotoURL = updatedPhotoURL

@@ -6,7 +6,7 @@ Arquivo de regras: `Docs/firestore.rules`
 - Owner pode editar/excluir grupos e membros.
 - Owner e membros leem grupos em que estao listados (via `resource.data`).
 - Membro pode aceitar convite: cria seu doc em `members` e adiciona seu `userId` em `memberIds`.
-- Membros podem atualizar **apenas o status/recibo** do proprio pagamento.
+- Membros podem atualizar **status/recibo/foto** do proprio pagamento.
 - Convites abertos para leitura/criacao por usuarios autenticados.
 - Subscriptions so podem ser lidas/escritas pelo proprio usuario.
 - Cambio USD/BRL fica em `exchangeRates/usd` com leitura para usuarios autenticados (escrita somente server).

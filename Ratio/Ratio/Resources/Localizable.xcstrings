@@ -71,6 +71,9 @@
     "Aprovar" : {
 
     },
+    "As cobranças registradas aparecerão aqui." : {
+
+    },
     "Assim que houver cobranças, elas aparecerão aqui." : {
 
     },
@@ -212,6 +215,9 @@
     "Dia de cobrança do grupo: %lld" : {
 
     },
+    "Disponível no Ratio Pro" : {
+
+    },
     "Dividir igualmente" : {
 
     },
@@ -270,6 +276,9 @@
 
     },
     "Estimado em reais: %@" : {
+
+    },
+    "Evolução mensal" : {
 
     },
     "Excluir" : {
@@ -353,6 +362,9 @@
 
     },
     "Membros" : {
+
+    },
+    "Mês" : {
 
     },
     "Moeda" : {
@@ -500,6 +512,9 @@
 
     },
     "Sem histórico ainda" : {
+
+    },
+    "Sem histórico mensal" : {
 
     },
     "Senha" : {

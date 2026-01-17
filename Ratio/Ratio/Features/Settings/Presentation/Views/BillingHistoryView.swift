@@ -49,8 +49,17 @@ struct BillingHistoryView: View {
                 ScrollView {
                     VStack(spacing: 12) {
                         summaryCards
-                        ForEach(viewModel.items) { item in
-                            historyCard(item)
+                        ForEach(groupedItems, id: \.monthStart) { section in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(section.title)
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 4)
+
+                                ForEach(section.items) { item in
+                                    historyCard(item)
+                                }
+                            }
                         }
                     }
                     .padding(20)
@@ -94,6 +103,28 @@ struct BillingHistoryView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(Color(.separator).opacity(borderOpacity), lineWidth: 1)
         )
+    }
+
+    private var groupedItems: [(monthStart: Date, title: String, items: [BillingHistoryItem])] {
+        let calendar = Calendar.current
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateFormat = "MMMM yyyy"
+
+        let grouped = Dictionary(grouping: viewModel.items) { item in
+            calendar.date(from: calendar.dateComponents([.year, .month], from: item.occurredAt)) ?? item.occurredAt
+        }
+
+        return grouped
+            .map { (monthStart: $0.key, items: $0.value) }
+            .sorted { $0.monthStart > $1.monthStart }
+            .map { entry in
+                (
+                    monthStart: entry.monthStart,
+                    title: formatter.string(from: entry.monthStart).capitalized,
+                    items: entry.items
+                )
+            }
     }
 
     private var summaryCards: some View {

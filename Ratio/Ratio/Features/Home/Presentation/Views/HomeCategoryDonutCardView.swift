@@ -9,6 +9,8 @@ import SwiftUI
 
 struct HomeCategoryDonutCardView: View {
     let items: [CategorySpendItem]
+    @EnvironmentObject private var subscriptionManager: SubscriptionManager
+    @EnvironmentObject private var router: AppRouter
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -30,16 +32,36 @@ struct HomeCategoryDonutCardView: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 140)
             } else {
-                HStack(spacing: 16) {
-                    HomeCategoryDonutView(items: items)
-                        .frame(width: 140, height: 140)
+                ZStack {
+                    HStack(spacing: 16) {
+                        HomeCategoryDonutView(items: items)
+                            .frame(width: 140, height: 140)
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        ForEach(items) { item in
-                            HomeCategoryLegendRowView(item: item)
+                        VStack(alignment: .leading, spacing: 10) {
+                            ForEach(items) { item in
+                                HomeCategoryLegendRowView(item: item)
+                            }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if !subscriptionManager.hasProAccess {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .overlay {
+                                VStack(spacing: 6) {
+                                    Image(systemName: "lock.fill")
+                                        .font(.title3)
+                                    Text("Disponível no Ratio Pro")
+                                        .font(.footnote.weight(.semibold))
+                                }
+                                .foregroundStyle(.secondary)
+                            }
+                            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .onTapGesture {
+                                router.present(.subscriptionBenefits)
+                            }
+                    }
                 }
             }
         }

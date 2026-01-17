@@ -13,3 +13,5 @@ export {
 export { recordSubscriptionHistory, recordGroupPaymentHistory, recordHistoryTest } from "./history";
 
 export { fetchUsdRateDaily, fetchUsdRateTest } from "./exchangeRates";
+
+export { seedEmulatorData } from "./seed";

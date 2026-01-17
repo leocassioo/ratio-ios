@@ -55,6 +55,7 @@ service cloud.firestore {
             request.auth.uid == resource.data.userId &&
             request.resource.data.diff(resource.data).changedKeys().hasOnly([
               "status",
+              "photoURL",
               "receiptURL",
               "submittedAt",
               "updatedAt"

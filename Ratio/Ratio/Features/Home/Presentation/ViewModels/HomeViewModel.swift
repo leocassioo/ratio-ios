@@ -19,6 +19,8 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var insights: [HomeInsightItem] = []
     @Published private(set) var upcomingPayments: [UpcomingPaymentItem] = []
     @Published private(set) var categorySpends: [CategorySpendItem] = []
+    @Published private(set) var monthlySpends: [MonthlySpendItem] = []
+    @Published private(set) var monthlySpendsCurrencyCode: String = "BRL"
     @Published private(set) var hasSubscriptions = false
     @Published private(set) var hasGroups = false
     @Published private(set) var isLoading = false
@@ -27,31 +29,38 @@ final class HomeViewModel: ObservableObject {
     private let subscriptionsStore: SubscriptionsStore
     private let groupsStore: GroupsStore
     private let exchangeRateStore: ExchangeRateStore
+    private let historyStore: BillingHistoryStore
     private var listener: ListenerRegistration?
     private var groupsListener: ListenerRegistration?
     private var exchangeRateListener: ListenerRegistration?
+    private var historyListener: ListenerRegistration?
     private var subscriptions: [SubscriptionItem] = []
     private var groups: [SharedGroup] = []
+    private var billingHistoryItems: [BillingHistoryItem] = []
     private var userId: String?
     private var didLoadInitial = false
     private var didLoadSubscriptions = false
     private var didLoadGroups = false
     private var preferredCurrencyCode: String?
+    private var isProAccess = false
 
     init(
         store: SubscriptionsStore? = nil,
         groupsStore: GroupsStore? = nil,
-        exchangeRateStore: ExchangeRateStore? = nil
+        exchangeRateStore: ExchangeRateStore? = nil,
+        historyStore: BillingHistoryStore? = nil
     ) {
         self.subscriptionsStore = store ?? SubscriptionsStore()
         self.groupsStore = groupsStore ?? GroupsStore()
         self.exchangeRateStore = exchangeRateStore ?? ExchangeRateStore()
+        self.historyStore = historyStore ?? BillingHistoryStore()
     }
 
     deinit {
         listener?.remove()
         groupsListener?.remove()
         exchangeRateListener?.remove()
+        historyListener?.remove()
     }
 
     func startListening(userId: String) {
@@ -64,6 +73,7 @@ final class HomeViewModel: ObservableObject {
         listener?.remove()
         groupsListener?.remove()
         exchangeRateListener?.remove()
+        historyListener?.remove()
         isLoading = true
         Task {
             try? await subscriptionsStore.normalizeNextBillingDates(userId: userId)
@@ -145,6 +155,10 @@ final class HomeViewModel: ObservableObject {
             }
         }
 
+        if isProAccess {
+            startHistoryListening(userId: userId)
+        }
+
         exchangeRateListener = exchangeRateStore.listenUsdRate { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
@@ -152,6 +166,7 @@ final class HomeViewModel: ObservableObject {
                     self?.usdRate = rate
                     self?.updateTotals()
                     self?.updateCategorySpends()
+                    self?.updateMonthlySpends()
                 case .failure:
                     self?.usdRate = nil
                 }
@@ -163,13 +178,17 @@ final class HomeViewModel: ObservableObject {
         listener?.remove()
         groupsListener?.remove()
         exchangeRateListener?.remove()
+        historyListener?.remove()
         listener = nil
         groupsListener = nil
         exchangeRateListener = nil
+        historyListener = nil
         totalMonthlyAmount = 0
         insights = []
         upcomingPayments = []
         categorySpends = []
+        monthlySpends = []
+        monthlySpendsCurrencyCode = "BRL"
         hasSubscriptions = false
         hasGroups = false
         isLoading = false
@@ -177,11 +196,32 @@ final class HomeViewModel: ObservableObject {
         didLoadGroups = false
         usdRate = nil
         preferredCurrencyCode = nil
+        billingHistoryItems = []
     }
 
     func setPreferredCurrencyCode(_ code: String?) {
         preferredCurrencyCode = code
+        monthlySpendsCurrencyCode = code ?? "BRL"
         updateTotals()
+        if isProAccess {
+            updateMonthlySpends()
+        }
+    }
+
+    func setProAccess(_ value: Bool) {
+        guard isProAccess != value else { return }
+        isProAccess = value
+        if value {
+            if let userId {
+                startHistoryListening(userId: userId)
+            }
+            updateMonthlySpends()
+        } else {
+            historyListener?.remove()
+            historyListener = nil
+            billingHistoryItems = []
+            monthlySpends = []
+        }
     }
 
     func estimatedBRL(forAmount amount: Double, currencyCode: String) -> Double? {
@@ -410,6 +450,11 @@ final class HomeViewModel: ObservableObject {
         }
 
         let preferredCurrency = preferredCurrencyCode ?? "BRL"
+        if !isProAccess {
+            categorySpends = buildMockCategorySpends(currencyCode: preferredCurrency)
+            return
+        }
+
         let subscriptionTotals = Dictionary(grouping: subscriptions, by: { $0.category.label })
             .mapValues { items in
                 items.reduce(0) { partial, item in
@@ -462,6 +507,115 @@ final class HomeViewModel: ObservableObject {
         categorySpends = sortedTotals.enumerated().map { index, entry in
             let color = palette[index % palette.count]
             return CategorySpendItem(label: entry.key, amount: entry.value, currencyCode: preferredCurrency, color: color)
+        }
+    }
+
+    private func buildMockCategorySpends(currencyCode: String) -> [CategorySpendItem] {
+        let base: Double = currencyCode == "USD" ? 18 : 90
+        let values: [(String, Double, Color)] = [
+            ("Streaming", base * 1.4, Color(.systemIndigo)),
+            ("Software", base * 1.1, Color(.systemTeal)),
+            ("Fitness", base * 0.9, Color(.systemPink)),
+            ("Outros", base * 0.6, Color(.systemOrange))
+        ]
+        return values.map { label, amount, color in
+            CategorySpendItem(label: label, amount: amount, currencyCode: currencyCode, color: color)
+        }
+    }
+
+    private func updateMonthlySpends() {
+        let preferred = preferredCurrencyCode ?? "BRL"
+        monthlySpendsCurrencyCode = preferred
+
+        if !isProAccess {
+            monthlySpends = buildMockMonthlySpends(currencyCode: preferred)
+            return
+        }
+
+        guard !billingHistoryItems.isEmpty else {
+            monthlySpends = []
+            return
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        guard let startOfCurrentMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now)) else {
+            monthlySpends = []
+            return
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateFormat = "MMM"
+
+        monthlySpends = (-5...0).compactMap { offset -> MonthlySpendItem? in
+            guard let monthStart = calendar.date(byAdding: .month, value: offset, to: startOfCurrentMonth) else {
+                return nil
+            }
+            let nextMonth = calendar.date(byAdding: .month, value: 1, to: monthStart) ?? monthStart
+            let monthItems = billingHistoryItems.filter { $0.occurredAt >= monthStart && $0.occurredAt < nextMonth }
+            let total = monthItems.reduce(0.0) { partial, item in
+                if let converted = convert(
+                    amount: item.amount,
+                    from: item.currencyCode,
+                    to: preferred,
+                    rate: usdRate ?? ExchangeRate(rate: 0, marginPct: 0, asOf: Date(), source: "")
+                ) {
+                    return partial + converted
+                }
+                return partial
+            }
+            return MonthlySpendItem(
+                monthStart: monthStart,
+                label: formatter.string(from: monthStart).capitalized,
+                amount: total,
+                currencyCode: preferred
+            )
+        }
+    }
+
+    private func buildMockMonthlySpends(currencyCode: String) -> [MonthlySpendItem] {
+        let calendar = Calendar.current
+        let now = Date()
+        guard let startOfCurrentMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now)) else {
+            return []
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateFormat = "MMM"
+
+        let base: Double = currencyCode == "USD" ? 45 : 180
+        let deltas: [Double] = [0.8, 1.1, 0.95, 1.2, 1.05, 1.3]
+
+        return (-5...0).compactMap { offset -> MonthlySpendItem? in
+            guard let monthStart = calendar.date(byAdding: .month, value: offset, to: startOfCurrentMonth) else {
+                return nil
+            }
+            let factorIndex = max(0, min(deltas.count - 1, offset + 5))
+            let amount = (base * deltas[factorIndex])
+            return MonthlySpendItem(
+                monthStart: monthStart,
+                label: formatter.string(from: monthStart).capitalized,
+                amount: amount,
+                currencyCode: currencyCode
+            )
+        }
+    }
+
+    private func startHistoryListening(userId: String) {
+        historyListener?.remove()
+        historyListener = historyStore.listenHistory(for: userId) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let items):
+                    self?.billingHistoryItems = items
+                    self?.updateMonthlySpends()
+                case .failure:
+                    self?.billingHistoryItems = []
+                    self?.monthlySpends = []
+                }
+            }
         }
     }
 

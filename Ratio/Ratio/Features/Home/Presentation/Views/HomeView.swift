@@ -11,6 +11,7 @@ import FirebaseAuth
 struct HomeView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var router: AppRouter
+    @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @StateObject private var viewModel = HomeViewModel()
     @AppStorage(PreferencesStore.PrefKey.primaryCurrencyCode) private var primaryCurrencyCodeRaw: String = "BRL"
     private let upcomingPayments: [UpcomingPaymentItem] = [
@@ -96,6 +97,11 @@ struct HomeView: View {
                     )
 
                     HomeCategoryDonutCardView(items: viewModel.categorySpends)
+
+                    HomeMonthlySpendsCardView(
+                        items: viewModel.monthlySpends,
+                        currencyCode: viewModel.monthlySpendsCurrencyCode
+                    )
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
@@ -119,6 +125,7 @@ struct HomeView: View {
                 viewModel.startListening(userId: userId)
             }
             viewModel.setPreferredCurrencyCode(primaryCurrencyCodeRaw)
+            viewModel.setProAccess(subscriptionManager.hasProAccess)
         }
         .onChange(of: authViewModel.user?.uid) { _, newValue in
             guard let userId = newValue else { return }
@@ -126,6 +133,9 @@ struct HomeView: View {
         }
         .onChange(of: primaryCurrencyCodeRaw) { _, newValue in
             viewModel.setPreferredCurrencyCode(newValue)
+        }
+        .onChange(of: subscriptionManager.hasProAccess) { _, newValue in
+            viewModel.setProAccess(newValue)
         }
         .onDisappear {
             viewModel.stopListening()

@@ -99,6 +99,49 @@ final class GroupsStore {
         try await batch.commit()
     }
 
+    func updateMemberPhoto(userId: String, photoURL: String?) async throws {
+        let snapshot = try await db.collection("groups")
+            .whereField("memberIds", arrayContains: userId)
+            .getDocuments()
+
+        guard !snapshot.documents.isEmpty else { return }
+
+        let batch = db.batch()
+        let photoValue: Any = photoURL ?? FieldValue.delete()
+
+        for document in snapshot.documents {
+            let data = document.data()
+            let preview = (data["membersPreview"] as? [[String: Any]])
+                ?? (data["members"] as? [[String: Any]] ?? [])
+
+            let updatedPreview = preview.map { member in
+                guard (member["userId"] as? String) == userId else {
+                    return member
+                }
+                var updated = member
+                if let photoURL {
+                    updated["photoURL"] = photoURL
+                } else {
+                    updated.removeValue(forKey: "photoURL")
+                }
+                return updated
+            }
+
+            batch.updateData(["membersPreview": updatedPreview], forDocument: document.reference)
+
+            let memberDocs = try await document.reference
+                .collection("members")
+                .whereField("userId", isEqualTo: userId)
+                .getDocuments()
+
+            memberDocs.documents.forEach { memberDoc in
+                batch.updateData(["photoURL": photoValue, "updatedAt": FieldValue.serverTimestamp()], forDocument: memberDoc.reference)
+            }
+        }
+
+        try await batch.commit()
+    }
+
     func normalizeChargeDates(for userId: String) async throws {
         let snapshot = try await db.collection("groups")
             .whereField("ownerId", isEqualTo: userId)
