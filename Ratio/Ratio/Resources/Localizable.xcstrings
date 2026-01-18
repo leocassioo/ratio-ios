@@ -104,10 +104,16 @@
     "Atualizar email" : {
 
     },
+    "Bem-vindo de volta" : {
+
+    },
     "BRL" : {
 
     },
     "Cadastre sua primeira assinatura." : {
+
+    },
+    "Cadastre-se" : {
 
     },
     "Cancelar" : {
@@ -194,9 +200,6 @@
     "Criar grupo" : {
 
     },
-    "Criar nova conta" : {
-
-    },
     "Crie seu primeiro grupo para compartilhar assinaturas." : {
 
     },
@@ -242,7 +245,7 @@
     "Email" : {
 
     },
-    "Email alterado: confirme no link enviado e faça login novamente." : {
+    "Email alterado com sucesso. Faça login novamente." : {
 
     },
     "Email enviado. Verifique sua caixa de entrada." : {
@@ -257,7 +260,7 @@
     "Entre com sua conta para aceitar o convite." : {
 
     },
-    "Entre para gerenciar suas assinaturas." : {
+    "Entre na sua conta para continuar" : {
 
     },
     "Enviar link" : {
@@ -269,7 +272,7 @@
     "Erro" : {
 
     },
-    "Esqueci minha senha" : {
+    "Esqueceu a senha?" : {
 
     },
     "Essa ação é permanente e remove o grupo para todos os membros." : {
@@ -385,6 +388,9 @@
     "Não foi possível excluir" : {
 
     },
+    "Não tem uma conta?" : {
+
+    },
     "Nenhum grupo ainda" : {
 
     },
@@ -427,9 +433,6 @@
     "OK" : {
 
     },
-    "Ok, entendi" : {
-
-    },
     "Pagamento" : {
 
     },
@@ -467,9 +470,6 @@
 
     },
     "Próximos pagamentos" : {
-
-    },
-    "Ratio" : {
 
     },
     "Ratio © 2026 Red Pixel Tecnologia" : {
