@@ -104,16 +104,13 @@
     "Atualizar email" : {
 
     },
-    "Bem-vindo de volta" : {
+    "Bem-vindo de volta! Sentimos sua falta." : {
 
     },
     "BRL" : {
 
     },
     "Cadastre sua primeira assinatura." : {
-
-    },
-    "Cadastre-se" : {
 
     },
     "Cancelar" : {
@@ -200,6 +197,9 @@
     "Criar grupo" : {
 
     },
+    "Criar nova conta" : {
+
+    },
     "Crie seu primeiro grupo para compartilhar assinaturas." : {
 
     },
@@ -245,7 +245,7 @@
     "Email" : {
 
     },
-    "Email alterado com sucesso. Faça login novamente." : {
+    "Email alterado: confirme no link enviado e faça login novamente." : {
 
     },
     "Email enviado. Verifique sua caixa de entrada." : {
@@ -260,9 +260,6 @@
     "Entre com sua conta para aceitar o convite." : {
 
     },
-    "Entre na sua conta para continuar" : {
-
-    },
     "Enviar link" : {
 
     },
@@ -272,7 +269,7 @@
     "Erro" : {
 
     },
-    "Esqueceu a senha?" : {
+    "Esqueci minha senha" : {
 
     },
     "Essa ação é permanente e remove o grupo para todos os membros." : {
@@ -388,9 +385,6 @@
     "Não foi possível excluir" : {
 
     },
-    "Não tem uma conta?" : {
-
-    },
     "Nenhum grupo ainda" : {
 
     },
@@ -431,6 +425,12 @@
 
     },
     "OK" : {
+
+    },
+    "Ok, entendi" : {
+
+    },
+    "Ou continue com" : {
 
     },
     "Pagamento" : {
