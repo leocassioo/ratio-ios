@@ -8,6 +8,7 @@
 import Combine
 import Foundation
 import StoreKit
+import FirebaseAuth
 
 @MainActor
 final class SubscriptionManager: ObservableObject {
@@ -21,7 +22,11 @@ final class SubscriptionManager: ObservableObject {
     private var products: [SubscriptionProduct: Product] = [:]
 
     var hasProAccess: Bool {
-        isProUser || RemoteConfigService.shared.premiumBypassEnabled
+        if isProUser || RemoteConfigService.shared.premiumBypassEnabled {
+            return true
+        }
+        guard let email = Auth.auth().currentUser?.email?.lowercased() else { return false }
+        return RemoteConfigService.shared.premiumBypassEmails.contains(email)
     }
 
     init() {

@@ -6,7 +6,10 @@
 //
 
 import FirebaseAuth
+import FirebaseCore
 import FirebaseStorage
+import AuthenticationServices
+import GoogleSignIn
 import Foundation
 import UIKit
 import Combine
@@ -91,6 +94,104 @@ final class AuthViewModel: ObservableObject {
             try Auth.auth().signOut()
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func signInWithGoogle(presenting: UIViewController) {
+        errorMessage = nil
+        isLoading = true
+
+        Task { [weak self] in
+            do {
+                guard let clientID = FirebaseApp.app()?.options.clientID else {
+                    throw NSError(domain: "Auth", code: -1, userInfo: [
+                        NSLocalizedDescriptionKey: "Configuração do Google ausente."
+                    ])
+                }
+                let config = GIDConfiguration(clientID: clientID)
+                GIDSignIn.sharedInstance.configuration = config
+
+                let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: presenting)
+                guard let idToken = result.user.idToken?.tokenString else {
+                    throw NSError(domain: "Auth", code: -2, userInfo: [
+                        NSLocalizedDescriptionKey: "Token do Google inválido."
+                    ])
+                }
+                let accessToken = result.user.accessToken.tokenString
+                let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+                let authResult = try await Auth.auth().signIn(with: credential)
+
+                try await self?.usersStore.updateUserProfile(
+                    userId: authResult.user.uid,
+                    name: authResult.user.displayName ?? result.user.profile?.name,
+                    email: authResult.user.email,
+                    photoURL: authResult.user.photoURL?.absoluteString,
+                    pixKey: nil
+                )
+                await MainActor.run {
+                    self?.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self?.isLoading = false
+                    self?.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    func signInWithApple(authorization: ASAuthorization, rawNonce: String) {
+        errorMessage = nil
+        isLoading = true
+
+        Task { [weak self] in
+            do {
+                guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+                    throw NSError(domain: "Auth", code: -3, userInfo: [
+                        NSLocalizedDescriptionKey: "Credencial da Apple inválida."
+                    ])
+                }
+                guard let tokenData = appleIDCredential.identityToken,
+                      let idTokenString = String(data: tokenData, encoding: .utf8) else {
+                    throw NSError(domain: "Auth", code: -4, userInfo: [
+                        NSLocalizedDescriptionKey: "Token da Apple inválido."
+                    ])
+                }
+
+                let credential = OAuthProvider.credential(
+                    providerID: .apple,
+                    idToken: idTokenString,
+                    rawNonce: rawNonce
+                )
+                let authResult = try await Auth.auth().signIn(with: credential)
+
+                if let fullName = appleIDCredential.fullName {
+                    let formatter = PersonNameComponentsFormatter()
+                    let name = formatter.string(from: fullName)
+                    if !name.isEmpty {
+                        let changeRequest = authResult.user.createProfileChangeRequest()
+                        changeRequest.displayName = name
+                        try await changeRequest.commitChanges()
+                    }
+                }
+
+                try await self?.usersStore.updateUserProfile(
+                    userId: authResult.user.uid,
+                    name: authResult.user.displayName,
+                    email: authResult.user.email,
+                    photoURL: authResult.user.photoURL?.absoluteString,
+                    pixKey: nil
+                )
+
+                await MainActor.run {
+                    self?.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self?.isLoading = false
+                    self?.errorMessage = error.localizedDescription
+                }
+            }
         }
     }
 

@@ -8,6 +8,7 @@
 import PhotosUI
 import SwiftUI
 import UIKit
+import AuthenticationServices
 
 struct SignupView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
@@ -20,6 +21,7 @@ struct SignupView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var profileImageData: Data?
     @State private var isPasswordVisible = false
+    @State private var appleNonce = ""
 
     var body: some View {
         ScrollView {
@@ -114,20 +116,17 @@ struct SignupView: View {
                     .controlSize(.large)
                     .disabled(isSubmitDisabled)
 
-                    VStack(spacing: 16) {
-                        Text("Ou continue com")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                VStack(spacing: 16) {
+                    Text("Ou continue com")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
 
-                        HStack(spacing: 16) {
-                            socialButton(label: "G")
-                            socialButton(label: "f")
-                            socialButton(systemImage: "applelogo")
-                        }
-                        .opacity(0.6)
-                        .disabled(true)
+                    HStack(spacing: 16) {
+                        googleButton
+                        appleButton
                     }
                 }
+            }
                 .frame(maxWidth: 420)
 
                 if let message = authViewModel.errorMessage {
@@ -203,24 +202,50 @@ struct SignupView: View {
         phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private func socialButton(label: String? = nil, systemImage: String? = nil) -> some View {
-        Button {} label: {
+    private var googleButton: some View {
+        Button {
+            guard let controller = UIApplication.topViewController() else {
+                authViewModel.errorMessage = "Não foi possível iniciar o login."
+                return
+            }
+            authViewModel.signInWithGoogle(presenting: controller)
+        } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color(.secondarySystemBackground))
-                if let systemImage {
-                    Image(systemName: systemImage)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.primary)
-                } else if let label {
-                    Text(label)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.primary)
-                }
+                Image("google-logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 20, height: 20)
             }
             .frame(width: 56, height: 44)
         }
         .buttonStyle(.plain)
+        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .disabled(authViewModel.isLoading)
+    }
+
+    private var appleButton: some View {
+        ZStack {
+            SignInWithAppleButton(.signIn) { request in
+                let nonce = SignInNonce.random()
+                appleNonce = nonce
+                request.requestedScopes = [.fullName, .email]
+                request.nonce = SignInNonce.sha256(nonce)
+            } onCompletion: { result in
+                switch result {
+                case .success(let auth):
+                    authViewModel.signInWithApple(authorization: auth, rawNonce: appleNonce)
+                case .failure(let error):
+                    authViewModel.errorMessage = error.localizedDescription
+                }
+            }
+            .signInWithAppleButtonStyle(.black)
+        }
+        .frame(width: 56, height: 44)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .disabled(authViewModel.isLoading)
     }
 }
 
