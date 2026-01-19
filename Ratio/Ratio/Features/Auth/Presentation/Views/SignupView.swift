@@ -19,6 +19,7 @@ struct SignupView: View {
     @State private var pixKey = ""
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var profileImageData: Data?
+    @State private var isPasswordVisible = false
 
     var body: some View {
         ScrollView {
@@ -82,10 +83,24 @@ struct SignupView: View {
                         .submitLabel(.next)
                         .modifier(InputFieldStyle())
 
-                    SecureField("Senha", text: $password)
-                        .textContentType(.newPassword)
-                        .submitLabel(.go)
-                        .modifier(InputFieldStyle())
+                    HStack(spacing: 8) {
+                        if isPasswordVisible {
+                            TextField("Senha", text: $password)
+                                .textContentType(.newPassword)
+                                .submitLabel(.go)
+                        } else {
+                            SecureField("Senha", text: $password)
+                                .textContentType(.newPassword)
+                                .submitLabel(.go)
+                        }
+                        Button {
+                            isPasswordVisible.toggle()
+                        } label: {
+                            Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .modifier(InputFieldStyle())
 
                     Button(action: submit) {
                         if authViewModel.isLoading {

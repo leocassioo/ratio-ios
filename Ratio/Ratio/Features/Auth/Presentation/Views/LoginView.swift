@@ -14,6 +14,7 @@ struct LoginView: View {
     @State private var showErrorAlert = false
     @State private var email = ""
     @State private var password = ""
+    @State private var isPasswordVisible = false
 
     var body: some View {
         ScrollView {
@@ -30,10 +31,24 @@ struct LoginView: View {
                         .submitLabel(.next)
                         .modifier(InputFieldStyle())
 
-                    SecureField("Senha", text: $password)
-                        .textContentType(.password)
-                        .submitLabel(.go)
-                        .modifier(InputFieldStyle())
+                    HStack(spacing: 8) {
+                        if isPasswordVisible {
+                            TextField("Senha", text: $password)
+                                .textContentType(.password)
+                                .submitLabel(.go)
+                        } else {
+                            SecureField("Senha", text: $password)
+                                .textContentType(.password)
+                                .submitLabel(.go)
+                        }
+                        Button {
+                            isPasswordVisible.toggle()
+                        } label: {
+                            Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .modifier(InputFieldStyle())
 
                     HStack {
                         Spacer()
