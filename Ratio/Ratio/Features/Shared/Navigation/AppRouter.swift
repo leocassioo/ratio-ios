@@ -12,6 +12,7 @@ import Combine
 enum AppRoute: Hashable {
     case settings
     case billingHistory
+    case notificationsHistory
     case subscriptionBenefits
     case editProfile
     case changeEmail

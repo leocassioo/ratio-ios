@@ -83,6 +83,8 @@ struct MainTabView: View {
             SettingsView()
         case .billingHistory:
             BillingHistoryView()
+        case .notificationsHistory:
+            NotificationsHistoryView()
         case .subscriptionBenefits:
             SubscriptionBenefitsView()
         case .editProfile:

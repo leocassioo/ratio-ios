@@ -13,6 +13,7 @@ struct HomeView: View {
     @EnvironmentObject private var router: AppRouter
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @StateObject private var viewModel = HomeViewModel()
+    @State private var hasUnreadNotifications = true
     @AppStorage(PreferencesStore.PrefKey.primaryCurrencyCode) private var primaryCurrencyCodeRaw: String = "BRL"
     private let upcomingPayments: [UpcomingPaymentItem] = [
         UpcomingPaymentItem(
@@ -140,6 +141,16 @@ struct HomeView: View {
         .onDisappear {
             viewModel.stopListening()
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    router.push(.notificationsHistory, in: .home)
+                } label: {
+                    notificationBell
+                }
+                .accessibilityLabel("Notificações")
+            }
+        }
     }
 
     private var summarySubtitle: String {
@@ -157,6 +168,20 @@ struct HomeView: View {
             return .groups
         }
         return .subscriptions
+    }
+
+    private var notificationBell: some View {
+        ZStack(alignment: .topTrailing) {
+            Image(systemName: "bell")
+                .font(.system(size: 18, weight: .semibold))
+
+            if hasUnreadNotifications {
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 8, height: 8)
+                    .offset(x: 6, y: -4)
+            }
+        }
     }
 }
 
