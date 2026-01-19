@@ -11,6 +11,7 @@ import UIKit
 
 struct SignupView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @State private var showErrorAlert = false
     @State private var displayName = ""
     @State private var email = ""
     @State private var password = ""
@@ -127,6 +128,14 @@ struct SignupView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle("Criar conta")
+        .onChange(of: authViewModel.errorMessage) { _, newValue in
+            showErrorAlert = newValue != nil
+        }
+        .alert("Não foi possível criar a conta", isPresented: $showErrorAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(authViewModel.errorMessage ?? "")
+        }
         .onChange(of: selectedPhoto) { _, newValue in
             guard let newValue else {
                 profileImageData = nil
@@ -171,7 +180,7 @@ struct SignupView: View {
     }
 
     private var isSubmitDisabled: Bool {
-        if authViewModel.isLoading || email.isEmpty || password.isEmpty {
+        if authViewModel.isLoading || !email.isValidEmail || password.isEmpty {
             return true
         }
 

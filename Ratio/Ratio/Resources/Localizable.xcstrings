@@ -341,6 +341,9 @@
     "Insights personalizados" : {
 
     },
+    "Insira os dados \npara seguir." : {
+
+    },
     "Ligar" : {
 
     },
@@ -380,6 +383,18 @@
 
     },
     "Moeda principal" : {
+
+    },
+    "Não foi possível alterar o email" : {
+
+    },
+    "Não foi possível criar a conta" : {
+
+    },
+    "Não foi possível entrar" : {
+
+    },
+    "Não foi possível enviar o link" : {
 
     },
     "Não foi possível excluir" : {

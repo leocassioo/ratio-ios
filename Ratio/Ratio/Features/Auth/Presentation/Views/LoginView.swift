@@ -11,104 +11,112 @@ struct LoginView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var router: AppRouter
     @AppStorage(PreferencesStore.PrefKey.pendingEmailChangeNotice) private var showEmailChangeNotice = false
+    @State private var showErrorAlert = false
     @State private var email = ""
     @State private var password = ""
 
     var body: some View {
-        VStack(spacing: 32) {
-            header
+        ScrollView {
+            VStack(spacing: 32) {
+                header
 
-            VStack(spacing: 20) {
-                Spacer()
-                TextField("Email", text: $email)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.emailAddress)
-                    .autocorrectionDisabled()
-                    .textContentType(.emailAddress)
-                    .submitLabel(.next)
-                    .modifier(InputFieldStyle())
-
-                SecureField("Senha", text: $password)
-                    .textContentType(.password)
-                    .submitLabel(.go)
-                    .modifier(InputFieldStyle())
-
-                HStack {
+                VStack(spacing: 20) {
                     Spacer()
-                    Button("Esqueci minha senha") {
-                        router.pushAuth(.passwordReset)
+                    TextField("Email", text: $email)
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.emailAddress)
+                        .autocorrectionDisabled()
+                        .textContentType(.emailAddress)
+                        .submitLabel(.next)
+                        .modifier(InputFieldStyle())
+
+                    SecureField("Senha", text: $password)
+                        .textContentType(.password)
+                        .submitLabel(.go)
+                        .modifier(InputFieldStyle())
+
+                    HStack {
+                        Spacer()
+                        Button("Esqueci minha senha") {
+                            router.pushAuth(.passwordReset)
+                        }
+                        .font(.footnote.weight(.semibold))
                     }
-                    .font(.footnote.weight(.semibold))
-                }
 
-                Spacer()
-                
-                Button(action: submit) {
-                    if authViewModel.isLoading {
-                        ProgressView()
-                    } else {
-                        Text("Entrar")
-                            .frame(maxWidth: .infinity)
+                    Spacer()
+                    
+                    Button(action: submit) {
+                        if authViewModel.isLoading {
+                            ProgressView()
+                        } else {
+                            Text("Entrar")
+                                .frame(maxWidth: .infinity)
+                        }
                     }
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(isSubmitDisabled)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(isSubmitDisabled)
 
-                Spacer()
-                
-                Button("Criar nova conta") {
-                    router.pushAuth(.signup)
-                }
-                .font(.footnote.weight(.semibold))
-            }
-            .frame(maxWidth: 420)
-            
-            Spacer()
-
-            VStack(spacing: 16) {
-                Text("Ou continue com")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-
-                HStack(spacing: 16) {
-                    socialButton(label: "G")
-                    socialButton(label: "f")
-                    socialButton(systemImage: "applelogo")
-                }
-                .opacity(0.6)
-                .disabled(true)
-            }
-            .frame(maxWidth: 420)
-
-            if let message = authViewModel.errorMessage {
-                Text(message)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 420)
-            }
-
-            if showEmailChangeNotice {
-                VStack(spacing: 8) {
-                    Text("Email alterado: confirme no link enviado e faça login novamente.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                    Button("Ok, entendi") {
-                        showEmailChangeNotice = false
+                    Spacer()
+                    
+                    Button("Criar nova conta") {
+                        router.pushAuth(.signup)
                     }
                     .font(.footnote.weight(.semibold))
                 }
                 .frame(maxWidth: 420)
-            }
+                
+                VStack(spacing: 16) {
+                    Text("Ou continue com")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
 
-            Spacer()
+                    HStack(spacing: 16) {
+                        socialButton(label: "G")
+                        socialButton(label: "f")
+                        socialButton(systemImage: "applelogo")
+                    }
+                    .opacity(0.6)
+                    .disabled(true)
+                }
+                .frame(maxWidth: 420)
+
+                if let message = authViewModel.errorMessage {
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 420)
+                }
+
+                if showEmailChangeNotice {
+                    VStack(spacing: 8) {
+                        Text("Email alterado: confirme no link enviado e faça login novamente.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                        Button("Ok, entendi") {
+                            showEmailChangeNotice = false
+                        }
+                        .font(.footnote.weight(.semibold))
+                    }
+                    .frame(maxWidth: 420)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 24)
+            .padding(.top, 32)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 32)
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle("Login")
+        .onChange(of: authViewModel.errorMessage) { _, newValue in
+            showErrorAlert = newValue != nil
+        }
+        .alert("Não foi possível entrar", isPresented: $showErrorAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(authViewModel.errorMessage ?? "")
+        }
     }
 
     private var header: some View {
@@ -163,7 +171,7 @@ struct LoginView: View {
     }
 
     private var isSubmitDisabled: Bool {
-        authViewModel.isLoading || email.isEmpty || password.isEmpty
+        authViewModel.isLoading || !email.isValidEmail || password.isEmpty
     }
 }
 
