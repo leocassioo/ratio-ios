@@ -15,11 +15,13 @@
 		470F576E2EF89A35006D57A9 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 470F576D2EF89A35006D57A9 /* FirebaseMessaging */; };
 		470F57702EF89A35006D57A9 /* FirebasePerformance in Frameworks */ = {isa = PBXBuildFile; productRef = 470F576F2EF89A35006D57A9 /* FirebasePerformance */; };
 		470F57722EF89A35006D57A9 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 470F57712EF89A35006D57A9 /* FirebaseStorage */; };
+		47332E162F1EAA08003F1AB4 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 47332E152F1EAA08003F1AB4 /* AppIcon.icon */; };
 		47A9A6B82F17C42E00BEC507 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 47A9A6B72F17C42E00BEC507 /* FirebaseRemoteConfig */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		470F57422EF894B0006D57A9 /* Ratio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ratio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		47332E152F1EAA08003F1AB4 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -66,6 +68,7 @@
 		470F57392EF894B0006D57A9 = {
 			isa = PBXGroup;
 			children = (
+				47332E152F1EAA08003F1AB4 /* AppIcon.icon */,
 				470F57442EF894B0006D57A9 /* Ratio */,
 				4710C5E42EFD79030094F63E /* Frameworks */,
 				470F57432EF894B0006D57A9 /* Products */,
@@ -163,6 +166,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				47332E162F1EAA08003F1AB4 /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
