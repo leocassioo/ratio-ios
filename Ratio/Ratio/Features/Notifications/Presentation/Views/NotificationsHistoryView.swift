@@ -6,63 +6,36 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct NotificationsHistoryView: View {
-    private let todayItems: [NotificationHistoryItem] = [
-        NotificationHistoryItem(
-            id: "1",
-            title: "Cobrança do grupo vence hoje",
-            message: "Netflix Família vence hoje. Confira se todos já pagaram.",
-            date: Date().addingTimeInterval(-60 * 10),
-            route: .groups,
-            isRead: false
-        ),
-        NotificationHistoryItem(
-            id: "2",
-            title: "Pagamento enviado",
-            message: "João enviou o comprovante do grupo Spotify Duo.",
-            date: Date().addingTimeInterval(-60 * 40),
-            route: .groups,
-            isRead: true
-        )
-    ]
-
-    private let recentItems: [NotificationHistoryItem] = [
-        NotificationHistoryItem(
-            id: "3",
-            title: "Assinatura renova amanhã",
-            message: "ChatGPT Pro renova amanhã. Revise o valor estimado.",
-            date: Date().addingTimeInterval(-60 * 60 * 24),
-            route: .subscriptions,
-            isRead: true
-        ),
-        NotificationHistoryItem(
-            id: "4",
-            title: "Novo grupo criado",
-            message: "Você criou o grupo SetApp. Convide seus amigos.",
-            date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
-            route: .groups,
-            isRead: true
-        )
-    ]
+    @EnvironmentObject private var authViewModel: AuthViewModel
+    @EnvironmentObject private var router: AppRouter
+    @StateObject private var viewModel = NotificationsHistoryViewModel()
 
     var body: some View {
         List {
-            if !todayItems.isEmpty {
-                Section("Hoje") {
-                    ForEach(todayItems) { item in
-                        Button {} label: {
-                            NotificationHistoryRowView(item: item)
-                        }
-                        .buttonStyle(.plain)
+            if viewModel.sections.isEmpty {
+                Section {
+                    VStack(spacing: 12) {
+                        Image(systemName: "bell.badge")
+                            .font(.system(size: 28))
+                            .foregroundStyle(.secondary)
+                        Text("Nenhuma notificação por enquanto")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 24)
                 }
             }
 
-            if !recentItems.isEmpty {
-                Section("Últimos dias") {
-                    ForEach(recentItems) { item in
-                        Button {} label: {
+            ForEach(viewModel.sections, id: \.title) { section in
+                Section(section.title) {
+                    ForEach(section.items) { item in
+                        Button {
+                            handleTap(item)
+                        } label: {
                             NotificationHistoryRowView(item: item)
                         }
                         .buttonStyle(.plain)
@@ -73,6 +46,36 @@ struct NotificationsHistoryView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Notificações")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            if let userId = authViewModel.user?.uid {
+                viewModel.startListening(userId: userId)
+            }
+        }
+        .onChange(of: authViewModel.user?.uid) { _, newValue in
+            guard let userId = newValue else { return }
+            viewModel.startListening(userId: userId)
+        }
+        .onDisappear {
+            viewModel.stopListening()
+        }
+    }
+
+    private func handleTap(_ item: NotificationItem) {
+        if let userId = authViewModel.user?.uid {
+            Task {
+                await viewModel.markAsRead(userId: userId, notificationId: item.id)
+            }
+        }
+        switch item.route {
+        case .groups:
+            router.route(to: .groups, groupId: item.data["groupId"])
+        case .subscriptions:
+            router.route(to: .subscriptions)
+        case .home:
+            router.route(to: .home)
+        case .settings:
+            router.route(to: .settings)
+        }
     }
 }
 

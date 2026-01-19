@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct NotificationHistoryRowView: View {
-    let item: NotificationHistoryItem
+    let item: NotificationItem
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -21,7 +21,7 @@ struct NotificationHistoryRowView: View {
                 Text(item.title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
-                Text(item.message)
+                Text(item.body)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -30,7 +30,7 @@ struct NotificationHistoryRowView: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 4) {
-                Text(item.date, style: .relative)
+                Text(relativeMinuteLabel(for: item.createdAt))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Image(systemName: "chevron.right")
@@ -39,5 +39,19 @@ struct NotificationHistoryRowView: View {
             }
         }
         .padding(.vertical, 6)
+    }
+
+    private func relativeMinuteLabel(for date: Date) -> String {
+        let minutes = max(0, Int(Date().timeIntervalSince(date) / 60))
+        if minutes == 0 {
+            return "agora"
+        }
+        if minutes < 60 {
+            return "\(minutes) min"
+        }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateFormat = "dd/MM"
+        return formatter.string(from: date)
     }
 }

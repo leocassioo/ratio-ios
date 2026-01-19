@@ -13,7 +13,7 @@ struct HomeView: View {
     @EnvironmentObject private var router: AppRouter
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @StateObject private var viewModel = HomeViewModel()
-    @State private var hasUnreadNotifications = true
+    @StateObject private var notificationsBadgeViewModel = NotificationsBadgeViewModel()
     @AppStorage(PreferencesStore.PrefKey.primaryCurrencyCode) private var primaryCurrencyCodeRaw: String = "BRL"
     private let upcomingPayments: [UpcomingPaymentItem] = [
         UpcomingPaymentItem(
@@ -124,6 +124,7 @@ struct HomeView: View {
         .onAppear {
             if let userId = authViewModel.user?.uid {
                 viewModel.startListening(userId: userId)
+                notificationsBadgeViewModel.startListening(userId: userId)
             }
             viewModel.setPreferredCurrencyCode(primaryCurrencyCodeRaw)
             viewModel.setProAccess(subscriptionManager.hasProAccess)
@@ -131,6 +132,7 @@ struct HomeView: View {
         .onChange(of: authViewModel.user?.uid) { _, newValue in
             guard let userId = newValue else { return }
             viewModel.startListening(userId: userId)
+            notificationsBadgeViewModel.startListening(userId: userId)
         }
         .onChange(of: primaryCurrencyCodeRaw) { _, newValue in
             viewModel.setPreferredCurrencyCode(newValue)
@@ -140,6 +142,7 @@ struct HomeView: View {
         }
         .onDisappear {
             viewModel.stopListening()
+            notificationsBadgeViewModel.stopListening()
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -175,7 +178,7 @@ struct HomeView: View {
             Image(systemName: "bell")
                 .font(.system(size: 18, weight: .semibold))
 
-            if hasUnreadNotifications {
+            if notificationsBadgeViewModel.hasUnread {
                 Circle()
                     .fill(Color.red)
                     .frame(width: 8, height: 8)

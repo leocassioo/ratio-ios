@@ -46,6 +46,27 @@ const chunk = (items, size) => {
     }
     return result;
 };
+const writeNotifications = async (db, userIds, payload) => {
+    if (userIds.length == 0) {
+        return;
+    }
+    for (const userChunk of chunk(userIds, 400)) {
+        const batch = db.batch();
+        userChunk.forEach((userId) => {
+            const ref = db.collection("users").doc(userId).collection("notifications").doc();
+            batch.set(ref, {
+                title: payload.title,
+                body: payload.body,
+                route: payload.route,
+                type: payload.type,
+                data: payload.data ?? {},
+                isRead: false,
+                createdAt: firestore_1.FieldValue.serverTimestamp()
+            });
+        });
+        await batch.commit();
+    }
+};
 const runBillingReminders = async (includeDiagnostics) => {
     const db = admin.firestore();
     const now = new Date();
@@ -247,31 +268,54 @@ const runBillingReminders = async (includeDiagnostics) => {
                 const tokens = snapshot.data()?.fcmTokens || [];
                 tokens.forEach((token) => memberTokens.add(token));
             });
+            const memberBody = `Seu pagamento do grupo ${data.name || "Grupo"} está em atraso.`;
+            await writeNotifications(db, memberUserIds, {
+                title: "Pagamento em atraso",
+                body: memberBody,
+                route: "groups",
+                type: "member_overdue",
+                data: { groupId: groupDoc.id }
+            });
             if (memberTokens.size > 0) {
-                await sendNotification("Pagamento em atraso", `Seu pagamento do grupo ${data.name || "Grupo"} está em atraso.`, Array.from(memberTokens), "groups", { groupId: groupDoc.id });
+                await sendNotification("Pagamento em atraso", memberBody, Array.from(memberTokens), "groups", { groupId: groupDoc.id });
             }
         }
         if (ownerId) {
             const ownerSnapshot = await db.collection("users").doc(ownerId).get();
             const ownerTokens = ownerSnapshot.data()?.fcmTokens || [];
+            const count = overdueMemberIds.length;
+            const memberList = overdueMemberNames.length <= 3
+                ? overdueMemberNames.join(", ")
+                : `${overdueMemberNames.slice(0, 3).join(", ")} e mais ${overdueMemberNames.length - 3}`;
+            const body = count == 1
+                ? `${memberList} está em atraso no grupo ${data.name || "Grupo"}.`
+                : `${memberList} estão em atraso no grupo ${data.name || "Grupo"}.`;
             if (ownerTokens.length > 0) {
-                const count = overdueMemberIds.length;
-                const memberList = overdueMemberNames.length <= 3
-                    ? overdueMemberNames.join(", ")
-                    : `${overdueMemberNames.slice(0, 3).join(", ")} e mais ${overdueMemberNames.length - 3}`;
-                const body = count == 1
-                    ? `${memberList} está em atraso no grupo ${data.name || "Grupo"}.`
-                    : `${memberList} estão em atraso no grupo ${data.name || "Grupo"}.`;
+                await writeNotifications(db, [ownerId], {
+                    title: "Pagamento em atraso",
+                    body,
+                    route: "groups",
+                    type: "owner_overdue",
+                    data: { groupId: groupDoc.id, targetUserId: ownerId }
+                });
                 await sendNotification("Pagamento em atraso", body, ownerTokens, "groups", { groupId: groupDoc.id, targetUserId: ownerId });
+            }
+            else {
+                await writeNotifications(db, [ownerId], {
+                    title: "Pagamento em atraso",
+                    body,
+                    route: "groups",
+                    type: "owner_overdue",
+                    data: { groupId: groupDoc.id, targetUserId: ownerId }
+                });
             }
         }
     };
     for (const userDoc of usersSnapshot.docs) {
         const tokens = userDoc.data().fcmTokens || [];
-        if (tokens.length === 0) {
-            continue;
+        if (tokens.length > 0) {
+            summary.usersWithTokens += 1;
         }
-        summary.usersWithTokens += 1;
         if (includeDiagnostics) {
             const allSubsSnapshot = await db
                 .collection("users")
@@ -315,7 +359,18 @@ const runBillingReminders = async (includeDiagnostics) => {
             }
             const name = data.name || "Assinatura";
             const body = `Sua assinatura de ${name} ${reminderTextForOffset(offset)}`;
-            await sendNotification("Cobranca em breve", body, tokens, "subscriptions");
+            await writeNotifications(db, [userDoc.id], {
+                title: "Cobranca em breve",
+                body,
+                route: "subscriptions",
+                type: "subscription_reminder",
+                data: { subscriptionId: sub.id }
+            });
+            if (tokens.length > 0) {
+                await sendNotification("Cobranca em breve", body, tokens, "subscriptions", {
+                    subscriptionId: sub.id
+                });
+            }
             summary.remindersByOffset[String(offset)] += 1;
         }
     }
@@ -381,11 +436,19 @@ const runBillingReminders = async (includeDiagnostics) => {
             const userTokens = userSnapshot.data()?.fcmTokens || [];
             userTokens.forEach((token) => tokens.add(token));
         }
-        if (tokens.size == 0) {
-            continue;
-        }
         const body = `O grupo ${groupName} ${reminderTextForOffset(offset)}`;
-        await sendNotification("Cobranca em breve", body, Array.from(tokens), "groups");
+        await writeNotifications(db, memberIds, {
+            title: "Cobranca em breve",
+            body,
+            route: "groups",
+            type: "group_reminder",
+            data: { groupId: groupDoc.id }
+        });
+        if (tokens.size > 0) {
+            await sendNotification("Cobranca em breve", body, Array.from(tokens), "groups", {
+                groupId: groupDoc.id
+            });
+        }
         summary.remindersByOffset[String(offset)] += 1;
     }
     return summary;
@@ -530,18 +593,32 @@ exports.markOverdueTest = (0, https_1.onRequest)(async (req, res) => {
         if (memberTokens.size > 0) {
             await sendNotification("Pagamento em atraso", `Seu pagamento do grupo ${data.name || "Grupo"} está em atraso.`, Array.from(memberTokens), "groups", { groupId });
         }
+        await writeNotifications(db, memberUserIds, {
+            title: "Pagamento em atraso",
+            body: `Seu pagamento do grupo ${data.name || "Grupo"} está em atraso.`,
+            route: "groups",
+            type: "member_overdue",
+            data: { groupId }
+        });
     }
     if (ownerId) {
         const ownerSnapshot = await db.collection("users").doc(ownerId).get();
         const ownerTokens = ownerSnapshot.data()?.fcmTokens || [];
+        const count = overdueMemberIds.length;
+        const memberList = overdueMemberNames.length <= 3
+            ? overdueMemberNames.join(", ")
+            : `${overdueMemberNames.slice(0, 3).join(", ")} e mais ${overdueMemberNames.length - 3}`;
+        const body = count == 1
+            ? `${memberList} está em atraso no grupo ${data.name || "Grupo"}.`
+            : `${memberList} estão em atraso no grupo ${data.name || "Grupo"}.`;
+        await writeNotifications(db, [ownerId], {
+            title: "Pagamento em atraso",
+            body,
+            route: "groups",
+            type: "owner_overdue",
+            data: { groupId, targetUserId: ownerId }
+        });
         if (ownerTokens.length > 0) {
-            const count = overdueMemberIds.length;
-            const memberList = overdueMemberNames.length <= 3
-                ? overdueMemberNames.join(", ")
-                : `${overdueMemberNames.slice(0, 3).join(", ")} e mais ${overdueMemberNames.length - 3}`;
-            const body = count == 1
-                ? `${memberList} está em atraso no grupo ${data.name || "Grupo"}.`
-                : `${memberList} estão em atraso no grupo ${data.name || "Grupo"}.`;
             await sendNotification("Pagamento em atraso", body, ownerTokens, "groups", { groupId, targetUserId: ownerId });
         }
     }
@@ -576,13 +653,20 @@ exports.notifyOwnerOnPaymentSubmitted = (0, firestore_2.onDocumentUpdated)("grou
     }
     const ownerSnapshot = await admin.firestore().collection("users").doc(ownerId).get();
     const tokens = ownerSnapshot.data()?.fcmTokens || [];
-    if (tokens.length == 0) {
-        return;
-    }
     const memberName = after.name || "Membro";
     const groupName = groupData.name || "Grupo";
     const title = "Pagamento enviado";
     const body = `${memberName} enviou o comprovante do grupo ${groupName}.`;
+    await writeNotifications(admin.firestore(), [ownerId], {
+        title,
+        body,
+        route: "groups",
+        type: "payment_submitted",
+        data: { groupId, targetUserId: ownerId }
+    });
+    if (tokens.length == 0) {
+        return;
+    }
     await admin.messaging().sendEachForMulticast({
         notification: { title, body },
         data: { route: "groups", groupId, targetUserId: ownerId },
@@ -625,14 +709,21 @@ exports.notifyOwnerOnPaymentSubmittedTest = (0, https_1.onRequest)(async (req, r
     }
     const ownerSnapshot = await admin.firestore().collection("users").doc(ownerId).get();
     const tokens = ownerSnapshot.data()?.fcmTokens || [];
-    if (tokens.length == 0) {
-        res.status(200).json({ message: "Owner sem tokens." });
-        return;
-    }
     const memberName = memberData.name || "Membro";
     const groupName = groupData.name || "Grupo";
     const title = "Pagamento enviado";
     const body = `${memberName} enviou o comprovante do grupo ${groupName}.`;
+    await writeNotifications(admin.firestore(), [ownerId], {
+        title,
+        body,
+        route: "groups",
+        type: "payment_submitted",
+        data: { groupId, targetUserId: ownerId }
+    });
+    if (tokens.length == 0) {
+        res.status(200).json({ message: "Owner sem tokens." });
+        return;
+    }
     const response = await admin.messaging().sendEachForMulticast({
         notification: { title, body },
         data: { route: "groups", groupId, targetUserId: ownerId },

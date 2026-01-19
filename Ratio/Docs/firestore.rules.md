@@ -9,6 +9,7 @@ Arquivo de regras: `Docs/firestore.rules`
 - Membros podem atualizar **status/recibo/foto** do proprio pagamento.
 - Convites abertos para leitura/criacao por usuarios autenticados.
 - Subscriptions so podem ser lidas/escritas pelo proprio usuario.
+- Notificacoes do usuario ficam em `users/{userId}/notifications` com leitura/escrita apenas do proprio usuario.
 - Cambio USD/BRL fica em `exchangeRates/usd` com leitura para usuarios autenticados (escrita somente server).
 
 ## Como publicar

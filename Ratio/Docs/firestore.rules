@@ -85,6 +85,10 @@ service cloud.firestore {
       match /billingHistory/{historyId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
+
+      match /notifications/{notificationId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
     }
   }
 }
