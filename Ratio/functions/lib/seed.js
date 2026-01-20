@@ -109,7 +109,7 @@ const createSubscriptions = async (db, options, random) => {
     const batch = db.batch();
     const results = [];
     items.forEach((template) => {
-        const currencyCode = random() > 0.6 ? "USD" : "BRL";
+        const currencyCode = random() > 0.7 ? "USD" : random() > 0.5 ? "EUR" : "BRL";
         const amount = currencyCode === "USD" ? 12 + Math.round(random() * 30) : 20 + Math.round(random() * 150);
         const day = 5 + Math.floor(random() * 22);
         const nextBillingDate = new Date(Date.UTC(options.now.getUTCFullYear(), options.now.getUTCMonth(), day));

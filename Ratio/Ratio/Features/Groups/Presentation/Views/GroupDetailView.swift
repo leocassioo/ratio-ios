@@ -19,7 +19,9 @@ struct GroupDetailView: View {
     @State private var showPaymentError = false
     @State private var ownerPixKey: String?
     @State private var usdRate: ExchangeRate?
+    @State private var eurRate: ExchangeRate?
     @State private var exchangeRateListener: ListenerRegistration?
+    @State private var eurRateListener: ListenerRegistration?
 
     init(group: SharedGroup, currentUserId: String?) {
         self.group = group
@@ -324,10 +326,22 @@ struct GroupDetailView: View {
                     }
                 }
             }
+            eurRateListener = ExchangeRateStore().listenEurRate { result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let rate):
+                        eurRate = rate
+                    case .failure:
+                        eurRate = nil
+                    }
+                }
+            }
         }
         .onDisappear {
             exchangeRateListener?.remove()
             exchangeRateListener = nil
+            eurRateListener?.remove()
+            eurRateListener = nil
         }
         .sheet(isPresented: $showPaymentSheet) {
             if let currentMember = currentMember {
@@ -387,12 +401,20 @@ struct GroupDetailView: View {
     }
 
     private func estimatedBRL(for amount: Double) -> Double? {
-        guard currentGroup.currencyCode == "USD", let rate = usdRate, rate.rate > 0 else {
+        switch currentGroup.currencyCode {
+        case "USD":
+            guard let rate = usdRate, rate.rate > 0 else { return nil }
+            let base = amount * rate.rate
+            let margin = base * max(rate.marginPct, 0)
+            return base + margin
+        case "EUR":
+            guard let rate = eurRate, rate.rate > 0 else { return nil }
+            let base = amount * rate.rate
+            let margin = base * max(rate.marginPct, 0)
+            return base + margin
+        default:
             return nil
         }
-        let base = amount * rate.rate
-        let margin = base * max(rate.marginPct, 0)
-        return base + margin
     }
 
     private func statusColor(for status: GroupMemberStatus) -> Color {

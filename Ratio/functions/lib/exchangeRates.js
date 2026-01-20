@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchUsdRateTest = exports.fetchUsdRateDaily = void 0;
+exports.fetchEurRateTest = exports.fetchUsdRateTest = exports.fetchEurRateDaily = exports.fetchUsdRateDaily = void 0;
 const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
@@ -46,12 +46,15 @@ const formatDateForBCB = (date) => {
     const year = String(date.getFullYear());
     return `${month}-${day}-${year}`;
 };
-const buildBCBUrl = (date) => {
+const buildBCBUrl = (currency, date) => {
     const formatted = formatDateForBCB(date);
-    return `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='${formatted}'&$top=1&$format=json`;
+    if (currency === "USD") {
+        return `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='${formatted}'&$top=1&$format=json`;
+    }
+    return `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoMoedaDia(moeda=@moeda,dataCotacao=@dataCotacao)?@moeda='EUR'&@dataCotacao='${formatted}'&$top=1&$format=json`;
 };
-const fetchPtaxRate = async (date) => {
-    const response = await fetch(buildBCBUrl(date));
+const fetchPtaxRate = async (currency, date) => {
+    const response = await fetch(buildBCBUrl(currency, date));
     if (!response.ok) {
         throw new Error(`BCB PTAX request failed: ${response.status}`);
     }
@@ -82,12 +85,12 @@ const loadMarginPct = async () => {
     }
     return DEFAULT_MARGIN_PCT;
 };
-const fetchLatestPtaxRate = async (marginPct) => {
+const fetchLatestPtaxRate = async (currency, marginPct) => {
     const today = new Date();
     for (let offset = 0; offset <= 7; offset += 1) {
         const candidate = new Date(today);
         candidate.setDate(today.getDate() - offset);
-        const result = await fetchPtaxRate(candidate);
+        const result = await fetchPtaxRate(currency, candidate);
         if (result) {
             return {
                 rate: result.rate,
@@ -99,25 +102,34 @@ const fetchLatestPtaxRate = async (marginPct) => {
     }
     throw new Error("No PTAX data available in the last 7 days.");
 };
-const saveUsdRate = async (data) => {
+const saveRate = async (docId, currencyPair, data) => {
     const db = admin.firestore();
-    await db.collection("exchangeRates").doc("usd").set({
+    await db.collection("exchangeRates").doc(docId).set({
         rate: data.rate,
         source: data.source,
         marginPct: data.marginPct,
         asOf: firestore_1.Timestamp.fromDate(new Date(data.asOfISO)),
-        currencyPair: "USD_BRL",
+        currencyPair,
         updatedAt: firestore_1.FieldValue.serverTimestamp()
     }, { merge: true });
 };
 const refreshUsdRate = async (marginPct) => {
-    const result = await fetchLatestPtaxRate(marginPct);
-    await saveUsdRate(result);
+    const result = await fetchLatestPtaxRate("USD", marginPct);
+    await saveRate("usd", "USD_BRL", result);
+    return result;
+};
+const refreshEurRate = async (marginPct) => {
+    const result = await fetchLatestPtaxRate("EUR", marginPct);
+    await saveRate("eur", "EUR_BRL", result);
     return result;
 };
 exports.fetchUsdRateDaily = (0, scheduler_1.onSchedule)({ schedule: "0 10 * * *", timeZone: "America/Sao_Paulo" }, async () => {
     const marginPct = await loadMarginPct();
     await refreshUsdRate(marginPct);
+});
+exports.fetchEurRateDaily = (0, scheduler_1.onSchedule)({ schedule: "5 10 * * *", timeZone: "America/Sao_Paulo" }, async () => {
+    const marginPct = await loadMarginPct();
+    await refreshEurRate(marginPct);
 });
 exports.fetchUsdRateTest = (0, https_1.onRequest)(async (_req, res) => {
     try {
@@ -135,7 +147,7 @@ exports.fetchUsdRateTest = (0, https_1.onRequest)(async (_req, res) => {
                 res.status(400).json({ error: "Invalid date. Use YYYY-MM-DD." });
                 return;
             }
-            const result = await fetchPtaxRate(parsed);
+            const result = await fetchPtaxRate("USD", parsed);
             if (!result) {
                 res.status(404).json({ error: "No PTAX data found for date." });
                 return;
@@ -146,11 +158,49 @@ exports.fetchUsdRateTest = (0, https_1.onRequest)(async (_req, res) => {
                 source: SOURCE,
                 marginPct
             };
-            await saveUsdRate(payload);
+            await saveRate("usd", "USD_BRL", payload);
             res.json(payload);
             return;
         }
         const result = await refreshUsdRate(marginPct);
+        res.json(result);
+    }
+    catch (error) {
+        res.status(500).json({ error: error?.message ?? "Unknown error" });
+    }
+});
+exports.fetchEurRateTest = (0, https_1.onRequest)(async (_req, res) => {
+    try {
+        const marginParam = _req.query.margin;
+        const margin = typeof marginParam === "string" && marginParam.trim().length > 0
+            ? Number(marginParam)
+            : undefined;
+        const marginPct = margin !== undefined && !Number.isNaN(margin) && margin >= 0
+            ? margin
+            : await loadMarginPct();
+        const dateParam = _req.query.date;
+        if (typeof dateParam === "string" && dateParam.trim().length > 0) {
+            const parsed = new Date(`${dateParam}T12:00:00Z`);
+            if (Number.isNaN(parsed.getTime())) {
+                res.status(400).json({ error: "Invalid date. Use YYYY-MM-DD." });
+                return;
+            }
+            const result = await fetchPtaxRate("EUR", parsed);
+            if (!result) {
+                res.status(404).json({ error: "No PTAX data found for date." });
+                return;
+            }
+            const payload = {
+                rate: result.rate,
+                asOfISO: result.asOf.toISOString(),
+                source: SOURCE,
+                marginPct
+            };
+            await saveRate("eur", "EUR_BRL", payload);
+            res.json(payload);
+            return;
+        }
+        const result = await refreshEurRate(marginPct);
         res.json(result);
     }
     catch (error) {

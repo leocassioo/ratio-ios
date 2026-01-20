@@ -16,8 +16,19 @@ final class ExchangeRateStore {
     }
 
     func listenUsdRate(onChange: @escaping (Result<ExchangeRate?, Error>) -> Void) -> ListenerRegistration {
+        listenRate(docId: "usd", onChange: onChange)
+    }
+
+    func listenEurRate(onChange: @escaping (Result<ExchangeRate?, Error>) -> Void) -> ListenerRegistration {
+        listenRate(docId: "eur", onChange: onChange)
+    }
+
+    private func listenRate(
+        docId: String,
+        onChange: @escaping (Result<ExchangeRate?, Error>) -> Void
+    ) -> ListenerRegistration {
         db.collection("exchangeRates")
-            .document("usd")
+            .document(docId)
             .addSnapshotListener { snapshot, error in
                 if let error {
                     onChange(.failure(error))

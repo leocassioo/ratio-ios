@@ -15,11 +15,13 @@ final class GroupsViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
     @Published private(set) var usdRate: ExchangeRate?
+    @Published private(set) var eurRate: ExchangeRate?
 
     private let store: GroupsStore
     private let exchangeRateStore: ExchangeRateStore
     private var listener: ListenerRegistration?
     private var exchangeRateListener: ListenerRegistration?
+    private var eurRateListener: ListenerRegistration?
 
     init(store: GroupsStore? = nil, exchangeRateStore: ExchangeRateStore? = nil) {
         self.store = store ?? GroupsStore()
@@ -29,11 +31,13 @@ final class GroupsViewModel: ObservableObject {
     deinit {
         listener?.remove()
         exchangeRateListener?.remove()
+        eurRateListener?.remove()
     }
 
     func startListening(userId: String) {
         listener?.remove()
         exchangeRateListener?.remove()
+        eurRateListener?.remove()
         isLoading = true
         errorMessage = nil
 
@@ -62,6 +66,17 @@ final class GroupsViewModel: ObservableObject {
                 }
             }
         }
+
+        eurRateListener = exchangeRateStore.listenEurRate { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let rate):
+                    self?.eurRate = rate
+                case .failure:
+                    self?.eurRate = nil
+                }
+            }
+        }
     }
 
     func stopListening() {
@@ -69,17 +84,28 @@ final class GroupsViewModel: ObservableObject {
         listener = nil
         exchangeRateListener?.remove()
         exchangeRateListener = nil
+        eurRateListener?.remove()
+        eurRateListener = nil
         groups = []
         usdRate = nil
+        eurRate = nil
     }
 
     func estimatedBRL(for amount: Double, currencyCode: String) -> Double? {
-        guard currencyCode == "USD", let rate = usdRate, rate.rate > 0 else {
+        switch currencyCode {
+        case "USD":
+            guard let rate = usdRate, rate.rate > 0 else { return nil }
+            let base = amount * rate.rate
+            let margin = base * max(rate.marginPct, 0)
+            return base + margin
+        case "EUR":
+            guard let rate = eurRate, rate.rate > 0 else { return nil }
+            let base = amount * rate.rate
+            let margin = base * max(rate.marginPct, 0)
+            return base + margin
+        default:
             return nil
         }
-        let base = amount * rate.rate
-        let margin = base * max(rate.marginPct, 0)
-        return base + margin
     }
 
     func createGroup(

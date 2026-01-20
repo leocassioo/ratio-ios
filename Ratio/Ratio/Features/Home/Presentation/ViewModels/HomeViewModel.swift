@@ -25,6 +25,7 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var hasGroups = false
     @Published private(set) var isLoading = false
     @Published private(set) var usdRate: ExchangeRate?
+    @Published private(set) var eurRate: ExchangeRate?
 
     private let subscriptionsStore: SubscriptionsStore
     private let groupsStore: GroupsStore
@@ -33,6 +34,7 @@ final class HomeViewModel: ObservableObject {
     private var listener: ListenerRegistration?
     private var groupsListener: ListenerRegistration?
     private var exchangeRateListener: ListenerRegistration?
+    private var eurRateListener: ListenerRegistration?
     private var historyListener: ListenerRegistration?
     private var subscriptions: [SubscriptionItem] = []
     private var groups: [SharedGroup] = []
@@ -172,16 +174,32 @@ final class HomeViewModel: ObservableObject {
                 }
             }
         }
+
+        eurRateListener = exchangeRateStore.listenEurRate { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let rate):
+                    self?.eurRate = rate
+                    self?.updateTotals()
+                    self?.updateCategorySpends()
+                    self?.updateMonthlySpends()
+                case .failure:
+                    self?.eurRate = nil
+                }
+            }
+        }
     }
 
     func stopListening() {
         listener?.remove()
         groupsListener?.remove()
         exchangeRateListener?.remove()
+        eurRateListener?.remove()
         historyListener?.remove()
         listener = nil
         groupsListener = nil
         exchangeRateListener = nil
+        eurRateListener = nil
         historyListener = nil
         totalMonthlyAmount = 0
         insights = []
@@ -195,6 +213,7 @@ final class HomeViewModel: ObservableObject {
         didLoadSubscriptions = false
         didLoadGroups = false
         usdRate = nil
+        eurRate = nil
         preferredCurrencyCode = nil
         billingHistoryItems = []
     }
@@ -229,10 +248,7 @@ final class HomeViewModel: ObservableObject {
     }
 
     func estimatedAmount(forAmount amount: Double, currencyCode: String, preferredCurrencyCode: String) -> Double? {
-        guard let rate = usdRate, rate.rate > 0 else {
-            return nil
-        }
-        return convert(amount: amount, from: currencyCode, to: preferredCurrencyCode, rate: rate)
+        return convert(amount: amount, from: currencyCode, to: preferredCurrencyCode)
     }
 
     func estimatedTotalsByCurrency(preferredCurrencyCode: String) -> [String: Double] {
@@ -269,16 +285,14 @@ final class HomeViewModel: ObservableObject {
                 }
             }
         let preferred = preferredCurrencyCode ?? "BRL"
-        let supported = Set(["BRL", "USD"])
+        let supported = Set(["BRL", "USD", "EUR"])
         let currencyCodes = Set(totalsByCurrency.keys)
         if currencyCodes.isSubset(of: supported),
-           let usdRate,
-           usdRate.rate > 0,
            supported.contains(preferred) {
             var convertedTotal: Double = 0
             var didConvertAll = true
             for (code, amount) in totalsByCurrency {
-                guard let converted = convert(amount: amount, from: code, to: preferred, rate: usdRate) else {
+                guard let converted = convert(amount: amount, from: code, to: preferred) else {
                     didConvertAll = false
                     break
                 }
@@ -298,22 +312,55 @@ final class HomeViewModel: ObservableObject {
         totalMonthlyAmount = totalsByCurrency[selectedCurrency] ?? 0
     }
 
-    private func convert(amount: Double, from: String, to: String, rate: ExchangeRate) -> Double? {
+    private func convert(amount: Double, from: String, to: String) -> Double? {
         if from == to {
             return amount
         }
-        if rate.rate <= 0 {
-            return nil
+        let usdRate = usdRate
+        let eurRate = eurRate
+
+        func toBRL(_ amount: Double, currency: String) -> Double? {
+            switch currency {
+            case "USD":
+                guard let rate = usdRate, rate.rate > 0 else { return nil }
+                let base = amount * rate.rate
+                let margin = base * max(rate.marginPct, 0)
+                return base + margin
+            case "EUR":
+                guard let rate = eurRate, rate.rate > 0 else { return nil }
+                let base = amount * rate.rate
+                let margin = base * max(rate.marginPct, 0)
+                return base + margin
+            case "BRL":
+                return amount
+            default:
+                return nil
+            }
         }
-        if from == "USD" && to == "BRL" {
-            let base = amount * rate.rate
-            let margin = base * max(rate.marginPct, 0)
-            return base + margin
+
+        func fromBRL(_ amount: Double, currency: String) -> Double? {
+            switch currency {
+            case "USD":
+                guard let rate = usdRate, rate.rate > 0 else { return nil }
+                return amount / rate.rate
+            case "EUR":
+                guard let rate = eurRate, rate.rate > 0 else { return nil }
+                return amount / rate.rate
+            case "BRL":
+                return amount
+            default:
+                return nil
+            }
         }
-        if from == "BRL" && to == "USD" {
-            return amount / rate.rate
+
+        if from == "BRL" {
+            return fromBRL(amount, currency: to)
         }
-        return nil
+        if to == "BRL" {
+            return toBRL(amount, currency: from)
+        }
+        guard let brlAmount = toBRL(amount, currency: from) else { return nil }
+        return fromBRL(brlAmount, currency: to)
     }
 
     private func monthlyEquivalent(for item: SubscriptionItem) -> Double {
@@ -461,8 +508,7 @@ final class HomeViewModel: ObservableObject {
                     guard let converted = convert(
                         amount: monthlyEquivalent(for: item),
                         from: item.currencyCode,
-                        to: preferredCurrency,
-                        rate: usdRate ?? ExchangeRate(rate: 0, marginPct: 0, asOf: Date(), source: "")
+                        to: preferredCurrency
                     ) else {
                         return partial
                     }
@@ -480,8 +526,7 @@ final class HomeViewModel: ObservableObject {
             guard let converted = convert(
                 amount: amount,
                 from: group.currencyCode,
-                to: preferredCurrency,
-                rate: usdRate ?? ExchangeRate(rate: 0, marginPct: 0, asOf: Date(), source: "")
+                to: preferredCurrency
             ) else {
                 return
             }
@@ -511,7 +556,7 @@ final class HomeViewModel: ObservableObject {
     }
 
     private func buildMockCategorySpends(currencyCode: String) -> [CategorySpendItem] {
-        let base: Double = currencyCode == "USD" ? 18 : 90
+        let base: Double = currencyCode == "USD" ? 18 : currencyCode == "EUR" ? 16 : 90
         let values: [(String, Double, Color)] = [
             ("Streaming", base * 1.4, Color(.systemIndigo)),
             ("Software", base * 1.1, Color(.systemTeal)),
@@ -558,8 +603,7 @@ final class HomeViewModel: ObservableObject {
                 if let converted = convert(
                     amount: item.amount,
                     from: item.currencyCode,
-                    to: preferred,
-                    rate: usdRate ?? ExchangeRate(rate: 0, marginPct: 0, asOf: Date(), source: "")
+                    to: preferred
                 ) {
                     return partial + converted
                 }
@@ -585,7 +629,7 @@ final class HomeViewModel: ObservableObject {
         formatter.locale = Locale(identifier: "pt_BR")
         formatter.dateFormat = "MMM"
 
-        let base: Double = currencyCode == "USD" ? 45 : 180
+        let base: Double = currencyCode == "USD" ? 45 : currencyCode == "EUR" ? 40 : 180
         let deltas: [Double] = [0.8, 1.1, 0.95, 1.2, 1.05, 1.3]
 
         return (-5...0).compactMap { offset -> MonthlySpendItem? in

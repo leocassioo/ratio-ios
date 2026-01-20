@@ -12,6 +12,16 @@
 				<string>com.googleusercontent.apps.517417817662-iltg5u4hanh5q6jro202bldk3k6dgblq</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.redpixel.Ratio</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>ratio</string>
+			</array>
+		</dict>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>

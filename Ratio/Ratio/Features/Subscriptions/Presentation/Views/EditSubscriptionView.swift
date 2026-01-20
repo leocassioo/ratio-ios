@@ -78,6 +78,7 @@ struct EditSubscriptionView: View {
                 Picker("Moeda", selection: $currencyCode) {
                     Text("BRL").tag("BRL")
                     Text("USD").tag("USD")
+                    Text("EUR").tag("EUR")
                 }
 
                 Picker("Tipo", selection: $category) {

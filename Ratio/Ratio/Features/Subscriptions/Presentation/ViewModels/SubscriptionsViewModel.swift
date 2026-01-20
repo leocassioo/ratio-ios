@@ -18,6 +18,7 @@ final class SubscriptionsViewModel: ObservableObject {
     @Published private(set) var linkedSubscriptionIds: Set<String> = []
     @Published private(set) var hasLoadedGroups = false
     @Published private(set) var usdRate: ExchangeRate?
+    @Published private(set) var eurRate: ExchangeRate?
 
     private let store: SubscriptionsStore
     private let groupsStore: GroupsStore
@@ -25,6 +26,7 @@ final class SubscriptionsViewModel: ObservableObject {
     private var listener: ListenerRegistration?
     private var groupsListener: ListenerRegistration?
     private var exchangeRateListener: ListenerRegistration?
+    private var eurRateListener: ListenerRegistration?
 
     init(
         store: SubscriptionsStore? = nil,
@@ -40,12 +42,14 @@ final class SubscriptionsViewModel: ObservableObject {
         listener?.remove()
         groupsListener?.remove()
         exchangeRateListener?.remove()
+        eurRateListener?.remove()
     }
 
     func startListening(userId: String) {
         listener?.remove()
         groupsListener?.remove()
         exchangeRateListener?.remove()
+        eurRateListener?.remove()
         isLoading = true
         errorMessage = nil
 
@@ -90,19 +94,33 @@ final class SubscriptionsViewModel: ObservableObject {
                 }
             }
         }
+
+        eurRateListener = exchangeRateStore.listenEurRate { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let rate):
+                    self?.eurRate = rate
+                case .failure:
+                    self?.eurRate = nil
+                }
+            }
+        }
     }
 
     func stopListening() {
         listener?.remove()
         groupsListener?.remove()
         exchangeRateListener?.remove()
+        eurRateListener?.remove()
         listener = nil
         groupsListener = nil
         exchangeRateListener = nil
+        eurRateListener = nil
         subscriptions = []
         linkedSubscriptionIds = []
         hasLoadedGroups = false
         usdRate = nil
+        eurRate = nil
     }
 
     func createSubscription(
@@ -184,11 +202,19 @@ final class SubscriptionsViewModel: ObservableObject {
     }
 
     func estimatedBRL(for subscription: SubscriptionItem) -> Double? {
-        guard subscription.currencyCode == "USD", let rate = usdRate, rate.rate > 0 else {
+        switch subscription.currencyCode {
+        case "USD":
+            guard let rate = usdRate, rate.rate > 0 else { return nil }
+            let base = subscription.amount * rate.rate
+            let margin = base * max(rate.marginPct, 0)
+            return base + margin
+        case "EUR":
+            guard let rate = eurRate, rate.rate > 0 else { return nil }
+            let base = subscription.amount * rate.rate
+            let margin = base * max(rate.marginPct, 0)
+            return base + margin
+        default:
             return nil
         }
-        let base = subscription.amount * rate.rate
-        let margin = base * max(rate.marginPct, 0)
-        return base + margin
     }
 }

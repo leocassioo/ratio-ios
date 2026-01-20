@@ -10,6 +10,7 @@ import Foundation
 enum PrimaryCurrencyOption: String, CaseIterable, Identifiable {
     case brl = "BRL"
     case usd = "USD"
+    case eur = "EUR"
 
     var id: String { rawValue }
 
@@ -19,6 +20,8 @@ enum PrimaryCurrencyOption: String, CaseIterable, Identifiable {
             return "Real (BRL)"
         case .usd:
             return "Dólar (USD)"
+        case .eur:
+            return "Euro (EUR)"
         }
     }
 
