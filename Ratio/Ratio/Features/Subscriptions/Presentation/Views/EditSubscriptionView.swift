@@ -62,7 +62,12 @@ struct EditSubscriptionView: View {
                         .keyboardType(.decimalPad)
                         .focused($focusedField, equals: .amount)
                         .onChange(of: amountText) { _, newValue in
-                            if let value = parseAmount(newValue) {
+                            let sanitized = AmountInputFormatter.sanitize(newValue)
+                            if sanitized != newValue {
+                                amountText = sanitized
+                                return
+                            }
+                            if let value = parseAmount(sanitized) {
                                 amountValue = value
                             } else if newValue.isEmpty {
                                 amountValue = 0
@@ -156,17 +161,11 @@ struct EditSubscriptionView: View {
     }
 
     private func parseAmount(_ text: String) -> Double? {
-        let cleanText = text.replacingOccurrences(of: ",", with: ".")
-        return Double(cleanText)
+        AmountInputFormatter.parse(text)
     }
 
     private func formatAmount(_ value: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        formatter.locale = Locale(identifier: "pt_BR")
-        return formatter.string(from: NSNumber(value: value)) ?? "0,00"
+        AmountInputFormatter.format(value)
     }
 
     private var currencySymbol: String {

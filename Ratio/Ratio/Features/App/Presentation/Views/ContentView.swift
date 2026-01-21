@@ -34,7 +34,7 @@ struct ContentView: View {
         }
         .environmentObject(authViewModel)
         .environmentObject(router)
-        .sheet(item: $inviteCoordinator.pendingToken) { token in
+        .sheet(item: inviteSheetTokenBinding) { token in
             InviteAcceptanceView(token: token.id)
                 .environmentObject(authViewModel)
         }
@@ -68,6 +68,16 @@ struct ContentView: View {
                 router.route(to: .settings)
             }
         }
+    }
+
+    private var inviteSheetTokenBinding: Binding<InviteToken?> {
+        Binding(
+            get: {
+                guard authViewModel.user != nil else { return nil }
+                return inviteCoordinator.pendingToken
+            },
+            set: { inviteCoordinator.pendingToken = $0 }
+        )
     }
 }
 

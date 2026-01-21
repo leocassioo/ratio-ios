@@ -110,6 +110,9 @@
     "BRL" : {
 
     },
+    "Cadastrar assinatura" : {
+
+    },
     "Cadastre sua primeira assinatura." : {
 
     },
@@ -135,6 +138,12 @@
 
     },
     "Chave Pix para recebimento" : {
+
+    },
+    "Código copiado" : {
+
+    },
+    "Cole o código ou link do convite" : {
 
     },
     "Começar a usar" : {
@@ -180,6 +189,12 @@
 
     },
     "Convite para" : {
+
+    },
+    "Copiado" : {
+
+    },
+    "Copiar código do convite" : {
 
     },
     "Copiar mensagem" : {
@@ -281,11 +296,18 @@
     "Esta assinatura está vinculada a um grupo e não pode ser excluída." : {
 
     },
-    "Estimado em reais" : {
+    "Estimado em %@" : {
 
     },
-    "Estimado em reais: %@" : {
-
+    "Estimado em %@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Estimado em %1$@: %2$@"
+          }
+        }
+      }
     },
     "EUR" : {
 
@@ -350,6 +372,9 @@
     "Insira os dados \npara seguir." : {
 
     },
+    "Já tem um convite? Resgatar código" : {
+
+    },
     "Ligar" : {
 
     },
@@ -412,6 +437,9 @@
     "Nenhum pagamento próximo" : {
 
     },
+    "Nenhuma assinatura disponível" : {
+
+    },
     "Nenhuma notificação por enquanto" : {
 
     },
@@ -466,6 +494,9 @@
     "Para alterar o email," : {
 
     },
+    "Para criar um grupo, cadastre uma assinatura primeiro." : {
+
+    },
     "Perfil" : {
 
     },
@@ -509,6 +540,12 @@
 
     },
     "Recuperar senha" : {
+
+    },
+    "Resgatar convite" : {
+
+    },
+    "Resgatar convite de grupo" : {
 
     },
     "Restaurando..." : {
@@ -651,6 +688,9 @@
 
     },
     "Versão do app" : {
+
+    },
+    "Você pode colar o link completo ou apenas o código." : {
 
     },
     "Você precisará fazer login novamente para acessar o app." : {

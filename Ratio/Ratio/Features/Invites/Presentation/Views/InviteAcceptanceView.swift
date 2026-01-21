@@ -44,7 +44,7 @@ struct InviteAcceptanceView: View {
                         Text("Expira em \(formattedDate(invite.expiresAt))")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
-                        Text("Uso único")
+                        Text(usageLabel(for: invite))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -93,6 +93,16 @@ struct InviteAcceptanceView: View {
         formatter.dateStyle = .medium
         formatter.locale = Locale(identifier: "pt_BR")
         return formatter.string(from: date)
+    }
+
+    private func usageLabel(for invite: InviteInfo) -> String {
+        if invite.maxUses == 0 {
+            return "Uso ilimitado"
+        }
+        if invite.maxUses == 1 {
+            return "Uso único"
+        }
+        return "Usos: \(invite.usesCount)/\(invite.maxUses)"
     }
 }
 

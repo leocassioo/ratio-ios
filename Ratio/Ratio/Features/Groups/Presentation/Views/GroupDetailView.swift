@@ -22,6 +22,7 @@ struct GroupDetailView: View {
     @State private var eurRate: ExchangeRate?
     @State private var exchangeRateListener: ListenerRegistration?
     @State private var eurRateListener: ListenerRegistration?
+    @State private var preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
 
     init(group: SharedGroup, currentUserId: String?) {
         self.group = group
@@ -49,12 +50,12 @@ struct GroupDetailView: View {
                     Text(formattedCurrency(currentGroup.totalAmount))
                         .font(.headline)
                 }
-                if let estimated = estimatedBRL(for: currentGroup.totalAmount) {
+                if let estimated = estimatedAmount(for: currentGroup.totalAmount) {
                     HStack {
-                        Text("Estimado em reais")
+                        Text("Estimado em \(preferredCurrencyCode)")
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Text(formattedCurrency(estimated, currencyCode: "BRL"))
+                        Text(formattedCurrency(estimated, currencyCode: preferredCurrencyCode))
                             .font(.subheadline.weight(.semibold))
                     }
                 }
@@ -95,12 +96,12 @@ struct GroupDetailView: View {
                         Text(currentMember.status.label)
                             .foregroundStyle(statusColor(for: currentMember.status))
                     }
-                    if let estimated = estimatedBRL(for: currentMember.amount) {
+                    if let estimated = estimatedAmount(for: currentMember.amount) {
                         HStack {
-                            Text("Estimado em reais")
+                            Text("Estimado em \(preferredCurrencyCode)")
                                 .foregroundStyle(.secondary)
                             Spacer()
-                            Text(formattedCurrency(estimated, currencyCode: "BRL"))
+                            Text(formattedCurrency(estimated, currencyCode: preferredCurrencyCode))
                                 .font(.subheadline.weight(.semibold))
                         }
                     }
@@ -290,8 +291,8 @@ struct GroupDetailView: View {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(formattedCurrency(member.amount))
                             .font(.subheadline.weight(.semibold))
-                        if let estimated = estimatedBRL(for: member.amount) {
-                            Text("≈ \(formattedCurrency(estimated, currencyCode: "BRL"))")
+                        if let estimated = estimatedAmount(for: member.amount) {
+                            Text("≈ \(formattedCurrency(estimated, currencyCode: preferredCurrencyCode))")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
@@ -308,6 +309,7 @@ struct GroupDetailView: View {
             }
         }
         .task {
+            preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
             if let currentUserId {
                 await paymentsViewModel.fetchUserPixKey(userId: currentUserId)
             }
@@ -400,21 +402,59 @@ struct GroupDetailView: View {
         return formatter.string(from: NSNumber(value: value)) ?? "R$ 0,00"
     }
 
-    private func estimatedBRL(for amount: Double) -> Double? {
-        switch currentGroup.currencyCode {
-        case "USD":
-            guard let rate = usdRate, rate.rate > 0 else { return nil }
-            let base = amount * rate.rate
-            let margin = base * max(rate.marginPct, 0)
-            return base + margin
-        case "EUR":
-            guard let rate = eurRate, rate.rate > 0 else { return nil }
-            let base = amount * rate.rate
-            let margin = base * max(rate.marginPct, 0)
-            return base + margin
-        default:
+    private func estimatedAmount(for amount: Double) -> Double? {
+        convert(amount: amount, from: currentGroup.currencyCode, to: preferredCurrencyCode)
+    }
+
+    private func convert(amount: Double, from: String, to: String) -> Double? {
+        if from == to {
             return nil
         }
+        let usdRate = usdRate
+        let eurRate = eurRate
+
+        func toBRL(_ amount: Double, currency: String) -> Double? {
+            switch currency {
+            case "USD":
+                guard let rate = usdRate, rate.rate > 0 else { return nil }
+                let base = amount * rate.rate
+                let margin = base * max(rate.marginPct, 0)
+                return base + margin
+            case "EUR":
+                guard let rate = eurRate, rate.rate > 0 else { return nil }
+                let base = amount * rate.rate
+                let margin = base * max(rate.marginPct, 0)
+                return base + margin
+            case "BRL":
+                return amount
+            default:
+                return nil
+            }
+        }
+
+        func fromBRL(_ amount: Double, currency: String) -> Double? {
+            switch currency {
+            case "USD":
+                guard let rate = usdRate, rate.rate > 0 else { return nil }
+                return amount / rate.rate
+            case "EUR":
+                guard let rate = eurRate, rate.rate > 0 else { return nil }
+                return amount / rate.rate
+            case "BRL":
+                return amount
+            default:
+                return nil
+            }
+        }
+
+        if from == "BRL" {
+            return fromBRL(amount, currency: to)
+        }
+        if to == "BRL" {
+            return toBRL(amount, currency: from)
+        }
+        guard let brlAmount = toBRL(amount, currency: from) else { return nil }
+        return fromBRL(brlAmount, currency: to)
     }
 
     private func statusColor(for status: GroupMemberStatus) -> Color {

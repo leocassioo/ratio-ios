@@ -5,13 +5,17 @@
 //  Created by Codex on 21/12/25.
 //
 
+import FirebaseFirestore
 import SwiftUI
+import FirebaseCore
 
 struct CreateGroupView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var router: AppRouter
     @ObservedObject var viewModel: GroupsViewModel
     let ownerId: String
     let ownerName: String
+    private let subscriptionsStore = SubscriptionsStore()
 
     @State private var groupName = ""
     @State private var selectedSubscriptionId: String?
@@ -36,6 +40,8 @@ struct CreateGroupView: View {
     @State private var inviteError: String?
     @State private var isGeneratingInvite = false
     @State private var isSaving = false
+    @State private var didCopyMessage = false
+    @State private var didCopyToken = false
 
     init(viewModel: GroupsViewModel, ownerId: String, ownerName: String) {
         self.viewModel = viewModel
@@ -169,11 +175,26 @@ struct CreateGroupView: View {
     }
 
     private var groupSection: some View {
-        Section("Grupo") {
+        Section {
+            if creationViewModel.subscriptions.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Para criar um grupo, cadastre uma assinatura primeiro.", systemImage: "info.circle")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Button {
+                        openCreateSubscription()
+                    } label: {
+                        Label("Cadastrar assinatura", systemImage: "creditcard")
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+
             TextField("Nome do grupo", text: $groupName)
 
             Picker("Assinatura", selection: $selectedSubscriptionId) {
-                Text("Selecione uma assinatura").tag(Optional<String>.none)
+                Text(creationViewModel.subscriptions.isEmpty ? "Nenhuma assinatura disponível" : "Selecione uma assinatura")
+                    .tag(Optional<String>.none)
                 ForEach(creationViewModel.subscriptions) { subscription in
                     Text(subscription.name).tag(Optional(subscription.id))
                 }
@@ -210,6 +231,16 @@ struct CreateGroupView: View {
             }
 
             Toggle("Dividir igualmente", isOn: $splitEqually)
+        } header: {
+            Text("Grupo")
+        } footer: {
+            NavigationLink {
+                RedeemInviteView()
+            } label: {
+                Text("Já tem um convite? Resgatar código")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -271,15 +302,16 @@ struct CreateGroupView: View {
             }
 
             ForEach($members) { $member in
-                MemberRowView(
-                    member: $member,
-                    currencySymbol: currencySymbol,
-                    splitEqually: splitEqually,
-                    memberValues: $memberValues,
-                    parseAmount: parseAmount,
-                    formatAmount: formatAmount
-                )
-            }
+            MemberRowView(
+                member: $member,
+                currencySymbol: currencySymbol,
+                splitEqually: splitEqually,
+                memberValues: $memberValues,
+                parseAmount: parseAmount,
+                formatAmount: formatAmount,
+                sanitizeAmount: AmountInputFormatter.sanitize
+            )
+        }
             .onDelete(perform: deleteMember)
         }
     }
@@ -361,17 +393,11 @@ struct CreateGroupView: View {
     }
 
     private func parseAmount(_ text: String) -> Double? {
-        let cleanText = text.replacingOccurrences(of: ",", with: ".")
-        return Double(cleanText)
+        AmountInputFormatter.parse(text)
     }
 
     private func formatAmount(_ value: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        formatter.locale = Locale(identifier: "pt_BR")
-        return formatter.string(from: NSNumber(value: value)) ?? "0,00"
+        AmountInputFormatter.format(value)
     }
 
     private func addMember() {
@@ -420,6 +446,7 @@ struct CreateGroupView: View {
                     ProgressView("Gerando link...")
                 } else if let inviteURL {
                     let message = inviteMessage(for: inviteURL)
+                    let token = inviteToken(from: inviteURL)
                     Text("Compartilhe o link com os membros do grupo.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -429,9 +456,26 @@ struct CreateGroupView: View {
                         Label("Compartilhar convite", systemImage: "square.and.arrow.up")
                     }
 
-                    Button("Copiar mensagem") {
+                    Button {
                         UIPasteboard.general.string = message
+                        setCopiedState(type: .message)
+                    } label: {
+                        Label(
+                            didCopyMessage ? "Copiado" : "Copiar mensagem",
+                            systemImage: didCopyMessage ? "checkmark" : "doc.on.doc"
+                        )
                     }
+
+                    Button {
+                        UIPasteboard.general.string = token
+                        setCopiedState(type: .token)
+                    } label: {
+                        Label(
+                            didCopyToken ? "Código copiado" : "Copiar código do convite",
+                            systemImage: didCopyToken ? "checkmark" : "number"
+                        )
+                    }
+                    .disabled(token.isEmpty)
                 } else if let inviteError {
                     Text(inviteError)
                         .font(.footnote)
@@ -486,6 +530,57 @@ struct CreateGroupView: View {
         Abra o convite:
         \(url.absoluteString)
         """
+    }
+
+    private func inviteToken(from url: URL) -> String {
+        URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?
+            .first(where: { $0.name == "token" })?
+            .value ?? ""
+    }
+
+    private func openCreateSubscription() {
+        dismiss()
+        router.route(to: .subscriptions)
+        router.present(.createSubscription(ownerId: ownerId) { newSubscription in
+            Task {
+                let data: [String: Any] = [
+                    "name": newSubscription.name,
+                    "amount": newSubscription.amount,
+                    "currencyCode": newSubscription.currencyCode,
+                    "category": newSubscription.category.rawValue,
+                    "period": newSubscription.period.rawValue,
+                    "nextBillingDate": Timestamp(date: newSubscription.nextBillingDate),
+                    "notes": newSubscription.notes.isEmpty ? nil : newSubscription.notes,
+                    "ownerId": ownerId,
+                    "createdAt": FieldValue.serverTimestamp()
+                ]
+                try? await subscriptionsStore.createSubscription(userId: ownerId, data: data)
+            }
+        })
+    }
+
+    private enum CopiedType {
+        case message
+        case token
+    }
+
+    private func setCopiedState(type: CopiedType) {
+        switch type {
+        case .message:
+            didCopyMessage = true
+        case .token:
+            didCopyToken = true
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            switch type {
+            case .message:
+                didCopyMessage = false
+            case .token:
+                didCopyToken = false
+            }
+        }
     }
 }
 

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct PushPermissionView: View {
     let onRequestDone: () -> Void
@@ -35,9 +36,22 @@ struct PushPermissionView: View {
             VStack(spacing: 12) {
                 Button {
                     isRequesting = true
-                    NotificationManager.shared.requestAuthorization { _ in
-                        isRequesting = false
-                        onRequestDone()
+                    UNUserNotificationCenter.current().getNotificationSettings { settings in
+                        DispatchQueue.main.async {
+                            if settings.authorizationStatus == .denied {
+                                isRequesting = false
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    UIApplication.shared.open(url)
+                                }
+                                onRequestDone()
+                                return
+                            }
+
+                            NotificationManager.shared.requestAuthorization { _ in
+                                isRequesting = false
+                                onRequestDone()
+                            }
+                        }
                     }
                 } label: {
                     Text(isRequesting ? "Ativando..." : "Ativar notificações")

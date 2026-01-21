@@ -67,8 +67,17 @@ struct SettingsView: View {
                             Text("Perfil")
 
                             Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
                         }
                     }
+                }
+
+                Button {
+                    router.push(.redeemInvite, in: .settings)
+                } label: {
+                    Label("Resgatar convite de grupo", systemImage: "ticket")
                 }
             } header: {
                 Text("Conta")

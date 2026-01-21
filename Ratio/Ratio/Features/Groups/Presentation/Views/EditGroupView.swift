@@ -29,6 +29,8 @@ struct EditGroupView: View {
     @State private var memberValues: [String: Double] = [:]
     @State private var newMemberName = ""
     @State private var showDeleteAlert = false
+    @State private var didCopyMessage = false
+    @State private var didCopyToken = false
     @StateObject private var creationViewModel: GroupCreationViewModel
     @StateObject private var inviteViewModel: GroupInviteViewModel
     private let isOwner: Bool
@@ -256,15 +258,16 @@ struct EditGroupView: View {
             }
 
             ForEach($members) { $member in
-                MemberRowView(
-                    member: $member,
-                    currencySymbol: currencySymbol,
-                    splitEqually: splitEqually,
-                    memberValues: $memberValues,
-                    parseAmount: parseAmount,
-                    formatAmount: formatAmount
-                )
-            }
+            MemberRowView(
+                member: $member,
+                currencySymbol: currencySymbol,
+                splitEqually: splitEqually,
+                memberValues: $memberValues,
+                parseAmount: parseAmount,
+                formatAmount: formatAmount,
+                sanitizeAmount: AmountInputFormatter.sanitize
+            )
+        }
             .onDelete(perform: deleteMember)
         }
     }
@@ -313,12 +316,33 @@ struct EditGroupView: View {
 
             if let url = inviteViewModel.inviteURL {
                 let message = inviteMessage(for: url)
+                let token = inviteToken(from: url)
                 ShareLink(item: message) {
                     Label("Compartilhar convite", systemImage: "square.and.arrow.up")
                 }
                 .disabled(!isOwner)
 
-                CopyButton(textToCopy: message)
+                Button {
+                    UIPasteboard.general.string = message
+                    setCopiedState(type: .message)
+                } label: {
+                    Label(
+                        didCopyMessage ? "Copiado" : "Copiar mensagem",
+                        systemImage: didCopyMessage ? "checkmark" : "doc.on.doc"
+                    )
+                }
+                .disabled(!isOwner)
+
+                Button {
+                    UIPasteboard.general.string = token
+                    setCopiedState(type: .token)
+                } label: {
+                    Label(
+                        didCopyToken ? "Código copiado" : "Copiar código do convite",
+                        systemImage: didCopyToken ? "checkmark" : "number"
+                    )
+                }
+                .disabled(!isOwner || token.isEmpty)
             }
 
             if let message = inviteViewModel.errorMessage {
@@ -384,17 +408,11 @@ struct EditGroupView: View {
     }
 
     private func parseAmount(_ text: String) -> Double? {
-        let cleanText = text.replacingOccurrences(of: ",", with: ".")
-        return Double(cleanText)
+        AmountInputFormatter.parse(text)
     }
 
     private func formatAmount(_ value: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        formatter.locale = Locale(identifier: "pt_BR")
-        return formatter.string(from: NSNumber(value: value)) ?? "0,00"
+        AmountInputFormatter.format(value)
     }
 
     private func addMember() {
@@ -417,6 +435,36 @@ struct EditGroupView: View {
         Abra o convite:
         \(url.absoluteString)
         """
+    }
+
+    private func inviteToken(from url: URL) -> String {
+        URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?
+            .first(where: { $0.name == "token" })?
+            .value ?? ""
+    }
+
+    private enum CopiedType {
+        case message
+        case token
+    }
+
+    private func setCopiedState(type: CopiedType) {
+        switch type {
+        case .message:
+            didCopyMessage = true
+        case .token:
+            didCopyToken = true
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            switch type {
+            case .message:
+                didCopyMessage = false
+            case .token:
+                didCopyToken = false
+            }
+        }
     }
 
     private var perPersonAmount: Double {

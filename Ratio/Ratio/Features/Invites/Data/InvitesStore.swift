@@ -140,7 +140,7 @@ final class InvitesStore {
         ], forDocument: groupRef)
 
         let newUsesCount = usesCount + 1
-        let inviteStatus = newUsesCount >= maxUses ? "used" : "active"
+        let inviteStatus = (maxUses > 0 && newUsesCount >= maxUses) ? "used" : "active"
         batch.updateData([
             "usesCount": newUsesCount,
             "status": inviteStatus,

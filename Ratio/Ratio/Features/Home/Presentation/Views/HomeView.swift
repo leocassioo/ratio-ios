@@ -12,9 +12,13 @@ struct HomeView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var router: AppRouter
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var viewModel = HomeViewModel()
     @StateObject private var notificationsBadgeViewModel = NotificationsBadgeViewModel()
+    @StateObject private var pushPermissionState = PushPermissionState()
     @AppStorage(PreferencesStore.PrefKey.primaryCurrencyCode) private var primaryCurrencyCodeRaw: String = "BRL"
+    @AppStorage(PreferencesStore.PrefKey.lastPushPromptDate) private var lastPushPromptDateRaw: String = ""
+    @State private var showPushPrompt = false
     private let upcomingPayments: [UpcomingPaymentItem] = [
         UpcomingPaymentItem(
             name: "SmartFit",
@@ -128,6 +132,16 @@ struct HomeView: View {
             }
             viewModel.setPreferredCurrencyCode(primaryCurrencyCodeRaw)
             viewModel.setProAccess(subscriptionManager.hasProAccess)
+            pushPermissionState.refresh()
+            evaluatePushPrompt()
+        }
+        .onChange(of: pushPermissionState.status) { _, _ in
+            evaluatePushPrompt()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                pushPermissionState.refresh()
+            }
         }
         .onChange(of: authViewModel.user?.uid) { _, newValue in
             guard let userId = newValue else { return }
@@ -153,6 +167,17 @@ struct HomeView: View {
                 }
                 .accessibilityLabel("Notificações")
             }
+        }
+        .sheet(isPresented: $showPushPrompt) {
+            PushPermissionView(
+                onRequestDone: {
+                    pushPermissionState.refresh()
+                    showPushPrompt = false
+                },
+                onSkip: {
+                    showPushPrompt = false
+                }
+            )
         }
     }
 
@@ -182,10 +207,27 @@ struct HomeView: View {
                 Circle()
                     .fill(Color.red)
                     .frame(width: 8, height: 8)
-                    .offset(x: 6, y: -4)
+                    .offset(x: 4, y: -2)
             }
         }
     }
+
+    private func evaluatePushPrompt() {
+        guard pushPermissionState.status == .notDetermined || pushPermissionState.status == .denied else { return }
+        let todayKey = DateFormatter.dayKeyFormatter.string(from: Date())
+        guard lastPushPromptDateRaw != todayKey else { return }
+        lastPushPromptDateRaw = todayKey
+        showPushPrompt = true
+    }
+}
+
+private extension DateFormatter {
+    static let dayKeyFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
 }
 
 #Preview {

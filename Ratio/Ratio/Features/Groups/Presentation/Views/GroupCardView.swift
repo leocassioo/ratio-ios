@@ -11,8 +11,9 @@ struct GroupCardView: View {
     let group: SharedGroup
     let currentUserId: String?
     let currentUserPixKey: String?
-    let estimatedTotalBRL: Double?
-    let estimatedMemberBRL: (Double) -> Double?
+    let preferredCurrencyCode: String
+    let estimatedTotal: Double?
+    let estimatedMember: (Double) -> Double?
     let onEdit: () -> Void
     @Environment(\.colorScheme) private var colorScheme
 
@@ -25,8 +26,8 @@ struct GroupCardView: View {
                     Text("Total: \(formattedCurrency(group.totalAmount)) / \(group.billingPeriod)")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    if let estimatedTotalBRL, group.currencyCode != "BRL" {
-                        Text("Estimado em reais: \(formattedCurrency(estimatedTotalBRL, currencyCode: "BRL"))")
+                    if let estimatedTotal, group.currencyCode != preferredCurrencyCode {
+                        Text("Estimado em \(preferredCurrencyCode): \(formattedCurrency(estimatedTotal, currencyCode: preferredCurrencyCode))")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -120,8 +121,8 @@ struct GroupCardView: View {
                         VStack(alignment: .trailing, spacing: 2) {
                             Text(formattedCurrency(member.amount))
                                 .font(.subheadline.weight(.semibold))
-                            if let estimated = estimatedMemberBRL(member.amount), group.currencyCode != "BRL" {
-                                Text("≈ \(formattedCurrency(estimated, currencyCode: "BRL"))")
+                            if let estimated = estimatedMember(member.amount), group.currencyCode != preferredCurrencyCode {
+                                Text("≈ \(formattedCurrency(estimated, currencyCode: preferredCurrencyCode))")
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                             }

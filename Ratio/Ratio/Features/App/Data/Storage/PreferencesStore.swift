@@ -18,6 +18,7 @@ final class PreferencesStore {
         static let isProUser = "isProUser"
         static let primaryCurrencyCode = "primaryCurrencyCode"
         static let pendingEmailChangeNotice = "pendingEmailChangeNotice"
+        static let lastPushPromptDate = "lastPushPromptDate"
     }
 
     private let defaults: UserDefaults
@@ -59,5 +60,13 @@ final class PreferencesStore {
 
     func setPendingEmailChangeNotice(_ value: Bool) {
         defaults.setValue(value, forKey: PrefKey.pendingEmailChangeNotice)
+    }
+
+    func lastPushPromptDate() -> String? {
+        defaults.string(forKey: PrefKey.lastPushPromptDate)
+    }
+
+    func setLastPushPromptDate(_ value: String) {
+        defaults.setValue(value, forKey: PrefKey.lastPushPromptDate)
     }
 }

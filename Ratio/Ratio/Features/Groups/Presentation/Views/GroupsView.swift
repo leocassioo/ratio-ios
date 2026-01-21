@@ -13,6 +13,7 @@ struct GroupsView: View {
     @EnvironmentObject private var router: AppRouter
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @StateObject private var viewModel = GroupsViewModel()
+    @State private var preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
     private let freeGroupLimit = 2
 
     var body: some View {
@@ -55,9 +56,18 @@ struct GroupsView: View {
                                 group: group,
                                 currentUserId: authViewModel.user?.uid,
                                 currentUserPixKey: authViewModel.userPixKey,
-                                estimatedTotalBRL: viewModel.estimatedBRL(for: group.totalAmount, currencyCode: group.currencyCode),
-                                estimatedMemberBRL: { amount in
-                                    viewModel.estimatedBRL(for: amount, currencyCode: group.currencyCode)
+                                preferredCurrencyCode: preferredCurrencyCode,
+                                estimatedTotal: viewModel.estimatedAmount(
+                                    for: group.totalAmount,
+                                    currencyCode: group.currencyCode,
+                                    preferredCurrencyCode: preferredCurrencyCode
+                                ),
+                                estimatedMember: { amount in
+                                    viewModel.estimatedAmount(
+                                        for: amount,
+                                        currencyCode: group.currencyCode,
+                                        preferredCurrencyCode: preferredCurrencyCode
+                                    )
                                 },
                                 onEdit: {
                                     openEdit(group)
@@ -96,6 +106,7 @@ struct GroupsView: View {
             }
         }
         .onAppear {
+            preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
             if let userId = authViewModel.user?.uid {
                 viewModel.startListening(userId: userId)
             }

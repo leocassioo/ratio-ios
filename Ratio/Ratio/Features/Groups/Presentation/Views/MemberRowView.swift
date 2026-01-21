@@ -14,6 +14,7 @@ struct MemberRowView: View {
     @Binding var memberValues: [String: Double]
     let parseAmount: (String) -> Double?
     let formatAmount: (Double) -> String
+    let sanitizeAmount: (String) -> String
     @FocusState private var isAmountFocused: Bool
 
     var body: some View {
@@ -27,8 +28,13 @@ struct MemberRowView: View {
                     .focused($isAmountFocused)
                     .onChange(of: member.amountText) { _, newValue in
                         if splitEqually { return }
-                        if let value = parseAmount(newValue) {
-                            member.amountText = newValue
+                        let sanitized = sanitizeAmount(newValue)
+                        if sanitized != newValue {
+                            member.amountText = sanitized
+                            return
+                        }
+                        if let value = parseAmount(sanitized) {
+                            member.amountText = sanitized
                             memberValues[member.id] = value
                         } else if newValue.isEmpty {
                             memberValues[member.id] = 0

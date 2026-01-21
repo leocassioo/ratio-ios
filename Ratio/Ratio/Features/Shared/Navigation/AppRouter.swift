@@ -13,6 +13,7 @@ enum AppRoute: Hashable {
     case settings
     case billingHistory
     case notificationsHistory
+    case redeemInvite
     case subscriptionBenefits
     case editProfile
     case changeEmail

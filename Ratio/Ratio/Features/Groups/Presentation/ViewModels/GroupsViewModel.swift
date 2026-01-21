@@ -108,6 +108,61 @@ final class GroupsViewModel: ObservableObject {
         }
     }
 
+    func estimatedAmount(for amount: Double, currencyCode: String, preferredCurrencyCode: String) -> Double? {
+        convert(amount: amount, from: currencyCode, to: preferredCurrencyCode)
+    }
+
+    private func convert(amount: Double, from: String, to: String) -> Double? {
+        if from == to {
+            return nil
+        }
+        let usdRate = usdRate
+        let eurRate = eurRate
+
+        func toBRL(_ amount: Double, currency: String) -> Double? {
+            switch currency {
+            case "USD":
+                guard let rate = usdRate, rate.rate > 0 else { return nil }
+                let base = amount * rate.rate
+                let margin = base * max(rate.marginPct, 0)
+                return base + margin
+            case "EUR":
+                guard let rate = eurRate, rate.rate > 0 else { return nil }
+                let base = amount * rate.rate
+                let margin = base * max(rate.marginPct, 0)
+                return base + margin
+            case "BRL":
+                return amount
+            default:
+                return nil
+            }
+        }
+
+        func fromBRL(_ amount: Double, currency: String) -> Double? {
+            switch currency {
+            case "USD":
+                guard let rate = usdRate, rate.rate > 0 else { return nil }
+                return amount / rate.rate
+            case "EUR":
+                guard let rate = eurRate, rate.rate > 0 else { return nil }
+                return amount / rate.rate
+            case "BRL":
+                return amount
+            default:
+                return nil
+            }
+        }
+
+        if from == "BRL" {
+            return fromBRL(amount, currency: to)
+        }
+        if to == "BRL" {
+            return toBRL(amount, currency: from)
+        }
+        guard let brlAmount = toBRL(amount, currency: from) else { return nil }
+        return fromBRL(brlAmount, currency: to)
+    }
+
     func createGroup(
         name: String,
         subscription: SubscriptionItem,

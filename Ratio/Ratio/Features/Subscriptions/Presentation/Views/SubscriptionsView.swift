@@ -16,6 +16,7 @@ struct SubscriptionsView: View {
     @State private var showErrorAlert = false
     @State private var pendingDelete: SubscriptionItem?
     @State private var showDeleteConfirm = false
+    @State private var preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
     private let freeSubscriptionLimit = 4
 
     var body: some View {
@@ -70,8 +71,11 @@ struct SubscriptionsView: View {
                             Text("Próxima cobrança: \(formattedDate(subscription.nextBillingDate))")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
-                            if let estimated = viewModel.estimatedBRL(for: subscription) {
-                                Text("Estimado em reais: \(formattedCurrency(estimated, currencyCode: "BRL"))")
+                            if let estimated = viewModel.estimatedAmount(
+                                for: subscription,
+                                preferredCurrencyCode: preferredCurrencyCode
+                            ) {
+                                Text("Estimado em \(preferredCurrencyCode): \(formattedCurrency(estimated, currencyCode: preferredCurrencyCode))")
                                     .font(.footnote)
                                     .foregroundStyle(.secondary)
                             }
@@ -123,6 +127,7 @@ struct SubscriptionsView: View {
             }
         }
         .onAppear {
+            preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
             if let userId = authViewModel.user?.uid {
                 viewModel.startListening(userId: userId)
             }
