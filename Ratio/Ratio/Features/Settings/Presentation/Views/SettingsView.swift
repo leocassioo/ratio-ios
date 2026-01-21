@@ -147,20 +147,11 @@ struct SettingsView: View {
                         Text(theme.label).tag(theme)
                     }
                 }
-
-                Picker("Idioma do app", selection: appLanguage) {
-                    ForEach(AppLanguage.allCases) { language in
-                        Text(language.label).tag(language)
-                    }
-                }
             } header: {
                 Text("Aparência")
             } footer: {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Personalize o visual do app.")
-                    Text("O idioma pode exigir reiniciar o app.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
                 }
             }
 

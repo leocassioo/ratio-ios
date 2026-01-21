@@ -29,6 +29,12 @@
     "0,00" : {
 
     },
+    "A assinatura \"%@\" já está vinculada a outro grupo. Edite o grupo existente ou escolha outra assinatura." : {
+
+    },
+    "A assinatura \"%@\" já está vinculada a um grupo. Edite o grupo existente ou escolha outra assinatura." : {
+
+    },
     "Adicionar assinatura" : {
 
     },
@@ -84,6 +90,9 @@
 
     },
     "Assinatura ativa!" : {
+
+    },
+    "Assinatura já vinculada" : {
 
     },
     "Assinaturas" : {
@@ -309,6 +318,9 @@
         }
       }
     },
+    "Eu participo do rateio" : {
+
+    },
     "EUR" : {
 
     },
@@ -361,9 +373,6 @@
 
     },
     "Home" : {
-
-    },
-    "Idioma do app" : {
 
     },
     "Insights personalizados" : {
@@ -462,9 +471,6 @@
 
     },
     "Novo grupo" : {
-
-    },
-    "O idioma pode exigir reiniciar o app." : {
 
     },
     "O link expira em 24 horas e pode ser usado sem limite de pessoas." : {

@@ -31,6 +31,7 @@ struct CreateGroupView: View {
 
     @State private var pixKey = ""
     @State private var splitEqually = true
+    @State private var ownerParticipates = true
     @State private var members: [GroupMemberDraft] = []
     @State private var memberValues: [String: Double] = [:]
     @State private var newMemberName = ""
@@ -42,6 +43,8 @@ struct CreateGroupView: View {
     @State private var isSaving = false
     @State private var didCopyMessage = false
     @State private var didCopyToken = false
+    @State private var showSubscriptionInUseAlert = false
+    @State private var subscriptionInUseName = ""
 
     init(viewModel: GroupsViewModel, ownerId: String, ownerName: String) {
         self.viewModel = viewModel
@@ -91,6 +94,11 @@ struct CreateGroupView: View {
                         isSaving = true
                         defer { isSaving = false }
                         if let subscription = selectedSubscription {
+                            if isSubscriptionInUse(subscriptionId: subscription.id) {
+                                subscriptionInUseName = subscription.name
+                                showSubscriptionInUseAlert = true
+                                return
+                            }
                             let normalizedMembers = normalizedMemberList()
                             if let groupId = await viewModel.createGroup(
                                 name: groupName,
@@ -154,6 +162,11 @@ struct CreateGroupView: View {
                 applyEqualSplit()
             }
         }
+        .onChange(of: ownerParticipates) { _, _ in
+            if splitEqually {
+                applyEqualSplit()
+            }
+        }
         .onChange(of: totalAmountValue) { _, _ in
             if splitEqually {
                 applyEqualSplit()
@@ -171,6 +184,11 @@ struct CreateGroupView: View {
             dismiss()
         }) {
             inviteSheet
+        }
+        .alert("Assinatura já vinculada", isPresented: $showSubscriptionInUseAlert) {
+            Button("Ok", role: .cancel) {}
+        } message: {
+            Text("A assinatura \"\(subscriptionInUseName)\" já está vinculada a um grupo. Edite o grupo existente ou escolha outra assinatura.")
         }
     }
 
@@ -190,8 +208,6 @@ struct CreateGroupView: View {
                 .padding(.vertical, 4)
             }
 
-            TextField("Nome do grupo", text: $groupName)
-
             Picker("Assinatura", selection: $selectedSubscriptionId) {
                 Text(creationViewModel.subscriptions.isEmpty ? "Nenhuma assinatura disponível" : "Selecione uma assinatura")
                     .tag(Optional<String>.none)
@@ -199,6 +215,8 @@ struct CreateGroupView: View {
                     Text(subscription.name).tag(Optional(subscription.id))
                 }
             }
+
+            TextField("Nome do grupo", text: $groupName)
 
             if let subscription = selectedSubscription {
                 HStack {
@@ -231,6 +249,7 @@ struct CreateGroupView: View {
             }
 
             Toggle("Dividir igualmente", isOn: $splitEqually)
+            Toggle("Eu participo do rateio", isOn: $ownerParticipates)
         } header: {
             Text("Grupo")
         } footer: {
@@ -348,6 +367,9 @@ struct CreateGroupView: View {
                 if copy.userId == nil && copy.name == ownerName {
                     copy.userId = ownerId
                 }
+                if !ownerParticipates, copy.userId == ownerId {
+                    copy.amountText = formatAmount(0)
+                }
                 return copy
             }
     }
@@ -358,13 +380,28 @@ struct CreateGroupView: View {
 
     private func applyEqualSplit() {
         guard !members.isEmpty else { return }
-        let value = totalAmountValue / Double(members.count)
+        let count = participantCount
+        if count == 0 {
+            members = members.map { member in
+                var copy = member
+                copy.amountText = formatAmount(0)
+                memberValues[copy.id] = 0
+                return copy
+            }
+            return
+        }
+        let value = totalAmountValue / Double(count)
         members = members.map { member in
             var copy = member
-            copy.amountText = formatAmount(value)
+            if !ownerParticipates, copy.userId == ownerId {
+                copy.amountText = formatAmount(0)
+                memberValues[copy.id] = 0
+            } else {
+                copy.amountText = formatAmount(value)
+                memberValues[copy.id] = value
+            }
             return copy
         }
-        members.forEach { memberValues[$0.id] = value }
     }
 
     private func updateSelectedSubscription() {
@@ -411,8 +448,18 @@ struct CreateGroupView: View {
     }
 
     private var perPersonAmount: Double {
-        guard !members.isEmpty else { return 0 }
-        return totalAmountValue / Double(members.count)
+        let count = participantCount
+        guard count > 0 else { return 0 }
+        return totalAmountValue / Double(count)
+    }
+
+    private var participantCount: Int {
+        members.filter { member in
+            if ownerParticipates {
+                return true
+            }
+            return member.userId != ownerId
+        }.count
     }
 
     private func formattedCurrency(_ value: Double, currencyCode: String) -> String {
@@ -434,6 +481,10 @@ struct CreateGroupView: View {
     private var selectedSubscription: SubscriptionItem? {
         guard let selectedSubscriptionId else { return nil }
         return creationViewModel.subscriptions.first { $0.id == selectedSubscriptionId }
+    }
+
+    private func isSubscriptionInUse(subscriptionId: String) -> Bool {
+        viewModel.groups.contains { $0.subscriptionId == subscriptionId }
     }
 
     private var inviteSheet: some View {

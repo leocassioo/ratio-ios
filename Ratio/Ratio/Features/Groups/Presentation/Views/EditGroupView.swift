@@ -25,12 +25,15 @@ struct EditGroupView: View {
     @State private var pixKey: String
     @State private var ownerPhoneNumber: String
     @State private var splitEqually: Bool = true
+    @State private var ownerParticipates: Bool
     @State private var members: [GroupMemberDraft]
     @State private var memberValues: [String: Double] = [:]
     @State private var newMemberName = ""
     @State private var showDeleteAlert = false
     @State private var didCopyMessage = false
     @State private var didCopyToken = false
+    @State private var showSubscriptionInUseAlert = false
+    @State private var subscriptionInUseName = ""
     @StateObject private var creationViewModel: GroupCreationViewModel
     @StateObject private var inviteViewModel: GroupInviteViewModel
     private let isOwner: Bool
@@ -40,6 +43,7 @@ struct EditGroupView: View {
         self.group = group
         self.ownerId = ownerId
         self.isOwner = group.ownerId == ownerId
+        let ownerAmount = group.members.first(where: { $0.userId == ownerId })?.amount
         _groupName = State(initialValue: group.name)
         _selectedSubscriptionId = State(initialValue: group.subscriptionId)
         _totalAmountValue = State(initialValue: group.totalAmount)
@@ -50,6 +54,7 @@ struct EditGroupView: View {
         _servicePassword = State(initialValue: group.servicePassword ?? "")
         _pixKey = State(initialValue: group.pixKey ?? "")
         _ownerPhoneNumber = State(initialValue: group.ownerPhoneNumber ?? "")
+        _ownerParticipates = State(initialValue: (ownerAmount ?? 1) > 0)
         _members = State(initialValue: group.members.map {
             GroupMemberDraft(
                 id: $0.id,
@@ -94,6 +99,11 @@ struct EditGroupView: View {
                 Button("Salvar") {
                     Task {
                         if let subscription = selectedSubscriptionForSave {
+                            if isSubscriptionInUse(subscriptionId: subscription.id) {
+                                subscriptionInUseName = subscription.name
+                                showSubscriptionInUseAlert = true
+                                return
+                            }
                             let normalizedMembers = normalizedMemberList()
                             await viewModel.updateGroup(
                                 groupId: group.id,
@@ -126,6 +136,11 @@ struct EditGroupView: View {
         } message: {
             Text("Essa ação é permanente e remove o grupo para todos os membros.")
         }
+        .alert("Assinatura já vinculada", isPresented: $showSubscriptionInUseAlert) {
+            Button("Ok", role: .cancel) {}
+        } message: {
+            Text("A assinatura \"\(subscriptionInUseName)\" já está vinculada a outro grupo. Edite o grupo existente ou escolha outra assinatura.")
+        }
         .onAppear {
             creationViewModel.startListening()
             updateSelectedSubscription()
@@ -138,6 +153,11 @@ struct EditGroupView: View {
         }
         .onChange(of: splitEqually) { _, newValue in
             if newValue {
+                applyEqualSplit()
+            }
+        }
+        .onChange(of: ownerParticipates) { _, _ in
+            if splitEqually {
                 applyEqualSplit()
             }
         }
@@ -195,6 +215,7 @@ struct EditGroupView: View {
             }
 
             Toggle("Dividir igualmente", isOn: $splitEqually)
+            Toggle("Eu participo do rateio", isOn: $ownerParticipates)
         }
     }
 
@@ -372,6 +393,9 @@ struct EditGroupView: View {
                 if splitEqually, let value = memberValues[member.id] {
                     copy.amountText = formatAmount(value)
                 }
+                if !ownerParticipates, copy.userId == ownerId {
+                    copy.amountText = formatAmount(0)
+                }
                 return copy
             }
     }
@@ -382,13 +406,28 @@ struct EditGroupView: View {
 
     private func applyEqualSplit() {
         guard !members.isEmpty else { return }
-        let value = totalAmountValue / Double(members.count)
+        let count = participantCount
+        if count == 0 {
+            members = members.map { member in
+                var copy = member
+                copy.amountText = formatAmount(0)
+                memberValues[copy.id] = 0
+                return copy
+            }
+            return
+        }
+        let value = totalAmountValue / Double(count)
         members = members.map { member in
             var copy = member
-            copy.amountText = formatAmount(value)
+            if !ownerParticipates, copy.userId == ownerId {
+                copy.amountText = formatAmount(0)
+                memberValues[copy.id] = 0
+            } else {
+                copy.amountText = formatAmount(value)
+                memberValues[copy.id] = value
+            }
             return copy
         }
-        members.forEach { memberValues[$0.id] = value }
     }
 
     private func updateSelectedSubscription() {
@@ -468,8 +507,18 @@ struct EditGroupView: View {
     }
 
     private var perPersonAmount: Double {
-        guard !members.isEmpty else { return 0 }
-        return totalAmountValue / Double(members.count)
+        let count = participantCount
+        guard count > 0 else { return 0 }
+        return totalAmountValue / Double(count)
+    }
+
+    private var participantCount: Int {
+        members.filter { member in
+            if ownerParticipates {
+                return true
+            }
+            return member.userId != ownerId
+        }.count
     }
 
     private func formattedCurrency(_ value: Double, currencyCode: String) -> String {
@@ -511,6 +560,10 @@ struct EditGroupView: View {
             nextBillingDate: group.subscriptionNextBillingDate ?? Date(),
             notes: group.notes ?? ""
         )
+    }
+
+    private func isSubscriptionInUse(subscriptionId: String) -> Bool {
+        viewModel.groups.contains { $0.subscriptionId == subscriptionId && $0.id != group.id }
     }
 }
 
