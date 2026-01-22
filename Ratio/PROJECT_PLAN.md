@@ -137,3 +137,20 @@ Referencias:
 - Exportacao CSV.
 - Integração com calendario.
 - Status de inadimplencia por membro.
+
+
+# Billing reminders (filtra pelo userId)
+curl "http://127.0.0.1:5001/ratio-9e231/us-central1/sendBillingRemindersTest?userId=oUx9cdThAMgCzywmECRlbpRihVE2"
+
+# Notificar dono por envio de comprovante (override do userId)
+curl "http://127.0.0.1:5001/ratio-9e231/us-central1/notifyOwnerOnPaymentSubmittedTest?groupId=SEU_GROUP_ID&memberId=SEU_MEMBER_ID&userId=oUx9cdThAMgCzywmECRlbpRihVE2"
+
+# Marcar atraso (apenas seu userId)
+curl "http://127.0.0.1:5001/ratio-9e231/us-central1/markOverdueTest?groupId=SEU_GROUP_ID&userId=oUx9cdThAMgCzywmECRlbpRihVE2"
+
+# History (se existir)
+curl "http://127.0.0.1:5001/ratio-9e231/us-central1/recordHistoryTest?userId=oUx9cdThAMgCzywmECRlbpRihVE2"
+
+# Câmbio USD/EUR (se existir)
+curl "http://127.0.0.1:5001/ratio-9e231/us-central1/fetchUsdRateTest"
+curl "http://127.0.0.1:5001/ratio-9e231/us-central1/fetchEurRateTest"

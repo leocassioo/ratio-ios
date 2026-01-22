@@ -44,12 +44,63 @@ type NotificationPayload = {
   data?: Record<string, string>;
 };
 
+const INVALID_TOKEN_CODES = new Set([
+  "messaging/registration-token-not-registered",
+  "messaging/invalid-registration-token",
+  "messaging/invalid-argument"
+]);
+
 const chunk = <T,>(items: T[], size: number): T[][] => {
   const result: T[][] = [];
   for (let index = 0; index < items.length; index += size) {
     result.push(items.slice(index, index + size));
   }
   return result;
+};
+
+const cleanupInvalidTokens = async (
+  db: FirebaseFirestore.Firestore,
+  tokenChunk: string[],
+  responses: admin.messaging.BatchResponse,
+  tokenUserMap?: Map<string, string>
+) => {
+  if (!tokenUserMap) {
+    return;
+  }
+
+  const removals = new Map<string, string[]>();
+  responses.responses.forEach((item, index) => {
+    if (item.success) {
+      return;
+    }
+    const code = item.error?.code ?? "";
+    if (!INVALID_TOKEN_CODES.has(code)) {
+      return;
+    }
+    const token = tokenChunk[index];
+    const userId = tokenUserMap.get(token);
+    if (!userId) {
+      return;
+    }
+    if (!removals.has(userId)) {
+      removals.set(userId, []);
+    }
+    removals.get(userId)?.push(token);
+  });
+
+  if (removals.size === 0) {
+    return;
+  }
+
+  const batch = db.batch();
+  removals.forEach((tokens, userId) => {
+    const ref = db.collection("users").doc(userId);
+    batch.update(ref, {
+      fcmTokens: FieldValue.arrayRemove(...tokens),
+      updatedAt: FieldValue.serverTimestamp()
+    });
+  });
+  await batch.commit();
 };
 
 const writeNotifications = async (
@@ -78,16 +129,30 @@ const writeNotifications = async (
   }
 };
 
-const runBillingReminders = async (includeDiagnostics: boolean): Promise<ReminderSummary> => {
+const runBillingReminders = async (
+  includeDiagnostics: boolean,
+  allowedUserIds: Set<string> | null
+): Promise<ReminderSummary> => {
   const db = admin.firestore();
   const now = new Date();
   const inFiveDays = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
   const maxDate = Timestamp.fromDate(inFiveDays);
 
-  const usersSnapshot = await db.collection("users").get();
+  const userDocs: FirebaseFirestore.DocumentSnapshot[] = [];
+  if (allowedUserIds && allowedUserIds.size > 0) {
+    for (const userId of allowedUserIds) {
+      const doc = await db.collection("users").doc(userId).get();
+      if (doc.exists) {
+        userDocs.push(doc);
+      }
+    }
+  } else {
+    const usersSnapshot = await db.collection("users").get();
+    userDocs.push(...usersSnapshot.docs);
+  }
   const summary: ReminderSummary = {
     maxDateISO: inFiveDays.toISOString(),
-    usersScanned: usersSnapshot.size,
+    usersScanned: userDocs.length,
     usersWithTokens: 0,
     subscriptionsScanned: 0,
     subscriptionsMatched: 0,
@@ -155,7 +220,8 @@ const runBillingReminders = async (includeDiagnostics: boolean): Promise<Reminde
     body: string,
     tokens: string[],
     route: NotificationRoute,
-    data: Record<string, string> = {}
+    data: Record<string, string> = {},
+    tokenUserMap?: Map<string, string>
   ) => {
     summary.sends += 1;
     for (const tokenChunk of chunk(tokens, 500)) {
@@ -164,6 +230,7 @@ const runBillingReminders = async (includeDiagnostics: boolean): Promise<Reminde
         data: { route, ...data },
         tokens: tokenChunk
       });
+      await cleanupInvalidTokens(db, tokenChunk, response, tokenUserMap);
       summary.successCount += response.successCount;
       summary.failureCount += response.failureCount;
 
@@ -387,8 +454,8 @@ const runBillingReminders = async (includeDiagnostics: boolean): Promise<Reminde
     }
   };
 
-  for (const userDoc of usersSnapshot.docs) {
-    const tokens: string[] = userDoc.data().fcmTokens || [];
+  for (const userDoc of userDocs) {
+    const tokens: string[] = userDoc.data()?.fcmTokens || [];
     if (tokens.length > 0) {
       summary.usersWithTokens += 1;
     }
@@ -447,6 +514,8 @@ const runBillingReminders = async (includeDiagnostics: boolean): Promise<Reminde
 
       const name = data.name || "Assinatura";
       const body = `Sua assinatura de ${name} ${reminderTextForOffset(offset)}`;
+      const tokenUserMap = new Map<string, string>();
+      tokens.forEach((token) => tokenUserMap.set(token, userDoc.id));
       await writeNotifications(db, [userDoc.id], {
         title: "Cobranca em breve",
         body,
@@ -455,22 +524,38 @@ const runBillingReminders = async (includeDiagnostics: boolean): Promise<Reminde
         data: { subscriptionId: sub.id }
       });
       if (tokens.length > 0) {
-        await sendNotification("Cobranca em breve", body, tokens, "subscriptions", {
-          subscriptionId: sub.id
-        });
+        await sendNotification(
+          "Cobranca em breve",
+          body,
+          tokens,
+          "subscriptions",
+          { subscriptionId: sub.id },
+          tokenUserMap
+        );
       }
       summary.remindersByOffset[String(offset)] += 1;
     }
   }
 
-  const groupsByChargeSnapshot = await db
-    .collection("groups")
-    .where("chargeNextBillingDate", "<=", maxDate)
-    .get();
-  const groupsBySubscriptionSnapshot = await db
-    .collection("groups")
-    .where("subscriptionNextBillingDate", "<=", maxDate)
-    .get();
+  const groupsCollection = db.collection("groups");
+  const allowedUserList = allowedUserIds ? Array.from(allowedUserIds) : [];
+  const baseChargeQuery = groupsCollection.where("chargeNextBillingDate", "<=", maxDate);
+  const baseSubscriptionQuery = groupsCollection.where("subscriptionNextBillingDate", "<=", maxDate);
+
+  const applyAllowedFilter = (
+    query: FirebaseFirestore.Query
+  ): FirebaseFirestore.Query => {
+    if (!allowedUserIds || allowedUserIds.size == 0) {
+      return query;
+    }
+    if (allowedUserList.length == 1) {
+      return query.where("memberIds", "array-contains", allowedUserList[0]);
+    }
+    return query.where("memberIds", "array-contains-any", allowedUserList.slice(0, 10));
+  };
+
+  const groupsByChargeSnapshot = await applyAllowedFilter(baseChargeQuery).get();
+  const groupsBySubscriptionSnapshot = await applyAllowedFilter(baseSubscriptionQuery).get();
 
   const matchedGroups = new Map<string, QueryDocumentSnapshot>();
   groupsByChargeSnapshot.docs.forEach((doc) => matchedGroups.set(doc.id, doc));
@@ -479,7 +564,7 @@ const runBillingReminders = async (includeDiagnostics: boolean): Promise<Reminde
   summary.groupsMatched = matchedGroups.size;
 
   if (includeDiagnostics) {
-    const allGroupsSnapshot = await db.collection("groups").get();
+    const allGroupsSnapshot = await applyAllowedFilter(groupsCollection).get();
     summary.groupsScanned = allGroupsSnapshot.size;
 
     for (const groupDoc of allGroupsSnapshot.docs) {
@@ -527,23 +612,30 @@ const runBillingReminders = async (includeDiagnostics: boolean): Promise<Reminde
     await resetGroupStatusesIfNeeded(groupDoc, nextBillingDate, offset);
 
     const memberIds = (data.memberIds as string[] | undefined) ?? [];
+    const targetMemberIds = allowedUserIds
+      ? memberIds.filter((id) => allowedUserIds.has(id))
+      : memberIds;
 
-    if (memberIds.length == 0) {
+    if (targetMemberIds.length == 0) {
       continue;
     }
 
     const userSnapshots = await Promise.all(
-      memberIds.map((userId) => db.collection("users").doc(userId).get())
+      targetMemberIds.map((userId) => db.collection("users").doc(userId).get())
     );
 
     const tokens = new Set<string>();
+    const tokenUserMap = new Map<string, string>();
     for (const userSnapshot of userSnapshots) {
       const userTokens: string[] = userSnapshot.data()?.fcmTokens || [];
-      userTokens.forEach((token) => tokens.add(token));
+      userTokens.forEach((token) => {
+        tokens.add(token);
+        tokenUserMap.set(token, userSnapshot.id);
+      });
     }
 
     const body = `O grupo ${groupName} ${reminderTextForOffset(offset)}`;
-    await writeNotifications(db, memberIds, {
+    await writeNotifications(db, targetMemberIds, {
       title: "Cobranca em breve",
       body,
       route: "groups",
@@ -551,9 +643,14 @@ const runBillingReminders = async (includeDiagnostics: boolean): Promise<Reminde
       data: { groupId: groupDoc.id }
     });
     if (tokens.size > 0) {
-      await sendNotification("Cobranca em breve", body, Array.from(tokens), "groups", {
-        groupId: groupDoc.id
-      });
+      await sendNotification(
+        "Cobranca em breve",
+        body,
+        Array.from(tokens),
+        "groups",
+        { groupId: groupDoc.id },
+        tokenUserMap
+      );
     }
     summary.remindersByOffset[String(offset)] += 1;
   }
@@ -564,7 +661,7 @@ const runBillingReminders = async (includeDiagnostics: boolean): Promise<Reminde
 export const sendBillingReminders = onSchedule(
   { schedule: "every day 09:00", timeZone: "America/Sao_Paulo" },
   async () => {
-    const summary = await runBillingReminders(false);
+    const summary = await runBillingReminders(false, null);
     console.log("sendBillingReminders summary", summary);
   }
 );
@@ -574,7 +671,7 @@ export const sendBillingRemindersTest = onRequest(async (req, res) => {
     res.status(403).send("Apenas no emulator.");
     return;
   }
-  const summary = await runBillingReminders(true);
+  const summary = await runBillingReminders(true, null);
   res.status(200).json(summary);
 });
 
@@ -630,7 +727,8 @@ export const markOverdueTest = onRequest(async (req, res) => {
     body: string,
     tokens: string[],
     route: NotificationRoute,
-    data: Record<string, string> = {}
+    data: Record<string, string> = {},
+    tokenUserMap?: Map<string, string>
   ) => {
     summary.sends += 1;
     for (const tokenChunk of chunk(tokens, 500)) {
@@ -639,6 +737,7 @@ export const markOverdueTest = onRequest(async (req, res) => {
         data: { route, ...data },
         tokens: tokenChunk
       });
+      await cleanupInvalidTokens(db, tokenChunk, response, tokenUserMap);
       summary.successCount += response.successCount;
       summary.failureCount += response.failureCount;
 
@@ -731,12 +830,18 @@ export const markOverdueTest = onRequest(async (req, res) => {
     });
 
     if (memberTokens.size > 0) {
+      const tokenUserMap = new Map<string, string>();
+      memberSnapshots.forEach((snapshot) => {
+        const userTokens: string[] = snapshot.data()?.fcmTokens || [];
+        userTokens.forEach((token) => tokenUserMap.set(token, snapshot.id));
+      });
       await sendNotification(
         "Pagamento em atraso",
         `Seu pagamento do grupo ${data.name || "Grupo"} está em atraso.`,
         Array.from(memberTokens),
         "groups",
-        { groupId }
+        { groupId },
+        tokenUserMap
       );
     }
     await writeNotifications(db, memberUserIds, {
@@ -772,12 +877,15 @@ export const markOverdueTest = onRequest(async (req, res) => {
     });
 
     if (ownerTokens.length > 0) {
+      const tokenUserMap = new Map<string, string>();
+      ownerTokens.forEach((token) => tokenUserMap.set(token, ownerId));
       await sendNotification(
         "Pagamento em atraso",
         body,
         ownerTokens,
         "groups",
-        { groupId, targetUserId: ownerId }
+        { groupId, targetUserId: ownerId },
+        tokenUserMap
       );
     }
   }
@@ -818,9 +926,10 @@ export const notifyOwnerOnPaymentSubmitted = onDocumentUpdated(
     if (!ownerId) {
       return;
     }
-
     const ownerSnapshot = await admin.firestore().collection("users").doc(ownerId).get();
     const tokens: string[] = ownerSnapshot.data()?.fcmTokens || [];
+    const tokenUserMap = new Map<string, string>();
+    tokens.forEach((token) => tokenUserMap.set(token, ownerId));
 
     const memberName = after.name || "Membro";
     const groupName = groupData.name || "Grupo";
@@ -839,11 +948,12 @@ export const notifyOwnerOnPaymentSubmitted = onDocumentUpdated(
       return;
     }
 
-    await admin.messaging().sendEachForMulticast({
+    const response = await admin.messaging().sendEachForMulticast({
       notification: { title, body },
       data: { route: "groups", groupId, targetUserId: ownerId },
       tokens
     });
+    await cleanupInvalidTokens(admin.firestore(), tokens, response, tokenUserMap);
   }
 );
 
@@ -908,11 +1018,14 @@ export const notifyOwnerOnPaymentSubmittedTest = onRequest(async (req, res) => {
     return;
   }
 
+  const tokenUserMap = new Map<string, string>();
+  tokens.forEach((token) => tokenUserMap.set(token, ownerId));
   const response = await admin.messaging().sendEachForMulticast({
     notification: { title, body },
     data: { route: "groups", groupId, targetUserId: ownerId },
     tokens
   });
+  await cleanupInvalidTokens(admin.firestore(), tokens, response, tokenUserMap);
 
   res.status(200).json({
     successCount: response.successCount,

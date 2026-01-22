@@ -14,6 +14,7 @@ import UserNotifications
 
 class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
     private lazy var usersStore = UsersStore()
+    private let preferencesStore = PreferencesStore.shared
 
     func application(
         _ application: UIApplication,
@@ -23,6 +24,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
         RemoteConfigService.shared.fetchAndActivate()
         Messaging.messaging().delegate = self
         NotificationManager.shared.configure()
+        NotificationManager.shared.registerForRemoteNotificationsIfAuthorized()
         return true
     }
 
@@ -31,8 +33,14 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
     }
 
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-        guard let token = fcmToken, let userId = Auth.auth().currentUser?.uid else { return }
+        guard let token = fcmToken else { return }
+        let previousToken = preferencesStore.lastFcmToken()
+        preferencesStore.setLastFcmToken(token)
+        guard let userId = Auth.auth().currentUser?.uid else { return }
         Task {
+            if let previousToken, previousToken != token {
+                try? await usersStore.removeFCMToken(userId: userId, token: previousToken)
+            }
             try? await usersStore.updateFCMToken(userId: userId, token: token)
         }
     }

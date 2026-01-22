@@ -95,4 +95,15 @@ final class UsersStore {
             .document(userId)
             .setData(data, merge: true)
     }
+
+    func removeFCMToken(userId: String, token: String) async throws {
+        let data: [String: Any] = [
+            "fcmTokens": FieldValue.arrayRemove([token]),
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+
+        try await db.collection("users")
+            .document(userId)
+            .setData(data, merge: true)
+    }
 }

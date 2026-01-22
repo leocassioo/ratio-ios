@@ -16,6 +16,7 @@ struct SettingsView: View {
     @AppStorage(PreferencesStore.PrefKey.appLanguage) private var appLanguageRaw: String = AppLanguage.system.rawValue
     @AppStorage(PreferencesStore.PrefKey.primaryCurrencyCode) private var primaryCurrencyCodeRaw: String = "BRL"
     @State private var showSignOutConfirm = false
+    @State private var isSigningOut = false
 
     private var appTheme: Binding<AppTheme> {
         Binding(
@@ -183,14 +184,32 @@ struct SettingsView: View {
             }
 
         }
+        .disabled(isSigningOut)
         .navigationTitle("Ajustes")
         .alert("Sair da conta?", isPresented: $showSignOutConfirm) {
             Button("Cancelar", role: .cancel) {}
             Button("Sair", role: .destructive) {
+                isSigningOut = true
                 authViewModel.signOut()
             }
         } message: {
             Text("Você precisará fazer login novamente para acessar o app.")
+        }
+        .overlay {
+            if isSigningOut {
+                ZStack {
+                    Color.black.opacity(0.2)
+                        .ignoresSafeArea()
+                    ProgressView("Saindo...")
+                        .padding(24)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+            }
+        }
+        .onReceive(authViewModel.$user) { user in
+            if user == nil {
+                isSigningOut = false
+            }
         }
     }
 }

@@ -19,6 +19,8 @@ final class PreferencesStore {
         static let primaryCurrencyCode = "primaryCurrencyCode"
         static let pendingEmailChangeNotice = "pendingEmailChangeNotice"
         static let lastPushPromptDate = "lastPushPromptDate"
+        static let lastAuthUserId = "lastAuthUserId"
+        static let lastFcmToken = "lastFcmToken"
     }
 
     private let defaults: UserDefaults
@@ -68,5 +70,21 @@ final class PreferencesStore {
 
     func setLastPushPromptDate(_ value: String) {
         defaults.setValue(value, forKey: PrefKey.lastPushPromptDate)
+    }
+
+    func lastAuthUserId() -> String? {
+        defaults.string(forKey: PrefKey.lastAuthUserId)
+    }
+
+    func setLastAuthUserId(_ value: String?) {
+        defaults.setValue(value, forKey: PrefKey.lastAuthUserId)
+    }
+
+    func lastFcmToken() -> String? {
+        defaults.string(forKey: PrefKey.lastFcmToken)
+    }
+
+    func setLastFcmToken(_ value: String?) {
+        defaults.setValue(value, forKey: PrefKey.lastFcmToken)
     }
 }

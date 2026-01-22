@@ -7,6 +7,7 @@
 
 import FirebaseAuth
 import FirebaseCore
+import FirebaseMessaging
 import FirebaseStorage
 import AuthenticationServices
 import GoogleSignIn
@@ -23,6 +24,7 @@ final class AuthViewModel: ObservableObject {
 
     private var handle: AuthStateDidChangeListenerHandle?
     private let usersStore = UsersStore()
+    private let preferencesStore = PreferencesStore.shared
 
     init() {
         handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
@@ -30,9 +32,13 @@ final class AuthViewModel: ObservableObject {
             if let user {
                 Task {
                     await self?.fetchProfile(userId: user.uid)
+                    await self?.handleAuthChange(currentUserId: user.uid)
                 }
             } else {
                 self?.userPixKey = nil
+                Task {
+                    await self?.handleAuthChange(currentUserId: nil)
+                }
             }
         }
     }
@@ -90,10 +96,17 @@ final class AuthViewModel: ObservableObject {
     }
 
     func signOut() {
-        do {
-            try Auth.auth().signOut()
-        } catch {
-            errorMessage = error.localizedDescription
+        Task {
+            await handleAuthChange(currentUserId: nil, beforeSignOut: true)
+            await deleteCurrentFCMToken()
+            preferencesStore.setLastFcmToken(nil)
+            do {
+                try Auth.auth().signOut()
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                }
+            }
         }
     }
 
@@ -234,7 +247,8 @@ final class AuthViewModel: ObservableObject {
 
         Task { [weak self] in
             do {
-                _ = try await operation()
+                let result = try await operation()
+                await self?.handleAuthChange(currentUserId: result.user.uid)
                 await MainActor.run {
                     self?.isLoading = false
                 }
@@ -271,6 +285,48 @@ final class AuthViewModel: ObservableObject {
         )
         return renderer.image { _ in
             image.draw(in: CGRect(origin: origin, size: newSize))
+        }
+    }
+
+    private func handleAuthChange(currentUserId: String?, beforeSignOut: Bool = false) async {
+        let previousUserId = preferencesStore.lastAuthUserId()
+        NotificationManager.shared.registerForRemoteNotificationsIfAuthorized()
+        let token = await fetchFCMToken()
+
+        if let previousUserId, previousUserId != currentUserId, let token {
+            try? await usersStore.removeFCMToken(userId: previousUserId, token: token)
+        }
+
+        if let currentUserId, let token {
+            try? await usersStore.updateFCMToken(userId: currentUserId, token: token)
+            preferencesStore.setLastAuthUserId(currentUserId)
+        } else if beforeSignOut {
+            if let previousUserId, let token {
+                try? await usersStore.removeFCMToken(userId: previousUserId, token: token)
+            }
+            preferencesStore.setLastAuthUserId(nil)
+        } else {
+            preferencesStore.setLastAuthUserId(nil)
+        }
+    }
+
+    private func fetchFCMToken() async -> String? {
+        await withCheckedContinuation { continuation in
+            Messaging.messaging().token { token, _ in
+                if let token {
+                    continuation.resume(returning: token)
+                } else {
+                    continuation.resume(returning: self.preferencesStore.lastFcmToken())
+                }
+            }
+        }
+    }
+
+    private func deleteCurrentFCMToken() async {
+        await withCheckedContinuation { continuation in
+            Messaging.messaging().deleteToken { _ in
+                continuation.resume()
+            }
         }
     }
 }

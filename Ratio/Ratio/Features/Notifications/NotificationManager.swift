@@ -20,6 +20,17 @@ final class NotificationManager {
         UNUserNotificationCenter.current().delegate = NotificationCenterDelegate.shared
     }
 
+    func registerForRemoteNotificationsIfAuthorized() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            let authorizedStatuses: [UNAuthorizationStatus] = [.authorized, .provisional, .ephemeral]
+            if authorizedStatuses.contains(settings.authorizationStatus) {
+                DispatchQueue.main.async {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+            }
+        }
+    }
+
     func requestAuthorization(completion: ((Bool) -> Void)? = nil) {
         UNUserNotificationCenter.current()
             .requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
