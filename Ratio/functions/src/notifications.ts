@@ -50,6 +50,24 @@ const INVALID_TOKEN_CODES = new Set([
   "messaging/invalid-argument"
 ]);
 
+const DEFAULT_TEST_USER_ID = "oUx9cdThAMgCzywmECRlbpRihVE2";
+
+const resolveUserId = (value?: string | string[] | null): string => {
+  if (Array.isArray(value)) {
+    return value[0] ?? DEFAULT_TEST_USER_ID;
+  }
+  return value && value.trim().length > 0 ? value.trim() : DEFAULT_TEST_USER_ID;
+};
+
+const allowedUserIdsForEnv = (): Set<string> => {
+  const raw = process.env.TEST_USER_IDS ?? process.env.TEST_USER_ID ?? DEFAULT_TEST_USER_ID;
+  const ids = raw
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  return new Set(ids);
+};
+
 const chunk = <T,>(items: T[], size: number): T[][] => {
   const result: T[][] = [];
   for (let index = 0; index < items.length; index += size) {
@@ -661,7 +679,8 @@ const runBillingReminders = async (
 export const sendBillingReminders = onSchedule(
   { schedule: "every day 09:00", timeZone: "America/Sao_Paulo" },
   async () => {
-    const summary = await runBillingReminders(false, null);
+    const allowedUserIds = allowedUserIdsForEnv();
+    const summary = await runBillingReminders(false, allowedUserIds);
     console.log("sendBillingReminders summary", summary);
   }
 );
@@ -671,7 +690,8 @@ export const sendBillingRemindersTest = onRequest(async (req, res) => {
     res.status(403).send("Apenas no emulator.");
     return;
   }
-  const summary = await runBillingReminders(true, null);
+  const allowedUserIds = new Set([resolveUserId(req.query.userId as string | undefined)]);
+  const summary = await runBillingReminders(true, allowedUserIds);
   res.status(200).json(summary);
 });
 
@@ -682,6 +702,7 @@ export const markOverdueTest = onRequest(async (req, res) => {
   }
 
   const groupId = (req.query.groupId as string) || (req.body?.groupId as string);
+  const targetUserId = resolveUserId(req.query.userId as string | undefined);
   if (!groupId) {
     res.status(400).json({ error: "groupId é obrigatório." });
     return;
@@ -819,9 +840,10 @@ export const markOverdueTest = onRequest(async (req, res) => {
     .map((memberDoc) => memberDoc.data().userId as string | undefined)
     .filter((userId): userId is string => Boolean(userId));
 
-  if (memberUserIds.length > 0) {
+  const filteredMemberUserIds = memberUserIds.filter((id) => id == targetUserId);
+  if (filteredMemberUserIds.length > 0) {
     const memberSnapshots = await Promise.all(
-      memberUserIds.map((userId) => db.collection("users").doc(userId).get())
+      filteredMemberUserIds.map((userId) => db.collection("users").doc(userId).get())
     );
     const memberTokens = new Set<string>();
     memberSnapshots.forEach((snapshot) => {
@@ -844,7 +866,7 @@ export const markOverdueTest = onRequest(async (req, res) => {
         tokenUserMap
       );
     }
-    await writeNotifications(db, memberUserIds, {
+    await writeNotifications(db, filteredMemberUserIds, {
       title: "Pagamento em atraso",
       body: `Seu pagamento do grupo ${data.name || "Grupo"} está em atraso.`,
       route: "groups",
@@ -853,7 +875,7 @@ export const markOverdueTest = onRequest(async (req, res) => {
     });
   }
 
-  if (ownerId) {
+  if (ownerId && ownerId == targetUserId) {
     const ownerSnapshot = await db.collection("users").doc(ownerId).get();
     const ownerTokens: string[] = ownerSnapshot.data()?.fcmTokens || [];
     const count = overdueMemberIds.length;
@@ -926,6 +948,11 @@ export const notifyOwnerOnPaymentSubmitted = onDocumentUpdated(
     if (!ownerId) {
       return;
     }
+    const allowedUserIds = allowedUserIdsForEnv();
+    if (allowedUserIds.size > 0 && !allowedUserIds.has(ownerId)) {
+      return;
+    }
+
     const ownerSnapshot = await admin.firestore().collection("users").doc(ownerId).get();
     const tokens: string[] = ownerSnapshot.data()?.fcmTokens || [];
     const tokenUserMap = new Map<string, string>();
@@ -965,6 +992,7 @@ export const notifyOwnerOnPaymentSubmittedTest = onRequest(async (req, res) => {
 
   const groupId = (req.query.groupId as string) || (req.body?.groupId as string);
   const memberId = (req.query.memberId as string) || (req.body?.memberId as string);
+  const targetUserId = resolveUserId(req.query.userId as string | undefined);
 
   if (!groupId || !memberId) {
     res.status(400).json({ error: "groupId e memberId são obrigatórios." });
@@ -1004,6 +1032,35 @@ export const notifyOwnerOnPaymentSubmittedTest = onRequest(async (req, res) => {
   const groupName = groupData.name || "Grupo";
   const title = "Pagamento enviado";
   const body = `${memberName} enviou o comprovante do grupo ${groupName}.`;
+
+  if (targetUserId !== ownerId) {
+    const overrideSnapshot = await admin.firestore().collection("users").doc(targetUserId).get();
+    const overrideTokens: string[] = overrideSnapshot.data()?.fcmTokens || [];
+    const tokenUserMap = new Map<string, string>();
+    overrideTokens.forEach((token) => tokenUserMap.set(token, targetUserId));
+    await writeNotifications(admin.firestore(), [targetUserId], {
+      title,
+      body,
+      route: "groups",
+      type: "payment_submitted",
+      data: { groupId, targetUserId }
+    });
+    if (overrideTokens.length == 0) {
+      res.status(200).json({ message: "Usuário alvo sem tokens." });
+      return;
+    }
+    const response = await admin.messaging().sendEachForMulticast({
+      notification: { title, body },
+      data: { route: "groups", groupId, targetUserId },
+      tokens: overrideTokens
+    });
+    await cleanupInvalidTokens(admin.firestore(), overrideTokens, response, tokenUserMap);
+    res.status(200).json({
+      successCount: response.successCount,
+      failureCount: response.failureCount
+    });
+    return;
+  }
 
   await writeNotifications(admin.firestore(), [ownerId], {
     title,
