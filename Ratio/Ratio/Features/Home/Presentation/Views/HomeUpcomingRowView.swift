@@ -17,6 +17,7 @@ struct HomeUpcomingRowView: View {
         HStack(spacing: 12) {
             Text(item.initials)
                 .font(.subheadline.weight(.bold))
+                .foregroundStyle(iconForeground)
                 .frame(width: 38, height: 38)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -63,7 +64,11 @@ struct HomeUpcomingRowView: View {
     }
 
     private var iconBackground: Color {
-        colorScheme == .dark ? Color(.tertiarySystemBackground) : Color(.systemBackground)
+        colorScheme == .dark ? Color(.tertiarySystemBackground) : Color(.secondarySystemBackground)
+    }
+
+    private var iconForeground: Color {
+        colorScheme == .dark ? .white : .primary
     }
 
     private var borderOpacity: Double {
