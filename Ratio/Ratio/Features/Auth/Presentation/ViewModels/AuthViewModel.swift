@@ -17,6 +17,7 @@ import Combine
 
 final class AuthViewModel: ObservableObject {
     @Published private(set) var user: User?
+    @Published private(set) var isAuthReady = false
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var passwordResetSent = false
@@ -29,6 +30,9 @@ final class AuthViewModel: ObservableObject {
     init() {
         handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             self?.user = user
+            DispatchQueue.main.async {
+                self?.isAuthReady = true
+            }
             if let user {
                 Task {
                     await self?.fetchProfile(userId: user.uid)

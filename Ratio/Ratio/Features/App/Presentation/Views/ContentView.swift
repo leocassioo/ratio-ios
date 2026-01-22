@@ -14,7 +14,10 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if authViewModel.user != nil {
+            if !authViewModel.isAuthReady {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if authViewModel.user != nil {
                 MainTabView()
             } else {
                 NavigationStack(path: $router.authPath) {

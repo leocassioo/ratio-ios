@@ -25,6 +25,7 @@ struct OnboardingView: View {
             ("checkmark.circle", "Pronto para começar", "Cadastre sua primeira assinatura e acompanhe tudo em um só lugar.")
         ]
         let totalPages = pages.count
+        let lastPageIndex = totalPages - 1
         let indicatorPages = showsFinishButton ? totalPages - 1 : totalPages
 
         ZStack {
@@ -70,8 +71,42 @@ struct OnboardingView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
 
-            VStack {
+            VStack(spacing: 12) {
                 Spacer()
+                if !(showsFinishButton && currentPage == lastPageIndex) {
+                    HStack {
+                        Button {
+                            withAnimation {
+                                currentPage = max(0, currentPage - 1)
+                            }
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.title2.weight(.semibold))
+                        }
+                        .buttonStyle(.plain)
+                        .contentShape(Rectangle())
+                        .frame(width: 44, height: 44)
+                        .foregroundStyle(currentPage == 0 ? .secondary : Color.accentColor)
+                        .disabled(currentPage == 0)
+
+                        Spacer()
+
+                        Button {
+                            withAnimation {
+                                currentPage = min(lastPageIndex, currentPage + 1)
+                            }
+                        } label: {
+                            Image(systemName: "chevron.right")
+                                .font(.title2.weight(.semibold))
+                        }
+                        .buttonStyle(.plain)
+                        .contentShape(Rectangle())
+                        .frame(width: 44, height: 44)
+                        .foregroundStyle(currentPage == lastPageIndex ? .secondary : Color.accentColor)
+                        .disabled(currentPage == lastPageIndex)
+                    }
+                    .padding(.horizontal, 32)
+                }
                 if currentPage < indicatorPages {
                     HStack(spacing: 8) {
                         ForEach(0..<indicatorPages, id: \.self) { index in

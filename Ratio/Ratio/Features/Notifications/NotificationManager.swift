@@ -71,7 +71,7 @@ final class NotificationCenterDelegate: NSObject, UNUserNotificationCenterDelega
             completionHandler([])
             return
         }
-        completionHandler([.banner, .sound, .badge])
+        completionHandler([.banner, .list, .sound, .badge])
     }
 
     private func shouldHandleNotification(userInfo: [AnyHashable: Any]) -> Bool {
