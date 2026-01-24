@@ -69,9 +69,9 @@ final class GroupPaymentsViewModel: ObservableObject {
 
     private func prepareReceiptData(_ data: Data) -> Data {
         guard let image = UIImage(data: data) else { return data }
-        let maxDimension: CGFloat = 1600
+        let maxDimension: CGFloat = 1024
         let resized = resizeImage(image, maxDimension: maxDimension)
-        return resized.jpegData(compressionQuality: 0.8) ?? data
+        return compressImageData(resized, maxBytes: 100_000) ?? data
     }
 
     private func resizeImage(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
@@ -85,5 +85,15 @@ final class GroupPaymentsViewModel: ObservableObject {
         return renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: newSize))
         }
+    }
+
+    private func compressImageData(_ image: UIImage, maxBytes: Int) -> Data? {
+        var quality: CGFloat = 0.45
+        var data = image.jpegData(compressionQuality: quality)
+        while let current = data, current.count > maxBytes, quality > 0.3 {
+            quality -= 0.08
+            data = image.jpegData(compressionQuality: quality)
+        }
+        return data
     }
 }

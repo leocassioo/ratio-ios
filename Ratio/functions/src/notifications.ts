@@ -50,24 +50,6 @@ const INVALID_TOKEN_CODES = new Set([
   "messaging/invalid-argument"
 ]);
 
-const DEFAULT_TEST_USER_ID = "oUx9cdThAMgCzywmECRlbpRihVE2";
-
-const resolveUserId = (value?: string | string[] | null): string => {
-  if (Array.isArray(value)) {
-    return value[0] ?? DEFAULT_TEST_USER_ID;
-  }
-  return value && value.trim().length > 0 ? value.trim() : DEFAULT_TEST_USER_ID;
-};
-
-const allowedUserIdsForEnv = (): Set<string> => {
-  const raw = process.env.TEST_USER_IDS ?? process.env.TEST_USER_ID ?? DEFAULT_TEST_USER_ID;
-  const ids = raw
-    .split(",")
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
-  return new Set(ids);
-};
-
 const chunk = <T,>(items: T[], size: number): T[][] => {
   const result: T[][] = [];
   for (let index = 0; index < items.length; index += size) {
