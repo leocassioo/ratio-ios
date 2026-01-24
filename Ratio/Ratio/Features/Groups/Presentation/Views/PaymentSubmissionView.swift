@@ -12,6 +12,7 @@ import UIKit
 struct PaymentSubmissionView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = GroupPaymentsViewModel()
+    @AppStorage(PreferencesStore.PrefKey.primaryCurrencyCode) private var primaryCurrencyCodeRaw: String = "BRL"
 
     let groupId: String
     let memberId: String
@@ -31,6 +32,19 @@ struct PaymentSubmissionView: View {
                     Spacer()
                     Text(formattedCurrency(amount, currencyCode: currencyCode))
                         .font(.headline)
+                }
+                if let estimated = viewModel.estimatedAmount(
+                    for: amount,
+                    currencyCode: currencyCode,
+                    preferredCurrencyCode: primaryCurrencyCodeRaw
+                ), currencyCode != primaryCurrencyCodeRaw {
+                    HStack {
+                        Text("Estimado")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text("≈ \(formattedCurrency(estimated, currencyCode: primaryCurrencyCodeRaw))")
+                            .font(.subheadline.weight(.semibold))
+                    }
                 }
             }
 
@@ -85,6 +99,12 @@ struct PaymentSubmissionView: View {
             }
         }
         .navigationTitle("Confirmar pagamento")
+        .onAppear {
+            viewModel.startListeningRates()
+        }
+        .onDisappear {
+            viewModel.stopListeningRates()
+        }
         .onChange(of: selectedPhoto) { _, newValue in
             guard let newValue else {
                 receiptData = nil

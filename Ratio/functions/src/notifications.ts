@@ -661,8 +661,7 @@ const runBillingReminders = async (
 export const sendBillingReminders = onSchedule(
   { schedule: "every day 09:00", timeZone: "America/Sao_Paulo" },
   async () => {
-    const allowedUserIds = allowedUserIdsForEnv();
-    const summary = await runBillingReminders(false, allowedUserIds);
+    const summary = await runBillingReminders(false, null);
     console.log("sendBillingReminders summary", summary);
   }
 );
@@ -672,7 +671,8 @@ export const sendBillingRemindersTest = onRequest(async (req, res) => {
     res.status(403).send("Apenas no emulator.");
     return;
   }
-  const allowedUserIds = new Set([resolveUserId(req.query.userId as string | undefined)]);
+  const targetUserId = (req.query.userId as string | undefined)?.trim();
+  const allowedUserIds = targetUserId ? new Set([targetUserId]) : null;
   const summary = await runBillingReminders(true, allowedUserIds);
   res.status(200).json(summary);
 });
@@ -684,7 +684,7 @@ export const markOverdueTest = onRequest(async (req, res) => {
   }
 
   const groupId = (req.query.groupId as string) || (req.body?.groupId as string);
-  const targetUserId = resolveUserId(req.query.userId as string | undefined);
+  const targetUserId = (req.query.userId as string | undefined)?.trim();
   if (!groupId) {
     res.status(400).json({ error: "groupId é obrigatório." });
     return;
@@ -822,7 +822,9 @@ export const markOverdueTest = onRequest(async (req, res) => {
     .map((memberDoc) => memberDoc.data().userId as string | undefined)
     .filter((userId): userId is string => Boolean(userId));
 
-  const filteredMemberUserIds = memberUserIds.filter((id) => id == targetUserId);
+  const filteredMemberUserIds = targetUserId
+    ? memberUserIds.filter((id) => id == targetUserId)
+    : memberUserIds;
   if (filteredMemberUserIds.length > 0) {
     const memberSnapshots = await Promise.all(
       filteredMemberUserIds.map((userId) => db.collection("users").doc(userId).get())
@@ -857,7 +859,7 @@ export const markOverdueTest = onRequest(async (req, res) => {
     });
   }
 
-  if (ownerId && ownerId == targetUserId) {
+  if (ownerId && (!targetUserId || ownerId == targetUserId)) {
     const ownerSnapshot = await db.collection("users").doc(ownerId).get();
     const ownerTokens: string[] = ownerSnapshot.data()?.fcmTokens || [];
     const count = overdueMemberIds.length;
@@ -930,11 +932,6 @@ export const notifyOwnerOnPaymentSubmitted = onDocumentUpdated(
     if (!ownerId) {
       return;
     }
-    const allowedUserIds = allowedUserIdsForEnv();
-    if (allowedUserIds.size > 0 && !allowedUserIds.has(ownerId)) {
-      return;
-    }
-
     const ownerSnapshot = await admin.firestore().collection("users").doc(ownerId).get();
     const tokens: string[] = ownerSnapshot.data()?.fcmTokens || [];
     const tokenUserMap = new Map<string, string>();
@@ -974,7 +971,7 @@ export const notifyOwnerOnPaymentSubmittedTest = onRequest(async (req, res) => {
 
   const groupId = (req.query.groupId as string) || (req.body?.groupId as string);
   const memberId = (req.query.memberId as string) || (req.body?.memberId as string);
-  const targetUserId = resolveUserId(req.query.userId as string | undefined);
+  const targetUserId = (req.query.userId as string | undefined)?.trim();
 
   if (!groupId || !memberId) {
     res.status(400).json({ error: "groupId e memberId são obrigatórios." });
@@ -1015,7 +1012,7 @@ export const notifyOwnerOnPaymentSubmittedTest = onRequest(async (req, res) => {
   const title = "Pagamento enviado";
   const body = `${memberName} enviou o comprovante do grupo ${groupName}.`;
 
-  if (targetUserId !== ownerId) {
+  if (targetUserId && targetUserId !== ownerId) {
     const overrideSnapshot = await admin.firestore().collection("users").doc(targetUserId).get();
     const overrideTokens: string[] = overrideSnapshot.data()?.fcmTokens || [];
     const tokenUserMap = new Map<string, string>();

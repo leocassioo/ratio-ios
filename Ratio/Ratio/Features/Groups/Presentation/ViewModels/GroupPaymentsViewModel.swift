@@ -5,25 +5,38 @@
 //  Created by Codex on 08/01/26.
 //
 
+import Combine
+import FirebaseFirestore
 import Foundation
 import UIKit
-import Combine
 
 @MainActor
 final class GroupPaymentsViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
     @Published var userPixKey: String?
+    @Published private(set) var usdRate: ExchangeRate?
+    @Published private(set) var eurRate: ExchangeRate?
 
     private let store: GroupPaymentsStore
     private let usersStore: UsersStore
+    private let exchangeRateStore: ExchangeRateStore
+    private var usdRateListener: ListenerRegistration?
+    private var eurRateListener: ListenerRegistration?
 
     init(
         store: GroupPaymentsStore? = nil,
-        usersStore: UsersStore = UsersStore()
+        usersStore: UsersStore = UsersStore(),
+        exchangeRateStore: ExchangeRateStore? = nil
     ) {
         self.store = store ?? GroupPaymentsStore()
         self.usersStore = usersStore
+        self.exchangeRateStore = exchangeRateStore ?? ExchangeRateStore()
+    }
+
+    deinit {
+        usdRateListener?.remove()
+        eurRateListener?.remove()
     }
 
     func submitPayment(groupId: String, memberId: String, receiptData: Data?) async {
@@ -67,11 +80,100 @@ final class GroupPaymentsViewModel: ObservableObject {
         }
     }
 
+    func startListeningRates() {
+        usdRateListener?.remove()
+        eurRateListener?.remove()
+
+        usdRateListener = exchangeRateStore.listenUsdRate { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let rate):
+                    self?.usdRate = rate
+                case .failure:
+                    self?.usdRate = nil
+                }
+            }
+        }
+
+        eurRateListener = exchangeRateStore.listenEurRate { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let rate):
+                    self?.eurRate = rate
+                case .failure:
+                    self?.eurRate = nil
+                }
+            }
+        }
+    }
+
+    func stopListeningRates() {
+        usdRateListener?.remove()
+        eurRateListener?.remove()
+        usdRateListener = nil
+        eurRateListener = nil
+    }
+
+    func estimatedAmount(for amount: Double, currencyCode: String, preferredCurrencyCode: String) -> Double? {
+        convert(amount: amount, from: currencyCode, to: preferredCurrencyCode)
+    }
+
     private func prepareReceiptData(_ data: Data) -> Data {
         guard let image = UIImage(data: data) else { return data }
         let maxDimension: CGFloat = 1024
         let resized = resizeImage(image, maxDimension: maxDimension)
         return compressImageData(resized, maxBytes: 100_000) ?? data
+    }
+
+    private func convert(amount: Double, from: String, to: String) -> Double? {
+        if from == to {
+            return nil
+        }
+        let usdRate = usdRate
+        let eurRate = eurRate
+
+        func toBRL(_ amount: Double, currency: String) -> Double? {
+            switch currency {
+            case "USD":
+                guard let rate = usdRate, rate.rate > 0 else { return nil }
+                let base = amount * rate.rate
+                let margin = base * max(rate.marginPct, 0)
+                return base + margin
+            case "EUR":
+                guard let rate = eurRate, rate.rate > 0 else { return nil }
+                let base = amount * rate.rate
+                let margin = base * max(rate.marginPct, 0)
+                return base + margin
+            case "BRL":
+                return amount
+            default:
+                return nil
+            }
+        }
+
+        func fromBRL(_ amount: Double, currency: String) -> Double? {
+            switch currency {
+            case "USD":
+                guard let rate = usdRate, rate.rate > 0 else { return nil }
+                return amount / rate.rate
+            case "EUR":
+                guard let rate = eurRate, rate.rate > 0 else { return nil }
+                return amount / rate.rate
+            case "BRL":
+                return amount
+            default:
+                return nil
+            }
+        }
+
+        if from == "BRL" {
+            return fromBRL(amount, currency: to)
+        }
+        if to == "BRL" {
+            return toBRL(amount, currency: from)
+        }
+        guard let brlAmount = toBRL(amount, currency: from) else { return nil }
+        return fromBRL(brlAmount, currency: to)
     }
 
     private func resizeImage(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
