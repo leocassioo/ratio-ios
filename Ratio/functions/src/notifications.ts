@@ -215,6 +215,137 @@ const runBillingReminders = async (
     return "vence em 5 dias.";
   };
 
+  const daysBetween = (from: Date, to: Date): number => {
+    const fromUtc = startOfDayUtc(from);
+    const toUtc = startOfDayUtc(to);
+    return Math.round((toUtc - fromUtc) / (24 * 60 * 60 * 1000));
+  };
+
+  const sendOverdueRemindersIfNeeded = async (
+    groupDoc: QueryDocumentSnapshot,
+    newlyOverdueMemberIds: Set<string>
+  ) => {
+    const data = groupDoc.data();
+    const groupName = data.name || "Grupo";
+    const ownerId = data.ownerId as string | undefined;
+    const groupRef = groupDoc.ref;
+    const membersSnapshot = await groupRef.collection("members").get();
+
+    const now = new Date();
+    const remindMemberUserIds: string[] = [];
+    const remindMemberNames: string[] = [];
+    const batch = db.batch();
+    let hasMissingOverdueDate = false;
+
+    membersSnapshot.docs.forEach((memberDoc) => {
+      const memberData = memberDoc.data();
+      const role = (memberData.role as string | undefined) ?? "";
+      const userId = memberData.userId as string | undefined;
+      const status = (memberData.status as string | undefined) ?? "pending";
+      const isOwner = role == "owner" || (ownerId && userId == ownerId);
+
+      if (!userId || isOwner || status != "overdue") {
+        return;
+      }
+      if (newlyOverdueMemberIds.has(memberDoc.id)) {
+        return;
+      }
+
+      const overdueStartedAt = memberData.overdueStartedAt as Timestamp | undefined;
+      if (!overdueStartedAt) {
+        batch.update(memberDoc.ref, {
+          overdueStartedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp()
+        });
+        hasMissingOverdueDate = true;
+        return;
+      }
+
+      const daysSince = daysBetween(overdueStartedAt.toDate(), now);
+      if (daysSince < 1 || daysSince > 2) {
+        return;
+      }
+
+      remindMemberUserIds.push(userId);
+      remindMemberNames.push((memberData.name as string | undefined) ?? "Membro");
+    });
+
+    if (hasMissingOverdueDate) {
+      await batch.commit();
+    }
+
+    if (remindMemberUserIds.length == 0) {
+      return;
+    }
+
+    const memberSnapshots = await Promise.all(
+      Array.from(new Set(remindMemberUserIds)).map((userId) => db.collection("users").doc(userId).get())
+    );
+    const memberTokens = new Set<string>();
+    const tokenUserMap = new Map<string, string>();
+    memberSnapshots.forEach((snapshot) => {
+      const tokens: string[] = snapshot.data()?.fcmTokens || [];
+      tokens.forEach((token) => {
+        memberTokens.add(token);
+        tokenUserMap.set(token, snapshot.id);
+      });
+    });
+
+    const memberBody = `Seu pagamento do grupo ${groupName} continua em atraso.`;
+    await writeNotifications(db, remindMemberUserIds, {
+      title: "Pagamento em atraso",
+      body: memberBody,
+      route: "groups",
+      type: "member_overdue",
+      data: { groupId: groupDoc.id }
+    });
+    if (memberTokens.size > 0) {
+      await sendNotification(
+        "Pagamento em atraso",
+        memberBody,
+        Array.from(memberTokens),
+        "groups",
+        { groupId: groupDoc.id },
+        tokenUserMap
+      );
+    }
+
+    if (ownerId) {
+      const ownerSnapshot = await db.collection("users").doc(ownerId).get();
+      const ownerTokens: string[] = ownerSnapshot.data()?.fcmTokens || [];
+      const uniqueNames = Array.from(new Set(remindMemberNames));
+      const list =
+        uniqueNames.length <= 3
+          ? uniqueNames.join(", ")
+          : `${uniqueNames.slice(0, 3).join(", ")} e mais ${uniqueNames.length - 3}`;
+      const body =
+        uniqueNames.length == 1
+          ? `${list} continua em atraso no grupo ${groupName}.`
+          : `${list} continuam em atraso no grupo ${groupName}.`;
+
+      await writeNotifications(db, [ownerId], {
+        title: "Pagamento em atraso",
+        body,
+        route: "groups",
+        type: "owner_overdue",
+        data: { groupId: groupDoc.id, targetUserId: ownerId }
+      });
+
+      if (ownerTokens.length > 0) {
+        const ownerTokenMap = new Map<string, string>();
+        ownerTokens.forEach((token) => ownerTokenMap.set(token, ownerId));
+        await sendNotification(
+          "Pagamento em atraso",
+          body,
+          ownerTokens,
+          "groups",
+          { groupId: groupDoc.id, targetUserId: ownerId },
+          ownerTokenMap
+        );
+      }
+    }
+  };
+
   const sendNotification = async (
     title: string,
     body: string,
@@ -278,6 +409,7 @@ const runBillingReminders = async (
 
       batch.update(memberDoc.ref, {
         status: "pending",
+        overdueStartedAt: FieldValue.delete(),
         receiptURL: FieldValue.delete(),
         submittedAt: FieldValue.delete(),
         approvedAt: FieldValue.delete(),
@@ -313,9 +445,13 @@ const runBillingReminders = async (
     groupDoc: QueryDocumentSnapshot,
     offset: number,
     force: boolean = false
-  ) => {
+  ): Promise<{
+    memberIds: string[];
+    userIds: string[];
+    names: string[];
+  }> => {
     if (!force && offset >= 0) {
-      return;
+      return { memberIds: [], userIds: [], names: [] };
     }
 
     const data = groupDoc.data();
@@ -325,6 +461,7 @@ const runBillingReminders = async (
 
     let hasMemberUpdates = false;
     const overdueMemberIds: string[] = [];
+    const overdueMemberUserIds: string[] = [];
     const overdueMemberNames: string[] = [];
     const batch = db.batch();
 
@@ -341,9 +478,13 @@ const runBillingReminders = async (
 
       hasMemberUpdates = true;
       overdueMemberIds.push(memberDoc.id);
+      if (userId) {
+        overdueMemberUserIds.push(userId);
+      }
       overdueMemberNames.push((memberData.name as string | undefined) ?? "Membro");
       batch.update(memberDoc.ref, {
         status: "overdue",
+        overdueStartedAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp()
       });
     });
@@ -367,7 +508,7 @@ const runBillingReminders = async (
     });
 
     if (!hasMemberUpdates && !previewChanged) {
-      return;
+      return { memberIds: [], userIds: [], names: [] };
     }
 
     batch.update(groupRef, {
@@ -452,6 +593,11 @@ const runBillingReminders = async (
         });
       }
     }
+    return {
+      memberIds: overdueMemberIds,
+      userIds: overdueMemberUserIds.length > 0 ? overdueMemberUserIds : memberUserIds,
+      names: overdueMemberNames
+    };
   };
 
   for (const userDoc of userDocs) {
@@ -603,12 +749,12 @@ const runBillingReminders = async (
         offset
       });
     }
+    const newlyOverdue = await markGroupStatusesOverdueIfNeeded(groupDoc, offset);
+    await sendOverdueRemindersIfNeeded(groupDoc, new Set(newlyOverdue.memberIds));
     if (!validOffsets.has(offset)) {
-      await markGroupStatusesOverdueIfNeeded(groupDoc, offset);
       continue;
     }
 
-    await markGroupStatusesOverdueIfNeeded(groupDoc, offset);
     await resetGroupStatusesIfNeeded(groupDoc, nextBillingDate, offset);
 
     const memberIds = (data.memberIds as string[] | undefined) ?? [];
@@ -782,6 +928,7 @@ export const markOverdueTest = onRequest(async (req, res) => {
     overdueMemberNames.push((memberData.name as string | undefined) ?? "Membro");
     batch.update(memberDoc.ref, {
       status: "overdue",
+      overdueStartedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp()
     });
   });
