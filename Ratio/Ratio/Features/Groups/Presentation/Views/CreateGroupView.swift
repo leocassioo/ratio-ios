@@ -20,9 +20,12 @@ struct CreateGroupView: View {
     @State private var groupName = ""
     @State private var selectedSubscriptionId: String?
     @State private var totalAmountValue: Double = 0
+    @State private var totalAmountText = ""
     @State private var currencyCode = "BRL"
     @State private var billingPeriodLabel = ""
     @State private var billingDay = 1
+    @State private var manualPeriod: SubscriptionPeriod = .monthly
+    @State private var groupCategory: GroupCategory = .other
     @State private var notes = ""
     @State private var serviceLogin = ""
     @State private var servicePassword = ""
@@ -45,6 +48,8 @@ struct CreateGroupView: View {
     @State private var didCopyToken = false
     @State private var showSubscriptionInUseAlert = false
     @State private var subscriptionInUseName = ""
+    @State private var didEditBillingDay = false
+    @State private var isSettingBillingDay = false
 
     init(viewModel: GroupsViewModel, ownerId: String, ownerName: String) {
         self.viewModel = viewModel
@@ -115,6 +120,26 @@ struct CreateGroupView: View {
                                 await generateInvite(groupId: groupId, groupName: groupName)
                                 showInviteSheet = true
                             }
+                        } else {
+                            let normalizedMembers = normalizedMemberList()
+                            if let groupId = await viewModel.createGroupManual(
+                                name: groupName,
+                                category: groupCategory,
+                                totalAmount: totalAmountValue,
+                                currencyCode: currencyCode,
+                                period: manualPeriod,
+                                billingDay: billingDay,
+                                notes: notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes,
+                                serviceLogin: serviceLogin.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : serviceLogin,
+                                servicePassword: servicePassword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : servicePassword,
+                                pixKey: pixKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : pixKey,
+                                ownerPhoneNumber: ownerPhoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : ownerPhoneNumber,
+                                members: normalizedMembers,
+                                ownerId: ownerId
+                            ) {
+                                await generateInvite(groupId: groupId, groupName: groupName)
+                                showInviteSheet = true
+                            }
                         }
                     }
                 }
@@ -136,6 +161,12 @@ struct CreateGroupView: View {
                 ]
             }
             updateSelectedSubscription()
+            if selectedSubscription == nil {
+                setBillingDayToToday()
+            }
+            if totalAmountText.isEmpty, totalAmountValue > 0 {
+                totalAmountText = formatAmount(totalAmountValue)
+            }
             creationViewModel.startListening()
             Task {
                 if let profile = try? await UsersStore().fetchUserProfile(userId: ownerId) {
@@ -172,6 +203,11 @@ struct CreateGroupView: View {
                 applyEqualSplit()
             }
         }
+        .onChange(of: billingDay) { _, _ in
+            if !isSettingBillingDay {
+                didEditBillingDay = true
+            }
+        }
         .onChange(of: members.count) { _, _ in
             if splitEqually {
                 applyEqualSplit()
@@ -179,6 +215,15 @@ struct CreateGroupView: View {
         }
         .onChange(of: selectedSubscriptionId) { _, _ in
             updateSelectedSubscription()
+            if selectedSubscriptionId == nil, !didEditBillingDay {
+                setBillingDayToToday()
+            }
+        }
+        .onChange(of: manualPeriod) { _, newValue in
+            billingPeriodLabel = newValue.label
+            if splitEqually {
+                applyEqualSplit()
+            }
         }
         .sheet(isPresented: $showInviteSheet, onDismiss: {
             dismiss()
@@ -196,7 +241,7 @@ struct CreateGroupView: View {
         Section {
             if creationViewModel.subscriptions.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("Para criar um grupo, cadastre uma assinatura primeiro.", systemImage: "info.circle")
+                    Label("Você pode criar um grupo manual ou vincular uma assinatura.", systemImage: "info.circle")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     Button {
@@ -208,7 +253,7 @@ struct CreateGroupView: View {
                 .padding(.vertical, 4)
             }
 
-            Picker("Assinatura", selection: $selectedSubscriptionId) {
+            Picker("Assinatura (opcional)", selection: $selectedSubscriptionId) {
                 Text(creationViewModel.subscriptions.isEmpty ? "Nenhuma assinatura disponível" : "Selecione uma assinatura")
                     .tag(Optional<String>.none)
                 ForEach(creationViewModel.subscriptions) { subscription in
@@ -242,10 +287,38 @@ struct CreateGroupView: View {
                     Text(subscription.category.label)
                         .foregroundStyle(.secondary)
                 }
+            } else {
+                TextField("Valor total", text: $totalAmountText)
+                    .keyboardType(.decimalPad)
+                    .onChange(of: totalAmountText) { _, newValue in
+                        let sanitized = AmountInputFormatter.sanitize(newValue)
+                        if sanitized != newValue {
+                            totalAmountText = sanitized
+                        }
+                        totalAmountValue = AmountInputFormatter.parse(sanitized) ?? 0
+                    }
 
-                Stepper(value: $billingDay, in: 1...31) {
-                    Text("Dia de cobrança do grupo: \(billingDay)")
+                Picker("Moeda", selection: $currencyCode) {
+                    ForEach(PrimaryCurrencyOption.allCases) { option in
+                        Text(option.label).tag(option.rawValue)
+                    }
                 }
+
+                Picker("Periodicidade", selection: $manualPeriod) {
+                    ForEach(SubscriptionPeriod.allCases) { period in
+                        Text(period.label).tag(period)
+                    }
+                }
+
+                Picker("Categoria", selection: $groupCategory) {
+                    ForEach(GroupCategory.allCases) { category in
+                        Text(category.label).tag(category)
+                    }
+                }
+            }
+
+            Stepper(value: $billingDay, in: 1...31) {
+                Text("Dia de cobrança do grupo: \(billingDay)")
             }
 
             Toggle("Dividir igualmente", isOn: $splitEqually)
@@ -352,8 +425,7 @@ struct CreateGroupView: View {
     private var canSubmit: Bool {
         !groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         totalAmountValue > 0 &&
-        !members.isEmpty &&
-        selectedSubscription != nil
+        !members.isEmpty
     }
 
     private func normalizedMemberList() -> [GroupMemberDraft] {
@@ -406,21 +478,30 @@ struct CreateGroupView: View {
 
     private func updateSelectedSubscription() {
         guard let subscription = selectedSubscription else {
-            totalAmountValue = 0
-            currencyCode = "BRL"
-            billingPeriodLabel = ""
-            billingDay = 1
+            if billingPeriodLabel.isEmpty {
+                billingPeriodLabel = manualPeriod.label
+            }
             return
         }
 
         totalAmountValue = subscription.amount
+        totalAmountText = formatAmount(subscription.amount)
         currencyCode = subscription.currencyCode
         billingPeriodLabel = subscription.period.label
+        manualPeriod = subscription.period
+        groupCategory = GroupCategory(rawValue: subscription.category.rawValue) ?? .other
         billingDay = Calendar.current.component(.day, from: subscription.nextBillingDate)
         if groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             groupName = subscription.name
         }
         updateSplitAmounts()
+    }
+
+    private func setBillingDayToToday() {
+        let today = Calendar.current.component(.day, from: Date())
+        isSettingBillingDay = true
+        billingDay = today
+        isSettingBillingDay = false
     }
 
     private func updateSplitAmounts() {

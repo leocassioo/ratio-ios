@@ -69,7 +69,7 @@ struct CreateSubscriptionView: View {
                 }
 
                 Picker("Periodicidade", selection: $period) {
-                    ForEach(SubscriptionPeriod.allCases) { period in
+                    ForEach(SubscriptionPeriod.allCases.filter { $0 != .oneTime }) { period in
                         Text(period.label).tag(period)
                     }
                 }

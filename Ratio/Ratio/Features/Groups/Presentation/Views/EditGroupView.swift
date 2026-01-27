@@ -17,8 +17,11 @@ struct EditGroupView: View {
     @State private var groupName: String
     @State private var selectedSubscriptionId: String?
     @State private var totalAmountValue: Double
+    @State private var totalAmountText: String
     @State private var currencyCode: String
     @State private var billingDay: Int
+    @State private var manualPeriod: SubscriptionPeriod
+    @State private var groupCategory: GroupCategory
     @State private var notes: String
     @State private var serviceLogin: String
     @State private var servicePassword: String
@@ -34,6 +37,7 @@ struct EditGroupView: View {
     @State private var didCopyToken = false
     @State private var showSubscriptionInUseAlert = false
     @State private var subscriptionInUseName = ""
+    @State private var clearedSubscription = false
     @StateObject private var creationViewModel: GroupCreationViewModel
     @StateObject private var inviteViewModel: GroupInviteViewModel
     private let isOwner: Bool
@@ -47,8 +51,12 @@ struct EditGroupView: View {
         _groupName = State(initialValue: group.name)
         _selectedSubscriptionId = State(initialValue: group.subscriptionId)
         _totalAmountValue = State(initialValue: group.totalAmount)
+        _totalAmountText = State(initialValue: AmountInputFormatter.format(group.totalAmount))
         _currencyCode = State(initialValue: group.currencyCode)
         _billingDay = State(initialValue: group.billingDay ?? 1)
+        let initialPeriod = EditGroupView.periodFromLabel(group.subscriptionPeriod ?? group.billingPeriod)
+        _manualPeriod = State(initialValue: initialPeriod)
+        _groupCategory = State(initialValue: group.category)
         _notes = State(initialValue: group.notes ?? "")
         _serviceLogin = State(initialValue: group.serviceLogin ?? "")
         _servicePassword = State(initialValue: group.servicePassword ?? "")
@@ -118,8 +126,26 @@ struct EditGroupView: View {
                                 members: normalizedMembers,
                                 ownerId: ownerId
                             )
-                            dismiss()
+                        } else {
+                            let normalizedMembers = normalizedMemberList()
+                            await viewModel.updateGroupManual(
+                                groupId: group.id,
+                                name: groupName,
+                                category: groupCategory,
+                                totalAmount: totalAmountValue,
+                                currencyCode: currencyCode,
+                                period: manualPeriod,
+                                billingDay: billingDay,
+                                notes: notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes,
+                                serviceLogin: serviceLogin.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : serviceLogin,
+                                servicePassword: servicePassword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : servicePassword,
+                                pixKey: pixKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : pixKey,
+                                ownerPhoneNumber: ownerPhoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : ownerPhoneNumber,
+                                members: normalizedMembers,
+                                ownerId: ownerId
+                            )
                         }
+                        dismiss()
                     }
                 }
                 .disabled(!canSubmit || !isOwner)
@@ -150,6 +176,16 @@ struct EditGroupView: View {
         }
         .onChange(of: selectedSubscriptionId) { _, _ in
             updateSelectedSubscription()
+            if selectedSubscriptionId == nil {
+                clearedSubscription = true
+            } else {
+                clearedSubscription = false
+            }
+        }
+        .onChange(of: manualPeriod) { _, _ in
+            if splitEqually {
+                applyEqualSplit()
+            }
         }
         .onChange(of: splitEqually) { _, newValue in
             if newValue {
@@ -177,7 +213,7 @@ struct EditGroupView: View {
         Section("Grupo") {
             TextField("Nome do grupo", text: $groupName)
 
-            Picker("Assinatura", selection: $selectedSubscriptionId) {
+            Picker("Assinatura (opcional)", selection: $selectedSubscriptionId) {
                 Text("Selecione uma assinatura").tag(Optional<String>.none)
                 ForEach(creationViewModel.subscriptions) { subscription in
                     Text(subscription.name).tag(Optional(subscription.id))
@@ -208,10 +244,38 @@ struct EditGroupView: View {
                     Text(subscription.category.label)
                         .foregroundStyle(.secondary)
                 }
+            } else {
+                TextField("Valor total", text: $totalAmountText)
+                    .keyboardType(.decimalPad)
+                    .onChange(of: totalAmountText) { _, newValue in
+                        let sanitized = AmountInputFormatter.sanitize(newValue)
+                        if sanitized != newValue {
+                            totalAmountText = sanitized
+                        }
+                        totalAmountValue = AmountInputFormatter.parse(sanitized) ?? 0
+                    }
 
-                Stepper(value: $billingDay, in: 1...31) {
-                    Text("Dia de cobrança do grupo: \(billingDay)")
+                Picker("Moeda", selection: $currencyCode) {
+                    ForEach(PrimaryCurrencyOption.allCases) { option in
+                        Text(option.label).tag(option.rawValue)
+                    }
                 }
+
+                Picker("Periodicidade", selection: $manualPeriod) {
+                    ForEach(SubscriptionPeriod.allCases) { period in
+                        Text(period.label).tag(period)
+                    }
+                }
+
+                Picker("Categoria", selection: $groupCategory) {
+                    ForEach(GroupCategory.allCases) { category in
+                        Text(category.label).tag(category)
+                    }
+                }
+            }
+
+            Stepper(value: $billingDay, in: 1...31) {
+                Text("Dia de cobrança do grupo: \(billingDay)")
             }
 
             Toggle("Dividir igualmente", isOn: $splitEqually)
@@ -381,8 +445,7 @@ struct EditGroupView: View {
     private var canSubmit: Bool {
         !groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         totalAmountValue > 0 &&
-        !members.isEmpty &&
-        selectedSubscriptionForSave != nil
+        !members.isEmpty
     }
 
     private func normalizedMemberList() -> [GroupMemberDraft] {
@@ -434,6 +497,7 @@ struct EditGroupView: View {
         guard let subscription = selectedSubscriptionForSave else { return }
 
         totalAmountValue = subscription.amount
+        totalAmountText = formatAmount(subscription.amount)
         currencyCode = subscription.currencyCode
         if groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             groupName = subscription.name
@@ -441,6 +505,8 @@ struct EditGroupView: View {
         if billingDay <= 0 {
             billingDay = Calendar.current.component(.day, from: subscription.nextBillingDate)
         }
+        manualPeriod = subscription.period
+        groupCategory = GroupCategory(rawValue: subscription.category.rawValue) ?? groupCategory
         if splitEqually {
             applyEqualSplit()
         }
@@ -547,6 +613,10 @@ struct EditGroupView: View {
             return selectedSubscription
         }
 
+        if clearedSubscription {
+            return nil
+        }
+
         guard let subscriptionId = group.subscriptionId else { return nil }
         let period = SubscriptionPeriod(rawValue: group.subscriptionPeriod ?? "") ?? .monthly
         let category = SubscriptionCategory(rawValue: group.subscriptionCategory ?? "") ?? .other
@@ -564,6 +634,23 @@ struct EditGroupView: View {
 
     private func isSubscriptionInUse(subscriptionId: String) -> Bool {
         viewModel.groups.contains { $0.subscriptionId == subscriptionId && $0.id != group.id }
+    }
+
+    private static func periodFromLabel(_ label: String) -> SubscriptionPeriod {
+        let lower = label.lowercased()
+        if lower.contains("semana") {
+            return .weekly
+        }
+        if lower.contains("trimestre") {
+            return .quarterly
+        }
+        if lower.contains("anual") || lower.contains("ano") {
+            return .yearly
+        }
+        if lower.contains("única") || lower.contains("unica") {
+            return .oneTime
+        }
+        return .monthly
     }
 }
 

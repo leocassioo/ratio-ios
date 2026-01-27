@@ -221,6 +221,62 @@ final class GroupsViewModel: ObservableObject {
         }
     }
 
+    func createGroupManual(
+        name: String,
+        category: GroupCategory,
+        totalAmount: Double,
+        currencyCode: String,
+        period: SubscriptionPeriod,
+        billingDay: Int?,
+        notes: String?,
+        serviceLogin: String?,
+        servicePassword: String?,
+        pixKey: String?,
+        ownerPhoneNumber: String?,
+        members: [GroupMemberDraft],
+        ownerId: String
+    ) async -> String? {
+        let memberIds = members.compactMap { $0.userId }.unique() + [ownerId]
+        let membersPreview: [[String: Any]] = members.map { member in
+            [
+                "id": member.id,
+                "name": member.name,
+                "amount": member.amountValue,
+                "status": member.status.rawValue,
+                "userId": member.userId as Any,
+                "photoURL": member.photoURL as Any,
+                "receiptURL": member.receiptURL as Any
+            ]
+        }
+
+        let data: [String: Any] = [
+            "name": name,
+            "category": category.rawValue,
+            "totalAmount": totalAmount,
+            "currencyCode": currencyCode,
+            "billingPeriod": period.label,
+            "billingDay": billingDay as Any,
+            "notes": notes as Any,
+            "ownerId": ownerId,
+            "ownerPhoneNumber": ownerPhoneNumber as Any,
+            "memberIds": Array(Set(memberIds)),
+            "membersPreview": membersPreview,
+            "chargeDay": billingDay as Any,
+            "chargeNextBillingDate": Timestamp(date: computedChargeNextBillingDate(for: period, billingDay: billingDay)),
+            "serviceLogin": serviceLogin as Any,
+            "servicePassword": servicePassword as Any,
+            "pixKey": pixKey as Any,
+            "createdAt": FieldValue.serverTimestamp()
+        ]
+
+        do {
+            return try await store.createGroup(data: data, members: members, ownerId: ownerId)
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
     func updateGroup(
         groupId: String,
         name: String,
@@ -278,6 +334,67 @@ final class GroupsViewModel: ObservableObject {
         }
     }
 
+    func updateGroupManual(
+        groupId: String,
+        name: String,
+        category: GroupCategory,
+        totalAmount: Double,
+        currencyCode: String,
+        period: SubscriptionPeriod,
+        billingDay: Int?,
+        notes: String?,
+        serviceLogin: String?,
+        servicePassword: String?,
+        pixKey: String?,
+        ownerPhoneNumber: String?,
+        members: [GroupMemberDraft],
+        ownerId: String
+    ) async {
+        let memberIds = members.compactMap { $0.userId }.unique() + [ownerId]
+        let membersPreview: [[String: Any]] = members.map { member in
+            [
+                "id": member.id,
+                "name": member.name,
+                "amount": member.amountValue,
+                "status": member.status.rawValue,
+                "userId": member.userId as Any,
+                "photoURL": member.photoURL as Any,
+                "receiptURL": member.receiptURL as Any
+            ]
+        }
+
+        let data: [String: Any] = [
+            "name": name,
+            "category": category.rawValue,
+            "totalAmount": totalAmount,
+            "currencyCode": currencyCode,
+            "billingPeriod": period.label,
+            "billingDay": billingDay as Any,
+            "notes": notes as Any,
+            "ownerId": ownerId,
+            "ownerPhoneNumber": ownerPhoneNumber as Any,
+            "memberIds": Array(Set(memberIds)),
+            "membersPreview": membersPreview,
+            "subscriptionId": FieldValue.delete(),
+            "subscriptionName": FieldValue.delete(),
+            "subscriptionCategory": FieldValue.delete(),
+            "subscriptionPeriod": FieldValue.delete(),
+            "subscriptionNextBillingDate": FieldValue.delete(),
+            "chargeDay": billingDay as Any,
+            "chargeNextBillingDate": Timestamp(date: computedChargeNextBillingDate(for: period, billingDay: billingDay)),
+            "serviceLogin": serviceLogin as Any,
+            "servicePassword": servicePassword as Any,
+            "pixKey": pixKey as Any,
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+
+        do {
+            try await store.updateGroup(groupId: groupId, data: data, members: members, ownerId: ownerId)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func deleteGroup(groupId: String) async {
         do {
             try await store.deleteGroup(groupId: groupId)
@@ -309,6 +426,53 @@ final class GroupsViewModel: ObservableObject {
         if candidate < startOfToday {
             let nextMonth = calendar.date(byAdding: .month, value: 1, to: now) ?? now
             candidate = dateForDay(reference: nextMonth) ?? candidate
+        }
+
+        return candidate
+    }
+
+    private func computedChargeNextBillingDate(for period: SubscriptionPeriod?, billingDay: Int?) -> Date {
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfToday = calendar.startOfDay(for: now)
+
+        guard let period else { return startOfToday }
+
+        if period == .weekly {
+            return calendar.date(byAdding: .day, value: 7, to: startOfToday) ?? startOfToday
+        }
+
+        guard let billingDay, billingDay > 0 else {
+            return startOfToday
+        }
+
+        func dateForDay(reference: Date) -> Date? {
+            var components = calendar.dateComponents([.year, .month], from: reference)
+            let dayRange = calendar.range(of: .day, in: .month, for: reference)
+            components.day = min(billingDay, dayRange?.count ?? billingDay)
+            return calendar.date(from: components)
+        }
+
+        guard var candidate = dateForDay(reference: now) else {
+            return startOfToday
+        }
+
+        if candidate < startOfToday {
+            let monthsToAdd: Int
+            switch period {
+            case .monthly:
+                monthsToAdd = 1
+            case .quarterly:
+                monthsToAdd = 3
+            case .yearly:
+                monthsToAdd = 12
+            case .weekly:
+                monthsToAdd = 0
+            case .oneTime:
+                monthsToAdd = 1
+            }
+            let nextReference = calendar.date(byAdding: .month, value: monthsToAdd, to: now) ?? now
+            candidate = dateForDay(reference: nextReference) ?? candidate
         }
 
         return candidate

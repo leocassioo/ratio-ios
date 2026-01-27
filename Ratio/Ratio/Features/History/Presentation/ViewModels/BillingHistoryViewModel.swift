@@ -113,6 +113,8 @@ final class BillingHistoryViewModel: ObservableObject {
             return amount / 3
         case .yearly:
             return amount / 12
+        case .oneTime:
+            return amount
         }
     }
 
@@ -133,6 +135,9 @@ final class BillingHistoryViewModel: ObservableObject {
         }
         if label.contains("mensal") || label.contains("mês") {
             return .monthly
+        }
+        if label.contains("única") || label.contains("unica") {
+            return .oneTime
         }
         return nil
     }

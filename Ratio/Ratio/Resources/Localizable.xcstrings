@@ -92,6 +92,9 @@
     "Assinatura" : {
 
     },
+    "Assinatura (opcional)" : {
+
+    },
     "Assinatura ativa!" : {
 
     },
@@ -509,9 +512,6 @@
     "Para alterar o email," : {
 
     },
-    "Para criar um grupo, cadastre uma assinatura primeiro." : {
-
-    },
     "Perfil" : {
 
     },
@@ -711,6 +711,9 @@
     "Valor" : {
 
     },
+    "Valor total" : {
+
+    },
     "Ver comprovante" : {
 
     },
@@ -721,6 +724,9 @@
 
     },
     "Você pode colar o link completo ou apenas o código." : {
+
+    },
+    "Você pode criar um grupo manual ou vincular uma assinatura." : {
 
     },
     "Você precisará fazer login novamente para acessar o app." : {

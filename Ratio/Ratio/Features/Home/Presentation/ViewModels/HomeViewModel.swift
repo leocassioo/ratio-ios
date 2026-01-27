@@ -378,6 +378,8 @@ final class HomeViewModel: ObservableObject {
             return amount / 3
         case .yearly:
             return amount / 12
+        case .oneTime:
+            return amount
         }
     }
 
@@ -467,7 +469,9 @@ final class HomeViewModel: ObservableObject {
         }
 
         let groupItems = groups.compactMap { group -> UpcomingPaymentItem? in
-            if group.ownerId == userId {
+            let isOwner = group.ownerId == userId
+            let isManual = group.subscriptionId == nil
+            if isOwner && !isManual {
                 return nil
             }
             let dueDate = group.chargeNextBillingDate ?? group.subscriptionNextBillingDate
@@ -517,7 +521,9 @@ final class HomeViewModel: ObservableObject {
             }
 
         let groupTotals = groups.reduce(into: [String: Double]()) { partial, group in
-            guard group.ownerId != userId,
+            let isOwner = group.ownerId == userId
+            let isManual = group.subscriptionId == nil
+            guard (!isOwner || isManual),
                   let member = group.members.first(where: { $0.userId == userId }) else {
                 return
             }
@@ -673,7 +679,9 @@ final class HomeViewModel: ObservableObject {
         guard let userId else { return contributions }
 
         let groupContributions = groups.compactMap { group -> (String, Double)? in
-            guard group.ownerId != userId,
+            let isOwner = group.ownerId == userId
+            let isManual = group.subscriptionId == nil
+            guard (!isOwner || isManual),
                   let member = group.members.first(where: { $0.userId == userId }) else {
                 return nil
             }
@@ -708,6 +716,8 @@ final class HomeViewModel: ObservableObject {
                 nextDate = calendar.date(byAdding: .month, value: 3, to: nextDate) ?? nextDate
             case .yearly:
                 nextDate = calendar.date(byAdding: .year, value: 1, to: nextDate) ?? nextDate
+            case .oneTime:
+                return date
             }
         }
         return nextDate
@@ -730,6 +740,9 @@ final class HomeViewModel: ObservableObject {
         }
         if label.contains("mensal") || label.contains("mês") {
             return .monthly
+        }
+        if label.contains("única") || label.contains("unica") {
+            return .oneTime
         }
         return nil
     }

@@ -231,6 +231,8 @@ final class GroupsStore {
                 nextDate = calendar.date(byAdding: .month, value: 3, to: nextDate) ?? nextDate
             case .yearly:
                 nextDate = calendar.date(byAdding: .year, value: 1, to: nextDate) ?? nextDate
+            case .oneTime:
+                return nextDate
             }
         }
         return nextDate

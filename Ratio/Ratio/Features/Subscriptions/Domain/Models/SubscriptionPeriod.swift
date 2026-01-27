@@ -12,6 +12,7 @@ enum SubscriptionPeriod: String, CaseIterable, Identifiable {
     case monthly
     case quarterly
     case yearly
+    case oneTime
 
     var id: String { rawValue }
 
@@ -21,6 +22,7 @@ enum SubscriptionPeriod: String, CaseIterable, Identifiable {
         case .monthly: return "Mensal"
         case .quarterly: return "Trimestral"
         case .yearly: return "Anual"
+        case .oneTime: return "Única"
         }
     }
 }
