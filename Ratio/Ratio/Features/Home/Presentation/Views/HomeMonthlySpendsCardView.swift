@@ -22,7 +22,7 @@ struct HomeMonthlySpendsCardView: View {
                 Text("Evolução mensal")
                     .font(.headline)
                 Spacer()
-                if hasData {
+                if hasData, subscriptionManager.hasProAccess {
                     Text("Total: \(formattedCurrency(totalAmount))")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
@@ -33,7 +33,9 @@ struct HomeMonthlySpendsCardView: View {
                 emptyStateView
             } else {
                 chartView
-                monthlyLegend
+                if subscriptionManager.hasProAccess {
+                    monthlyLegend
+                }
             }
         }
         .padding(16)
