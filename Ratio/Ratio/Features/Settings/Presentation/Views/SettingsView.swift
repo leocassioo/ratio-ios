@@ -209,6 +209,16 @@ struct SettingsView: View {
         .onReceive(authViewModel.$user) { user in
             if user == nil {
                 isSigningOut = false
+                router.selectedTab = .home
+                router.homePath = NavigationPath()
+                router.subscriptionsPath = NavigationPath()
+                router.groupsPath = NavigationPath()
+                router.advisorPath = NavigationPath()
+                router.settingsPath = NavigationPath()
+                router.authPath = NavigationPath()
+                router.pendingGroupId = nil
+                router.dismissSheet()
+                router.dismissFullScreenCover()
             }
         }
     }
