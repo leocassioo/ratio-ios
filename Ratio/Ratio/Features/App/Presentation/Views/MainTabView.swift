@@ -117,6 +117,8 @@ struct MainTabView: View {
             SignupView()
         case .passwordReset:
             PasswordResetView()
+        case .deleteAccount:
+            DeleteAccountView()
         }
     }
 

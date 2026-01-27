@@ -197,6 +197,9 @@
     "Continuar" : {
 
     },
+    "Continuar com Google" : {
+
+    },
     "Convite" : {
 
     },
@@ -278,6 +281,9 @@
     "Email enviado. Verifique sua caixa de entrada." : {
 
     },
+    "Entendo e desejo excluir minha conta" : {
+
+    },
     "Entrar" : {
 
     },
@@ -300,6 +306,9 @@
 
     },
     "Essa ação é permanente e remove o grupo para todos os membros." : {
+
+    },
+    "Essa ação remove permanentemente sua conta e seus dados." : {
 
     },
     "Esse número ficará visível para os membros do grupo." : {
@@ -333,10 +342,16 @@
     "Evolução mensal" : {
 
     },
+    "Excluindo conta..." : {
+
+    },
     "Excluir" : {
 
     },
     "Excluir assinatura" : {
+
+    },
+    "Excluir conta" : {
 
     },
     "Excluir grupo" : {
@@ -444,6 +459,9 @@
 
     },
     "Não foi possível excluir" : {
+
+    },
+    "Não foi possível excluir a conta" : {
 
     },
     "Nenhum pagamento próximo" : {
@@ -639,6 +657,9 @@
 
     },
     "Status" : {
+
+    },
+    "Sua conta e todos os dados serão removidos permanentemente. Essa ação não pode ser desfeita." : {
 
     },
     "Telefone" : {

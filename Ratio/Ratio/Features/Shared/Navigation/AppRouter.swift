@@ -20,6 +20,7 @@ enum AppRoute: Hashable {
     case onboardingTutorial
     case signup
     case passwordReset
+    case deleteAccount
 }
 
 enum AppSheet: Identifiable, Equatable {

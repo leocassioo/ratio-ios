@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.seedEmulatorData = exports.fetchEurRateTest = exports.fetchEurRateDaily = exports.fetchUsdRateTest = exports.fetchUsdRateDaily = exports.recordHistoryTest = exports.recordGroupPaymentHistory = exports.recordSubscriptionHistory = exports.markOverdueTest = exports.notifyOwnerOnMemberLeft = exports.notifyOwnerOnMemberJoined = exports.notifyMemberOnPaymentStatusChanged = exports.notifyOwnerOnPaymentSubmittedTest = exports.notifyOwnerOnPaymentSubmitted = exports.sendBillingRemindersTest = exports.sendBillingReminders = void 0;
+exports.cleanupUserOnDelete = exports.seedEmulatorData = exports.fetchEurRateTest = exports.fetchEurRateDaily = exports.fetchUsdRateTest = exports.fetchUsdRateDaily = exports.recordHistoryTest = exports.recordGroupPaymentHistory = exports.recordSubscriptionHistory = exports.markOverdueTest = exports.notifyOwnerOnMemberLeft = exports.notifyOwnerOnMemberJoined = exports.notifyMemberOnPaymentStatusChanged = exports.notifyOwnerOnPaymentSubmittedTest = exports.notifyOwnerOnPaymentSubmitted = exports.sendBillingRemindersTest = exports.sendBillingReminders = void 0;
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 var notifications_1 = require("./notifications");
@@ -56,3 +56,5 @@ Object.defineProperty(exports, "fetchEurRateDaily", { enumerable: true, get: fun
 Object.defineProperty(exports, "fetchEurRateTest", { enumerable: true, get: function () { return exchangeRates_1.fetchEurRateTest; } });
 var seed_1 = require("./seed");
 Object.defineProperty(exports, "seedEmulatorData", { enumerable: true, get: function () { return seed_1.seedEmulatorData; } });
+var account_1 = require("./account");
+Object.defineProperty(exports, "cleanupUserOnDelete", { enumerable: true, get: function () { return account_1.cleanupUserOnDelete; } });

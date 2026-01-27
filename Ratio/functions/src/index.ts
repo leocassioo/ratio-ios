@@ -18,3 +18,5 @@ export { recordSubscriptionHistory, recordGroupPaymentHistory, recordHistoryTest
 export { fetchUsdRateDaily, fetchUsdRateTest, fetchEurRateDaily, fetchEurRateTest } from "./exchangeRates";
 
 export { seedEmulatorData } from "./seed";
+
+export { cleanupUserOnDelete } from "./account";

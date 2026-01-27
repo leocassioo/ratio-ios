@@ -95,6 +95,19 @@ struct EditProfileView: View {
                         .foregroundStyle(.green)
                 }
             }
+
+            Section {
+                Button(role: .destructive) {
+                    router.push(.deleteAccount, in: .settings)
+                } label: {
+                    Text("Excluir conta")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+            } footer: {
+                Text("Essa ação remove permanentemente sua conta e seus dados.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
         .navigationTitle("Perfil")
         .navigationBarTitleDisplayMode(.inline)
