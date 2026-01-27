@@ -4,7 +4,7 @@ import {
   QueryDocumentSnapshot,
   Timestamp
 } from "firebase-admin/firestore";
-import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onRequest } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
@@ -1101,6 +1101,191 @@ export const notifyOwnerOnPaymentSubmitted = onDocumentUpdated(
       return;
     }
 
+    const response = await admin.messaging().sendEachForMulticast({
+      notification: { title, body },
+      data: { route: "groups", groupId, targetUserId: ownerId },
+      tokens
+    });
+    await cleanupInvalidTokens(admin.firestore(), tokens, response, tokenUserMap);
+  }
+);
+
+export const notifyMemberOnPaymentStatusChanged = onDocumentUpdated(
+  "groups/{groupId}/members/{memberId}",
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) {
+      return;
+    }
+
+    const beforeStatus = before.status as string | undefined;
+    const afterStatus = after.status as string | undefined;
+    if (!beforeStatus || !afterStatus || beforeStatus == afterStatus) {
+      return;
+    }
+
+    // Only notify when admin approves or rejects a submitted payment.
+    if (afterStatus == "paid") {
+      // ok
+    } else if (afterStatus == "pending" && beforeStatus == "submitted") {
+      // treated as rejection
+    } else {
+      return;
+    }
+
+    const memberUserId = after.userId as string | undefined;
+    if (!memberUserId) {
+      return;
+    }
+
+    const groupId = event.params.groupId;
+    const groupSnapshot = await admin.firestore().collection("groups").doc(groupId).get();
+    const groupData = groupSnapshot.data();
+    if (!groupData) {
+      return;
+    }
+
+    const ownerId = groupData.ownerId as string | undefined;
+    if (ownerId && ownerId == memberUserId) {
+      return;
+    }
+
+    const groupName = (groupData.name as string | undefined) ?? "Grupo";
+    const title = afterStatus == "paid" ? "Pagamento aprovado" : "Pagamento reprovado";
+    const body =
+      afterStatus == "paid"
+        ? `Seu pagamento no grupo ${groupName} foi aprovado.`
+        : `Seu pagamento no grupo ${groupName} foi reprovado. Revise e envie novamente.`;
+
+    await writeNotifications(admin.firestore(), [memberUserId], {
+      title,
+      body,
+      route: "groups",
+      type: afterStatus == "paid" ? "payment_approved" : "payment_rejected",
+      data: { groupId }
+    });
+
+    const memberSnapshot = await admin.firestore().collection("users").doc(memberUserId).get();
+    const tokens: string[] = memberSnapshot.data()?.fcmTokens || [];
+    if (tokens.length == 0) {
+      return;
+    }
+
+    const tokenUserMap = new Map<string, string>();
+    tokens.forEach((token) => tokenUserMap.set(token, memberUserId));
+    const response = await admin.messaging().sendEachForMulticast({
+      notification: { title, body },
+      data: { route: "groups", groupId, targetUserId: memberUserId },
+      tokens
+    });
+    await cleanupInvalidTokens(admin.firestore(), tokens, response, tokenUserMap);
+  }
+);
+
+export const notifyOwnerOnMemberJoined = onDocumentCreated(
+  "groups/{groupId}/members/{memberId}",
+  async (event) => {
+    const created = event.data?.data();
+    if (!created) {
+      return;
+    }
+
+    const role = (created.role as string | undefined) ?? "";
+    if (role == "owner") {
+      return;
+    }
+
+    const groupId = event.params.groupId;
+    const groupSnapshot = await admin.firestore().collection("groups").doc(groupId).get();
+    const groupData = groupSnapshot.data();
+    if (!groupData) {
+      return;
+    }
+
+    const ownerId = groupData.ownerId as string | undefined;
+    const memberUserId = created.userId as string | undefined;
+    if (!ownerId || ownerId == memberUserId) {
+      return;
+    }
+
+    const memberName = (created.name as string | undefined) ?? "Um membro";
+    const groupName = (groupData.name as string | undefined) ?? "Grupo";
+    const title = "Novo membro no grupo";
+    const body = `${memberName} entrou no grupo ${groupName}.`;
+
+    await writeNotifications(admin.firestore(), [ownerId], {
+      title,
+      body,
+      route: "groups",
+      type: "member_joined",
+      data: { groupId, targetUserId: ownerId }
+    });
+
+    const ownerSnapshot = await admin.firestore().collection("users").doc(ownerId).get();
+    const tokens: string[] = ownerSnapshot.data()?.fcmTokens || [];
+    if (tokens.length == 0) {
+      return;
+    }
+
+    const tokenUserMap = new Map<string, string>();
+    tokens.forEach((token) => tokenUserMap.set(token, ownerId));
+    const response = await admin.messaging().sendEachForMulticast({
+      notification: { title, body },
+      data: { route: "groups", groupId, targetUserId: ownerId },
+      tokens
+    });
+    await cleanupInvalidTokens(admin.firestore(), tokens, response, tokenUserMap);
+  }
+);
+
+export const notifyOwnerOnMemberLeft = onDocumentDeleted(
+  "groups/{groupId}/members/{memberId}",
+  async (event) => {
+    const deleted = event.data?.data();
+    if (!deleted) {
+      return;
+    }
+
+    const role = (deleted.role as string | undefined) ?? "";
+    if (role == "owner") {
+      return;
+    }
+
+    const groupId = event.params.groupId;
+    const groupSnapshot = await admin.firestore().collection("groups").doc(groupId).get();
+    const groupData = groupSnapshot.data();
+    if (!groupData) {
+      return;
+    }
+
+    const ownerId = groupData.ownerId as string | undefined;
+    const memberUserId = deleted.userId as string | undefined;
+    if (!ownerId || ownerId == memberUserId) {
+      return;
+    }
+
+    const memberName = (deleted.name as string | undefined) ?? "Um membro";
+    const groupName = (groupData.name as string | undefined) ?? "Grupo";
+    const title = "Membro saiu do grupo";
+    const body = `${memberName} saiu do grupo ${groupName}.`;
+
+    await writeNotifications(admin.firestore(), [ownerId], {
+      title,
+      body,
+      route: "groups",
+      type: "member_left",
+      data: { groupId, targetUserId: ownerId }
+    });
+
+    const ownerSnapshot = await admin.firestore().collection("users").doc(ownerId).get();
+    const tokens: string[] = ownerSnapshot.data()?.fcmTokens || [];
+    if (tokens.length == 0) {
+      return;
+    }
+
+    const tokenUserMap = new Map<string, string>();
+    tokens.forEach((token) => tokenUserMap.set(token, ownerId));
     const response = await admin.messaging().sendEachForMulticast({
       notification: { title, body },
       data: { route: "groups", groupId, targetUserId: ownerId },

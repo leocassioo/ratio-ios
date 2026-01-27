@@ -7,6 +7,9 @@ export {
   sendBillingRemindersTest,
   notifyOwnerOnPaymentSubmitted,
   notifyOwnerOnPaymentSubmittedTest,
+  notifyMemberOnPaymentStatusChanged,
+  notifyOwnerOnMemberJoined,
+  notifyOwnerOnMemberLeft,
   markOverdueTest
 } from "./notifications";
 

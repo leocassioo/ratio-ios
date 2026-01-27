@@ -15,8 +15,13 @@ struct GroupDetailView: View {
     @Environment(\.openURL) private var openURL
     @State private var currentGroup: SharedGroup
     @StateObject private var paymentsViewModel = GroupPaymentsViewModel()
+    private let groupsStore = GroupsStore()
     @State private var showPaymentSheet = false
     @State private var showPaymentError = false
+    @State private var showLeaveConfirm = false
+    @State private var showLeaveError = false
+    @State private var leaveErrorMessage: String = "Não foi possível sair do grupo."
+    @State private var isLeavingGroup = false
     @State private var ownerPixKey: String?
     @State private var usdRate: ExchangeRate?
     @State private var eurRate: ExchangeRate?
@@ -299,6 +304,16 @@ struct GroupDetailView: View {
                     }
                 }
             }
+
+            if !isOwner, currentUserId != nil {
+                Section("Ações") {
+                    Button(role: .destructive) {
+                        showLeaveConfirm = true
+                    } label: {
+                        Text("Sair do grupo")
+                    }
+                }
+            }
         }
         .navigationTitle("Detalhes do grupo")
         .toolbar {
@@ -364,6 +379,46 @@ struct GroupDetailView: View {
             Button("Ok", role: .cancel) {}
         } message: {
             Text(paymentsViewModel.errorMessage ?? "Não foi possível atualizar o pagamento.")
+        }
+        .alert("Erro", isPresented: $showLeaveError) {
+            Button("Ok", role: .cancel) {}
+        } message: {
+            Text(leaveErrorMessage)
+        }
+        .alert("Sair do grupo?", isPresented: $showLeaveConfirm) {
+            Button("Cancelar", role: .cancel) {}
+            Button("Sair", role: .destructive) {
+                guard let currentUserId else { return }
+                isLeavingGroup = true
+                Task {
+                    do {
+                        try await groupsStore.leaveGroup(groupId: currentGroup.id, userId: currentUserId)
+                        await MainActor.run {
+                            isLeavingGroup = false
+                            dismiss()
+                        }
+                    } catch {
+                        await MainActor.run {
+                            isLeavingGroup = false
+                            leaveErrorMessage = (error as NSError).localizedDescription
+                            showLeaveError = true
+                        }
+                    }
+                }
+            }
+        } message: {
+            Text("O organizador do grupo será notificado sobre sua saída.")
+        }
+        .overlay {
+            if isLeavingGroup {
+                ZStack {
+                    Color.black.opacity(0.2)
+                        .ignoresSafeArea()
+                    ProgressView("Saindo do grupo...")
+                        .padding(24)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+            }
         }
         .onChange(of: group) { _, newValue in
             currentGroup = newValue

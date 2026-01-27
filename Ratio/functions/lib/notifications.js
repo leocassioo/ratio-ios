@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notifyOwnerOnPaymentSubmittedTest = exports.notifyOwnerOnPaymentSubmitted = exports.markOverdueTest = exports.sendBillingRemindersTest = exports.sendBillingReminders = void 0;
+exports.notifyOwnerOnPaymentSubmittedTest = exports.notifyOwnerOnMemberLeft = exports.notifyOwnerOnMemberJoined = exports.notifyMemberOnPaymentStatusChanged = exports.notifyOwnerOnPaymentSubmitted = exports.markOverdueTest = exports.sendBillingRemindersTest = exports.sendBillingReminders = void 0;
 const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const firestore_2 = require("firebase-functions/v2/firestore");
@@ -186,6 +186,101 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
         }
         return "vence em 5 dias.";
     };
+    const daysBetween = (from, to) => {
+        const fromUtc = startOfDayUtc(from);
+        const toUtc = startOfDayUtc(to);
+        return Math.round((toUtc - fromUtc) / (24 * 60 * 60 * 1000));
+    };
+    const sendOverdueRemindersIfNeeded = async (groupDoc, newlyOverdueMemberIds) => {
+        const data = groupDoc.data();
+        const groupName = data.name || "Grupo";
+        const ownerId = data.ownerId;
+        const groupRef = groupDoc.ref;
+        const membersSnapshot = await groupRef.collection("members").get();
+        const now = new Date();
+        const remindMemberUserIds = [];
+        const remindMemberNames = [];
+        const batch = db.batch();
+        let hasMissingOverdueDate = false;
+        membersSnapshot.docs.forEach((memberDoc) => {
+            const memberData = memberDoc.data();
+            const role = memberData.role ?? "";
+            const userId = memberData.userId;
+            const status = memberData.status ?? "pending";
+            const isOwner = role == "owner" || (ownerId && userId == ownerId);
+            if (!userId || isOwner || status != "overdue") {
+                return;
+            }
+            if (newlyOverdueMemberIds.has(memberDoc.id)) {
+                return;
+            }
+            const overdueStartedAt = memberData.overdueStartedAt;
+            if (!overdueStartedAt) {
+                batch.update(memberDoc.ref, {
+                    overdueStartedAt: firestore_1.FieldValue.serverTimestamp(),
+                    updatedAt: firestore_1.FieldValue.serverTimestamp()
+                });
+                hasMissingOverdueDate = true;
+                return;
+            }
+            const daysSince = daysBetween(overdueStartedAt.toDate(), now);
+            if (daysSince < 1 || daysSince > 2) {
+                return;
+            }
+            remindMemberUserIds.push(userId);
+            remindMemberNames.push(memberData.name ?? "Membro");
+        });
+        if (hasMissingOverdueDate) {
+            await batch.commit();
+        }
+        if (remindMemberUserIds.length == 0) {
+            return;
+        }
+        const memberSnapshots = await Promise.all(Array.from(new Set(remindMemberUserIds)).map((userId) => db.collection("users").doc(userId).get()));
+        const memberTokens = new Set();
+        const tokenUserMap = new Map();
+        memberSnapshots.forEach((snapshot) => {
+            const tokens = snapshot.data()?.fcmTokens || [];
+            tokens.forEach((token) => {
+                memberTokens.add(token);
+                tokenUserMap.set(token, snapshot.id);
+            });
+        });
+        const memberBody = `Seu pagamento do grupo ${groupName} continua em atraso.`;
+        await writeNotifications(db, remindMemberUserIds, {
+            title: "Pagamento em atraso",
+            body: memberBody,
+            route: "groups",
+            type: "member_overdue",
+            data: { groupId: groupDoc.id }
+        });
+        if (memberTokens.size > 0) {
+            await sendNotification("Pagamento em atraso", memberBody, Array.from(memberTokens), "groups", { groupId: groupDoc.id }, tokenUserMap);
+        }
+        if (ownerId) {
+            const ownerSnapshot = await db.collection("users").doc(ownerId).get();
+            const ownerTokens = ownerSnapshot.data()?.fcmTokens || [];
+            const uniqueNames = Array.from(new Set(remindMemberNames));
+            const list = uniqueNames.length <= 3
+                ? uniqueNames.join(", ")
+                : `${uniqueNames.slice(0, 3).join(", ")} e mais ${uniqueNames.length - 3}`;
+            const body = uniqueNames.length == 1
+                ? `${list} continua em atraso no grupo ${groupName}.`
+                : `${list} continuam em atraso no grupo ${groupName}.`;
+            await writeNotifications(db, [ownerId], {
+                title: "Pagamento em atraso",
+                body,
+                route: "groups",
+                type: "owner_overdue",
+                data: { groupId: groupDoc.id, targetUserId: ownerId }
+            });
+            if (ownerTokens.length > 0) {
+                const ownerTokenMap = new Map();
+                ownerTokens.forEach((token) => ownerTokenMap.set(token, ownerId));
+                await sendNotification("Pagamento em atraso", body, ownerTokens, "groups", { groupId: groupDoc.id, targetUserId: ownerId }, ownerTokenMap);
+            }
+        }
+    };
     const sendNotification = async (title, body, tokens, route, data = {}, tokenUserMap) => {
         summary.sends += 1;
         for (const tokenChunk of chunk(tokens, 500)) {
@@ -231,6 +326,7 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
             }
             batch.update(memberDoc.ref, {
                 status: "pending",
+                overdueStartedAt: firestore_1.FieldValue.delete(),
                 receiptURL: firestore_1.FieldValue.delete(),
                 submittedAt: firestore_1.FieldValue.delete(),
                 approvedAt: firestore_1.FieldValue.delete(),
@@ -260,7 +356,7 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
     };
     const markGroupStatusesOverdueIfNeeded = async (groupDoc, offset, force = false) => {
         if (!force && offset >= 0) {
-            return;
+            return { memberIds: [], userIds: [], names: [] };
         }
         const data = groupDoc.data();
         const ownerId = data.ownerId;
@@ -268,6 +364,7 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
         const membersSnapshot = await groupRef.collection("members").get();
         let hasMemberUpdates = false;
         const overdueMemberIds = [];
+        const overdueMemberUserIds = [];
         const overdueMemberNames = [];
         const batch = db.batch();
         membersSnapshot.docs.forEach((memberDoc) => {
@@ -281,9 +378,13 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
             }
             hasMemberUpdates = true;
             overdueMemberIds.push(memberDoc.id);
+            if (userId) {
+                overdueMemberUserIds.push(userId);
+            }
             overdueMemberNames.push(memberData.name ?? "Membro");
             batch.update(memberDoc.ref, {
                 status: "overdue",
+                overdueStartedAt: firestore_1.FieldValue.serverTimestamp(),
                 updatedAt: firestore_1.FieldValue.serverTimestamp()
             });
         });
@@ -303,7 +404,7 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
             };
         });
         if (!hasMemberUpdates && !previewChanged) {
-            return;
+            return { memberIds: [], userIds: [], names: [] };
         }
         batch.update(groupRef, {
             membersPreview: updatedPreview,
@@ -364,6 +465,11 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
                 });
             }
         }
+        return {
+            memberIds: overdueMemberIds,
+            userIds: overdueMemberUserIds.length > 0 ? overdueMemberUserIds : memberUserIds,
+            names: overdueMemberNames
+        };
     };
     for (const userDoc of userDocs) {
         const tokens = userDoc.data()?.fcmTokens || [];
@@ -481,11 +587,11 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
                 offset
             });
         }
+        const newlyOverdue = await markGroupStatusesOverdueIfNeeded(groupDoc, offset);
+        await sendOverdueRemindersIfNeeded(groupDoc, new Set(newlyOverdue.memberIds));
         if (!validOffsets.has(offset)) {
-            await markGroupStatusesOverdueIfNeeded(groupDoc, offset);
             continue;
         }
-        await markGroupStatusesOverdueIfNeeded(groupDoc, offset);
         await resetGroupStatusesIfNeeded(groupDoc, nextBillingDate, offset);
         const memberIds = data.memberIds ?? [];
         const targetMemberIds = allowedUserIds
@@ -621,6 +727,7 @@ exports.markOverdueTest = (0, https_1.onRequest)(async (req, res) => {
         overdueMemberNames.push(memberData.name ?? "Membro");
         batch.update(memberDoc.ref, {
             status: "overdue",
+            overdueStartedAt: firestore_1.FieldValue.serverTimestamp(),
             updatedAt: firestore_1.FieldValue.serverTimestamp()
         });
     });
@@ -749,6 +856,157 @@ exports.notifyOwnerOnPaymentSubmitted = (0, firestore_2.onDocumentUpdated)("grou
     if (tokens.length == 0) {
         return;
     }
+    const response = await admin.messaging().sendEachForMulticast({
+        notification: { title, body },
+        data: { route: "groups", groupId, targetUserId: ownerId },
+        tokens
+    });
+    await cleanupInvalidTokens(admin.firestore(), tokens, response, tokenUserMap);
+});
+exports.notifyMemberOnPaymentStatusChanged = (0, firestore_2.onDocumentUpdated)("groups/{groupId}/members/{memberId}", async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) {
+        return;
+    }
+    const beforeStatus = before.status;
+    const afterStatus = after.status;
+    if (!beforeStatus || !afterStatus || beforeStatus == afterStatus) {
+        return;
+    }
+    // Only notify when admin approves or rejects a submitted payment.
+    if (afterStatus == "paid") {
+        // ok
+    }
+    else if (afterStatus == "pending" && beforeStatus == "submitted") {
+        // treated as rejection
+    }
+    else {
+        return;
+    }
+    const memberUserId = after.userId;
+    if (!memberUserId) {
+        return;
+    }
+    const groupId = event.params.groupId;
+    const groupSnapshot = await admin.firestore().collection("groups").doc(groupId).get();
+    const groupData = groupSnapshot.data();
+    if (!groupData) {
+        return;
+    }
+    const ownerId = groupData.ownerId;
+    if (ownerId && ownerId == memberUserId) {
+        return;
+    }
+    const groupName = groupData.name ?? "Grupo";
+    const title = afterStatus == "paid" ? "Pagamento aprovado" : "Pagamento reprovado";
+    const body = afterStatus == "paid"
+        ? `Seu pagamento no grupo ${groupName} foi aprovado.`
+        : `Seu pagamento no grupo ${groupName} foi reprovado. Revise e envie novamente.`;
+    await writeNotifications(admin.firestore(), [memberUserId], {
+        title,
+        body,
+        route: "groups",
+        type: afterStatus == "paid" ? "payment_approved" : "payment_rejected",
+        data: { groupId }
+    });
+    const memberSnapshot = await admin.firestore().collection("users").doc(memberUserId).get();
+    const tokens = memberSnapshot.data()?.fcmTokens || [];
+    if (tokens.length == 0) {
+        return;
+    }
+    const tokenUserMap = new Map();
+    tokens.forEach((token) => tokenUserMap.set(token, memberUserId));
+    const response = await admin.messaging().sendEachForMulticast({
+        notification: { title, body },
+        data: { route: "groups", groupId, targetUserId: memberUserId },
+        tokens
+    });
+    await cleanupInvalidTokens(admin.firestore(), tokens, response, tokenUserMap);
+});
+exports.notifyOwnerOnMemberJoined = (0, firestore_2.onDocumentCreated)("groups/{groupId}/members/{memberId}", async (event) => {
+    const created = event.data?.data();
+    if (!created) {
+        return;
+    }
+    const role = created.role ?? "";
+    if (role == "owner") {
+        return;
+    }
+    const groupId = event.params.groupId;
+    const groupSnapshot = await admin.firestore().collection("groups").doc(groupId).get();
+    const groupData = groupSnapshot.data();
+    if (!groupData) {
+        return;
+    }
+    const ownerId = groupData.ownerId;
+    const memberUserId = created.userId;
+    if (!ownerId || ownerId == memberUserId) {
+        return;
+    }
+    const memberName = created.name ?? "Um membro";
+    const groupName = groupData.name ?? "Grupo";
+    const title = "Novo membro no grupo";
+    const body = `${memberName} entrou no grupo ${groupName}.`;
+    await writeNotifications(admin.firestore(), [ownerId], {
+        title,
+        body,
+        route: "groups",
+        type: "member_joined",
+        data: { groupId, targetUserId: ownerId }
+    });
+    const ownerSnapshot = await admin.firestore().collection("users").doc(ownerId).get();
+    const tokens = ownerSnapshot.data()?.fcmTokens || [];
+    if (tokens.length == 0) {
+        return;
+    }
+    const tokenUserMap = new Map();
+    tokens.forEach((token) => tokenUserMap.set(token, ownerId));
+    const response = await admin.messaging().sendEachForMulticast({
+        notification: { title, body },
+        data: { route: "groups", groupId, targetUserId: ownerId },
+        tokens
+    });
+    await cleanupInvalidTokens(admin.firestore(), tokens, response, tokenUserMap);
+});
+exports.notifyOwnerOnMemberLeft = (0, firestore_2.onDocumentDeleted)("groups/{groupId}/members/{memberId}", async (event) => {
+    const deleted = event.data?.data();
+    if (!deleted) {
+        return;
+    }
+    const role = deleted.role ?? "";
+    if (role == "owner") {
+        return;
+    }
+    const groupId = event.params.groupId;
+    const groupSnapshot = await admin.firestore().collection("groups").doc(groupId).get();
+    const groupData = groupSnapshot.data();
+    if (!groupData) {
+        return;
+    }
+    const ownerId = groupData.ownerId;
+    const memberUserId = deleted.userId;
+    if (!ownerId || ownerId == memberUserId) {
+        return;
+    }
+    const memberName = deleted.name ?? "Um membro";
+    const groupName = groupData.name ?? "Grupo";
+    const title = "Membro saiu do grupo";
+    const body = `${memberName} saiu do grupo ${groupName}.`;
+    await writeNotifications(admin.firestore(), [ownerId], {
+        title,
+        body,
+        route: "groups",
+        type: "member_left",
+        data: { groupId, targetUserId: ownerId }
+    });
+    const ownerSnapshot = await admin.firestore().collection("users").doc(ownerId).get();
+    const tokens = ownerSnapshot.data()?.fcmTokens || [];
+    if (tokens.length == 0) {
+        return;
+    }
+    const tokenUserMap = new Map();
+    tokens.forEach((token) => tokenUserMap.set(token, ownerId));
     const response = await admin.messaging().sendEachForMulticast({
         notification: { title, body },
         data: { route: "groups", groupId, targetUserId: ownerId },

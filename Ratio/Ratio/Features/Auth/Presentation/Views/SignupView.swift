@@ -12,6 +12,7 @@ import AuthenticationServices
 
 struct SignupView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showErrorAlert = false
     @State private var displayName = ""
     @State private var email = ""
@@ -219,6 +220,7 @@ struct SignupView: View {
                     .frame(width: 20, height: 20)
             }
             .frame(width: 56, height: 44)
+            .frame(maxWidth: .infinity, minHeight: 44)
         }
         .buttonStyle(.plain)
         .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -240,9 +242,9 @@ struct SignupView: View {
                     authViewModel.errorMessage = error.localizedDescription
                 }
             }
-            .signInWithAppleButtonStyle(.black)
+            .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
         }
-        .frame(width: 56, height: 44)
+        .frame(maxWidth: .infinity, minHeight: 44)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .disabled(authViewModel.isLoading)

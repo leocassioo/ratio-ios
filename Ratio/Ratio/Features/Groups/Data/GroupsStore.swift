@@ -99,6 +99,46 @@ final class GroupsStore {
         try await batch.commit()
     }
 
+    func leaveGroup(groupId: String, userId: String) async throws {
+        let groupRef = db.collection("groups").document(groupId)
+        let groupSnapshot = try await groupRef.getDocument()
+        guard let data = groupSnapshot.data() else { return }
+
+        let ownerId = data["ownerId"] as? String
+        if ownerId == userId {
+            throw NSError(domain: "GroupsStore", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "O organizador não pode sair do grupo."
+            ])
+        }
+
+        let memberIds = (data["memberIds"] as? [String]) ?? []
+        let updatedMemberIds = memberIds.filter { $0 != userId }
+
+        let preview = (data["membersPreview"] as? [[String: Any]])
+            ?? (data["members"] as? [[String: Any]] ?? [])
+        let updatedPreview = preview.filter { member in
+            (member["userId"] as? String) != userId
+        }
+
+        let memberDocs = try await groupRef
+            .collection("members")
+            .whereField("userId", isEqualTo: userId)
+            .getDocuments()
+
+        let batch = db.batch()
+        batch.updateData([
+            "memberIds": updatedMemberIds,
+            "membersPreview": updatedPreview,
+            "updatedAt": FieldValue.serverTimestamp()
+        ], forDocument: groupRef)
+
+        memberDocs.documents.forEach { document in
+            batch.deleteDocument(document.reference)
+        }
+
+        try await batch.commit()
+    }
+
     func updateMemberPhoto(userId: String, photoURL: String?) async throws {
         let snapshot = try await db.collection("groups")
             .whereField("memberIds", arrayContains: userId)

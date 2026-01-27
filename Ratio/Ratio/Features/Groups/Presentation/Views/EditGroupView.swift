@@ -468,7 +468,7 @@ struct EditGroupView: View {
         """
         Você foi convidado(a) para o grupo "\(group.name)" no Ratio.
 
-        Baixe o app (em breve):
+        Baixe o app:
         https://uaipixel.com/apps/ratio
 
         Abra o convite:

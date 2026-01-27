@@ -11,6 +11,7 @@ import AuthenticationServices
 struct LoginView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var router: AppRouter
+    @Environment(\.colorScheme) private var colorScheme
     @AppStorage(PreferencesStore.PrefKey.pendingEmailChangeNotice) private var showEmailChangeNotice = false
     @State private var showErrorAlert = false
     @State private var email = ""
@@ -20,7 +21,7 @@ struct LoginView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 32) {
+            VStack(spacing: 24) {
                 header
 
                 VStack(spacing: 20) {
@@ -84,6 +85,9 @@ struct LoginView: View {
                 .frame(maxWidth: 420)
                 
             VStack(spacing: 16) {
+                
+                Spacer()
+                
                 Text("Ou continue com")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -92,6 +96,7 @@ struct LoginView: View {
                     googleButton
                     appleButton
                 }
+                Spacer()
             }
             .frame(maxWidth: 420)
 
@@ -141,7 +146,7 @@ struct LoginView: View {
                 .multilineTextAlignment(.center)
                 .padding(.top, 24)
         }
-        .frame(maxWidth: 420)
+        .frame(maxWidth: 400)
     }
 
     private var googleButton: some View {
@@ -160,7 +165,7 @@ struct LoginView: View {
                     .scaledToFit()
                     .frame(width: 20, height: 20)
             }
-            .frame(width: 56, height: 44)
+            .frame(maxWidth: .infinity, minHeight: 44)
         }
         .buttonStyle(.plain)
         .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -182,9 +187,9 @@ struct LoginView: View {
                     authViewModel.errorMessage = error.localizedDescription
                 }
             }
-            .signInWithAppleButtonStyle(.black)
+            .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
         }
-        .frame(width: 56, height: 44)
+        .frame(maxWidth: .infinity, minHeight: 44)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .disabled(authViewModel.isLoading)

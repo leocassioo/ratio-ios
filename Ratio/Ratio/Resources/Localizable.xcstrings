@@ -35,6 +35,9 @@
     "A assinatura \"%@\" já está vinculada a um grupo. Edite o grupo existente ou escolha outra assinatura." : {
 
     },
+    "Ações" : {
+
+    },
     "Adicionar assinatura" : {
 
     },
@@ -479,6 +482,9 @@
     "O link expira em 24 horas e pode ser usado sem limite de pessoas." : {
 
     },
+    "O organizador do grupo será notificado sobre sua saída." : {
+
+    },
     "O Ratio Pro está ativo. Aproveite análises inteligentes e controle total das suas assinaturas." : {
 
     },
@@ -569,6 +575,9 @@
     "Revise as principais funções do app." : {
 
     },
+    "Saindo do grupo..." : {
+
+    },
     "Saindo..." : {
 
     },
@@ -576,6 +585,12 @@
 
     },
     "Sair da conta?" : {
+
+    },
+    "Sair do grupo" : {
+
+    },
+    "Sair do grupo?" : {
 
     },
     "Salvando grupo..." : {
