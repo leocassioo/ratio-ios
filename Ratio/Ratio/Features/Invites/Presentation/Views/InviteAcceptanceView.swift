@@ -11,79 +11,88 @@ import SwiftUI
 struct InviteAcceptanceView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel: InviteAcceptanceViewModel
+    private let showsCloseButton: Bool
 
-    init(token: String) {
+    init(token: String, showsCloseButton: Bool = false) {
         _viewModel = StateObject(wrappedValue: InviteAcceptanceViewModel(token: token))
+        self.showsCloseButton = showsCloseButton
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                if viewModel.isLoading {
-                    ProgressView("Carregando convite...")
-                } else if let message = viewModel.errorMessage {
-                    VStack(spacing: 12) {
-                        Image(systemName: "xmark.circle")
-                            .font(.system(size: 40))
-                            .foregroundStyle(.secondary)
-                        Text(message)
-                            .multilineTextAlignment(.center)
-                            .foregroundStyle(.secondary)
-                    }
-                } else if let invite = viewModel.inviteInfo {
-                    VStack(spacing: 10) {
-                        Text("Convite para")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        Text(invite.groupName)
-                            .font(.title2.bold())
-                    }
-
-                    VStack(spacing: 6) {
-                        Text("Expira em \(formattedDate(invite.expiresAt))")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        Text(usageLabel(for: invite))
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Button("Entrar no grupo") {
-                        guard let user = authViewModel.user else { return }
-                        Task {
-                            await viewModel.accept(userId: user.uid, fallbackName: user.displayName)
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(authViewModel.user == nil || viewModel.isLoading)
-
-                    if authViewModel.user == nil {
-                        Text("Entre com sua conta para aceitar o convite.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
+        VStack(spacing: 20) {
+            if viewModel.isLoading {
+                ProgressView("Carregando convite...")
+            } else if let message = viewModel.errorMessage {
+                VStack(spacing: 12) {
+                    Image(systemName: "xmark.circle")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.secondary)
+                    Text(message)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                }
+            } else if let invite = viewModel.inviteInfo {
+                VStack(spacing: 10) {
+                    Text("Convite para")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text(invite.groupName)
+                        .font(.title2.bold())
                 }
 
-                Spacer()
+                VStack(spacing: 6) {
+                    Text("Expira em \(formattedDate(invite.expiresAt))")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text(usageLabel(for: invite))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button("Entrar no grupo") {
+                    guard let user = authViewModel.user else { return }
+                    Task {
+                        await viewModel.accept(userId: user.uid, fallbackName: user.displayName)
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(authViewModel.user == nil || viewModel.isLoading)
+
+                if authViewModel.user == nil {
+                    Text("Entre com sua conta para aceitar o convite.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
             }
-            .padding()
-            .navigationTitle("Convite")
-            .toolbar {
+
+            Spacer()
+        }
+        .padding()
+        .navigationTitle("Convite")
+        .toolbar {
+            if showsCloseButton {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Fechar") {
                         dismiss()
                     }
                 }
             }
-            .onAppear {
-                Task { await viewModel.load() }
-            }
-            .onChange(of: viewModel.didAccept) { _, newValue in
-                if newValue {
-                    dismiss()
+        }
+        .onAppear {
+            Task { await viewModel.load() }
+        }
+        .onChange(of: viewModel.didAccept) { _, newValue in
+            if newValue {
+                if let groupId = viewModel.inviteInfo?.groupId {
+                    router.route(to: .groups, groupId: groupId)
+                } else {
+                    router.route(to: .groups)
                 }
+                router.settingsPath = NavigationPath()
+                dismiss()
             }
         }
     }
@@ -107,6 +116,9 @@ struct InviteAcceptanceView: View {
 }
 
 #Preview {
-    InviteAcceptanceView(token: "preview")
-        .environmentObject(AuthViewModel())
+    NavigationStack {
+        InviteAcceptanceView(token: "preview", showsCloseButton: true)
+            .environmentObject(AuthViewModel())
+            .environmentObject(AppRouter())
+    }
 }

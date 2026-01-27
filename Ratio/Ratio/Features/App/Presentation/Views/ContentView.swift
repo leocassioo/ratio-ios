@@ -38,8 +38,10 @@ struct ContentView: View {
         .environmentObject(authViewModel)
         .environmentObject(router)
         .sheet(item: inviteSheetTokenBinding) { token in
-            InviteAcceptanceView(token: token.id)
-                .environmentObject(authViewModel)
+            NavigationStack {
+                InviteAcceptanceView(token: token.id, showsCloseButton: true)
+                    .environmentObject(authViewModel)
+            }
         }
         .onOpenURL { url in
             inviteCoordinator.handleURL(url)
