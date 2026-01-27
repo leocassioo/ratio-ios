@@ -21,6 +21,7 @@ final class PreferencesStore {
         static let lastPushPromptDate = "lastPushPromptDate"
         static let lastAuthUserId = "lastAuthUserId"
         static let lastFcmToken = "lastFcmToken"
+        static let lastSeenWhatsNewVersion = "lastSeenWhatsNewVersion"
     }
 
     private let defaults: UserDefaults
@@ -86,5 +87,13 @@ final class PreferencesStore {
 
     func setLastFcmToken(_ value: String?) {
         defaults.setValue(value, forKey: PrefKey.lastFcmToken)
+    }
+
+    func lastSeenWhatsNewVersion() -> String? {
+        defaults.string(forKey: PrefKey.lastSeenWhatsNewVersion)
+    }
+
+    func setLastSeenWhatsNewVersion(_ value: String) {
+        defaults.setValue(value, forKey: PrefKey.lastSeenWhatsNewVersion)
     }
 }

@@ -36,6 +36,7 @@ enum AppSheet: Identifiable, Equatable {
     case groupDetail(group: SharedGroup, currentUserId: String?)
     case editProfile(user: User)
     case onboardingTutorial
+    case whatsNew(state: WhatsNewState)
 
     var id: String {
         switch self {
@@ -55,6 +56,8 @@ enum AppSheet: Identifiable, Equatable {
             return "editProfile-\(user.uid)"
         case .onboardingTutorial:
             return "onboardingTutorial"
+        case .whatsNew:
+            return "whatsNew"
         }
     }
 

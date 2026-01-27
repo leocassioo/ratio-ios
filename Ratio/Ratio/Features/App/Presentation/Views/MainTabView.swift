@@ -10,6 +10,10 @@ import SwiftUI
 
 struct MainTabView: View {
     @EnvironmentObject private var router: AppRouter
+    @Environment(\.locale) private var locale
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openURL) private var openURL
+    @AppStorage(PreferencesStore.PrefKey.lastSeenWhatsNewVersion) private var lastSeenWhatsNewVersion: String = ""
 
     var body: some View {
         TabView(selection: $router.selectedTab) {
@@ -73,6 +77,14 @@ struct MainTabView: View {
         }
         .fullScreenCover(item: $router.fullScreenCover) { cover in
             coverContent(for: cover)
+        }
+        .onAppear {
+            Task { await refreshWhatsNewIfNeeded() }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                Task { await refreshWhatsNewIfNeeded() }
+            }
         }
     }
 
@@ -180,6 +192,18 @@ struct MainTabView: View {
                     }
                 }
             }
+        case .whatsNew(let state):
+            WhatsNewView(
+                state: state,
+                onContinue: { markWhatsNewSeen(version: state.payload.version) },
+                onUpdate: { url in
+                    if let url {
+                        openURL(url)
+                    }
+                    markWhatsNewSeen(version: state.payload.version)
+                }
+            )
+            .presentationDetents([.large])
         }
     }
 
@@ -191,6 +215,27 @@ struct MainTabView: View {
                 SubscriptionBenefitsView()
             }
         }
+    }
+
+    @MainActor
+    private func refreshWhatsNewIfNeeded() async {
+        guard router.sheet == nil else { return }
+        _ = await RemoteConfigService.shared.fetchAndActivate()
+        guard let payload = RemoteConfigService.shared.whatsNewPayload else { return }
+        guard lastSeenWhatsNewVersion != payload.version else { return }
+
+        let slides = payload.slides(for: locale)
+        guard !slides.isEmpty else { return }
+
+        let currentVersion = AppVersion.current
+        let isOutdated = payload.minVersion.map { AppVersion.isLower(currentVersion, than: $0) } ?? false
+        let state = WhatsNewState(payload: payload, slides: slides, isOutdated: isOutdated)
+        router.present(.whatsNew(state: state))
+    }
+
+    private func markWhatsNewSeen(version: String) {
+        lastSeenWhatsNewVersion = version
+        router.dismissSheet()
     }
 }
 

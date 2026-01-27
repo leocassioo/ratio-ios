@@ -1,0 +1,24 @@
+{
+  "version": "1.0.1",
+  "minVersion": "1.0.1",
+  "appStoreUrl": "https://apps.apple.com/us/app/ratio-dividir-contas-e-gastos/id6757924426",
+  "slides": {
+    "pt-BR": [
+      {
+        "title": "Graficos inteligentes",
+        "description": "Visualize gastos por categoria e a evolucao mensal com clareza.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/ratio-9e231.firebasestorage.app/o/configApp%2Fwhatsnew%2F1.0.1%20graficos.png?alt=media&token=7e7827e5-be5b-47f2-ab17-e02f20b223f5"
+      },
+      {
+        "title": "Grupos compartilhados",
+        "description": "Crie grupos, divida custos e acompanhe quem pagou.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/ratio-9e231.firebasestorage.app/o/configApp%2Fwhatsnew%2F1.0.0%20grupos.png?alt=media&token=1813e65e-7dc7-4262-bd83-2f39144358c4"
+      },
+      {
+        "title": "Alertas inteligentes",
+        "description": "Lembretes de cobranca e status de pagamentos em tempo certo.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/ratio-9e231.firebasestorage.app/o/configApp%2Fwhatsnew%2F1.0.0%20notificacoes.png?alt=media&token=e2efb6a6-268f-460d-a003-6964505ae851"
+      }
+    ]
+  }
+}

@@ -15,6 +15,7 @@ enum FeatureFlagKey: String {
     case openAiApiKey
     case premiumBypass
     case premiumBypassEmails
+    case whatsNewPayload = "whatsnew_payload"
 }
 
 /// Wrapper para leitura de flags do Firebase Remote Config.
@@ -46,6 +47,15 @@ final class RemoteConfigService {
         }
     }
 
+    @MainActor
+    func fetchAndActivate() async -> Bool {
+        await withCheckedContinuation { continuation in
+            remoteConfig.fetchAndActivate { _, error in
+                continuation.resume(returning: error == nil)
+            }
+        }
+    }
+
     func string(for key: FeatureFlagKey) -> String? {
         let value = remoteConfig.configValue(forKey: key.rawValue).stringValue
         return value.isEmpty == true ? nil : value
@@ -58,6 +68,13 @@ final class RemoteConfigService {
 
     func bool(for key: FeatureFlagKey) -> Bool {
         remoteConfig.configValue(forKey: key.rawValue).boolValue
+    }
+
+    func data(for key: FeatureFlagKey) -> Data? {
+        let stringValue = remoteConfig.configValue(forKey: key.rawValue).stringValue
+        let trimmed = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return trimmed.data(using: .utf8)
     }
 
     // Conveniências
@@ -73,6 +90,15 @@ final class RemoteConfigService {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
             .filter { !$0.isEmpty }
     }
+    var whatsNewPayload: WhatsNewPayload? {
+        guard let data = data(for: .whatsNewPayload) else { return nil }
+        do {
+            return try JSONDecoder().decode(WhatsNewPayload.self, from: data)
+        } catch {
+            print("RemoteConfig: failed to decode whatsNewPayload: \(error)")
+            return nil
+        }
+    }
 }
 
 private extension RemoteConfigService {
@@ -83,7 +109,17 @@ private extension RemoteConfigService {
             FeatureFlagKey.gptModel.rawValue: "gpt-5-nano-2025-08-07" as NSString,
             FeatureFlagKey.openAiApiKey.rawValue: "" as NSString,
             FeatureFlagKey.premiumBypass.rawValue: false as NSNumber,
-            FeatureFlagKey.premiumBypassEmails.rawValue: "" as NSString
+            FeatureFlagKey.premiumBypassEmails.rawValue: "" as NSString,
+            FeatureFlagKey.whatsNewPayload.rawValue: defaultWhatsNewPayloadString
         ]
+    }
+
+    var defaultWhatsNewPayloadString: NSString {
+        guard let url = Bundle.main.url(forResource: "whatsnew_payload", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let raw = String(data: data, encoding: .utf8) else {
+            return "" as NSString
+        }
+        return raw as NSString
     }
 }
