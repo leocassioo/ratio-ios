@@ -105,6 +105,7 @@ struct HomeView: View {
 
                     HomeMonthlySpendsCardView(
                         items: viewModel.monthlySpends,
+                        categoryBreakdown: viewModel.categorySpends,
                         currencyCode: viewModel.monthlySpendsCurrencyCode
                     )
                 }

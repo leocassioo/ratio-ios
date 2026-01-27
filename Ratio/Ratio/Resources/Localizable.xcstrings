@@ -680,6 +680,9 @@
     "Total mensal" : {
 
     },
+    "Total: %@" : {
+
+    },
     "Total: %@ / %@" : {
       "localizations" : {
         "en" : {

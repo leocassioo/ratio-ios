@@ -10,6 +10,7 @@ import SwiftUI
 
 struct HomeMonthlySpendsCardView: View {
     let items: [MonthlySpendItem]
+    let categoryBreakdown: [CategorySpendItem]
     let currencyCode: String
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
@@ -17,13 +18,22 @@ struct HomeMonthlySpendsCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Evolução mensal")
-                .font(.headline)
+            HStack {
+                Text("Evolução mensal")
+                    .font(.headline)
+                Spacer()
+                if hasData {
+                    Text("Total: \(formattedCurrency(totalAmount))")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             if !hasData {
                 emptyStateView
             } else {
                 chartView
+                monthlyLegend
             }
         }
         .padding(16)
@@ -77,12 +87,13 @@ struct HomeMonthlySpendsCardView: View {
 
     private var chartBase: some View {
         Chart {
-            ForEach(items) { item in
+            ForEach(chartSegments) { segment in
                 BarMark(
-                    x: .value("Mês", item.label),
-                    y: .value("Total", item.amount)
+                    x: .value("Mês", segment.monthLabel),
+                    y: .value("Total", segment.amount),
+                    stacking: .standard
                 )
-                .foregroundStyle(Color(.systemIndigo))
+                .foregroundStyle(segment.color)
                 .cornerRadius(4)
             }
         }
@@ -116,7 +127,29 @@ struct HomeMonthlySpendsCardView: View {
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .onTapGesture {
                 router.present(.subscriptionBenefits)
+        }
+    }
+
+    private var monthlyLegend: some View {
+        VStack(spacing: 8) {
+            ForEach(items) { item in
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(Color(.systemGray4))
+                        .frame(width: 6, height: 6)
+
+                    Text(item.label)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Spacer()
+
+                    Text(formattedCurrency(item.amount))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
             }
+        }
     }
 
     private var hasData: Bool {
@@ -131,6 +164,75 @@ struct HomeMonthlySpendsCardView: View {
         colorScheme == .dark ? 0.4 : 0.25
     }
 
+    private var totalAmount: Double {
+        items.reduce(0) { $0 + $1.amount }
+    }
+
+    private var chartSegments: [MonthlySpendSegment] {
+        guard hasData else { return [] }
+
+        var segments: [MonthlySpendSegment] = []
+        let shares = categoryShares
+
+        for (index, item) in items.enumerated() {
+            guard item.amount > 0, !shares.isEmpty else {
+                segments.append(
+                    MonthlySpendSegment(
+                        monthLabel: item.label,
+                        amount: item.amount,
+                        color: monthlyColor(for: index)
+                    )
+                )
+                continue
+            }
+
+            let target = item.amount
+            var allocated = 0.0
+            for share in shares {
+                let value = target * share.share
+                allocated += value
+                segments.append(
+                    MonthlySpendSegment(
+                        monthLabel: item.label,
+                        amount: value,
+                        color: share.color
+                    )
+                )
+            }
+
+            let remainder = max(0, target - allocated)
+            if remainder > 0.01 {
+                segments.append(
+                    MonthlySpendSegment(
+                        monthLabel: item.label,
+                        amount: remainder,
+                        color: Color(.systemGray4)
+                    )
+                )
+            }
+        }
+
+        return segments
+    }
+
+    private var categoryShares: [(color: Color, share: Double)] {
+        let total = categoryBreakdown.reduce(0) { $0 + max(0, $1.amount) }
+        guard total > 0 else { return [] }
+        return categoryBreakdown
+            .filter { $0.amount > 0 }
+            .map { item in
+                (color: item.color, share: item.amount / total)
+            }
+    }
+
+    private func monthlyColor(for index: Int) -> Color {
+        let steps: [Double] = colorScheme == .dark
+            ? [0.35, 0.45, 0.55, 0.65, 0.75, 0.85]
+            : [0.85, 0.75, 0.65, 0.55, 0.45, 0.35]
+
+        return Color.accentColor.opacity(steps[index % steps.count])
+    }
+
     private func formattedCurrency(_ value: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -138,4 +240,11 @@ struct HomeMonthlySpendsCardView: View {
         formatter.locale = Locale(identifier: "pt_BR")
         return formatter.string(from: NSNumber(value: value)) ?? "\(currencyCode) \(value)"
     }
+}
+
+private struct MonthlySpendSegment: Identifiable {
+    let id = UUID()
+    let monthLabel: String
+    let amount: Double
+    let color: Color
 }
