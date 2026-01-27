@@ -219,7 +219,6 @@ struct SignupView: View {
                     .scaledToFit()
                     .frame(width: 20, height: 20)
             }
-            .frame(width: 56, height: 44)
             .frame(maxWidth: .infinity, minHeight: 44)
         }
         .buttonStyle(.plain)
