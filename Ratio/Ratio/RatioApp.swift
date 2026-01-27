@@ -10,6 +10,7 @@ import FirebaseCore
 import FirebaseMessaging
 import FirebaseRemoteConfig
 import SwiftUI
+import UIKit
 import UserNotifications
 
 class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
@@ -57,6 +58,13 @@ struct RatioApp: App {
     @StateObject private var pushPermissionState = PushPermissionState()
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     @StateObject private var router = AppRouter()
+
+    init() {
+        let pageControl = UIPageControl.appearance()
+        pageControl.currentPageIndicatorTintColor = UIColor.label
+        pageControl.pageIndicatorTintColor = UIColor.tertiaryLabel
+        pageControl.backgroundStyle = .prominent
+    }
 
     var body: some Scene {
         WindowGroup {

@@ -128,9 +128,6 @@
     "Cadastrar assinatura" : {
 
     },
-    "Cadastre sua primeira assinatura." : {
-
-    },
     "Cancelar" : {
 
     },
@@ -228,9 +225,6 @@
 
     },
     "Criar nova conta" : {
-
-    },
-    "Crie seu primeiro grupo para compartilhar assinaturas." : {
 
     },
     "Dados de Pagamento (Opcional)" : {
@@ -449,9 +443,6 @@
     "Não foi possível excluir" : {
 
     },
-    "Nenhum grupo ainda" : {
-
-    },
     "Nenhum pagamento próximo" : {
 
     },
@@ -614,9 +605,6 @@
     "Selecione uma assinatura" : {
 
     },
-    "Sem assinaturas ainda" : {
-
-    },
     "Sem dados ainda" : {
 
     },
@@ -727,6 +715,12 @@
 
     },
     "Você pode criar um grupo manual ou vincular uma assinatura." : {
+
+    },
+    "Você pode editar ou remover grupos quando quiser." : {
+
+    },
+    "Você pode editar ou remover quando quiser." : {
 
     },
     "Você precisará fazer login novamente para acessar o app." : {

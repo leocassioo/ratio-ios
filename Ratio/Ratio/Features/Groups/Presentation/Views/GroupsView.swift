@@ -35,19 +35,9 @@ struct GroupsView: View {
                 }
                 .padding()
             } else if viewModel.groups.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "person.3")
-                        .font(.system(size: 40))
-                        .foregroundStyle(.secondary)
-                    Text("Nenhum grupo ainda")
-                        .font(.headline)
-                    Text("Crie seu primeiro grupo para compartilhar assinaturas.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 260)
+                GroupsEmptyStateView {
+                    openCreate()
                 }
-                .padding()
             } else {
                 ScrollView {
                     VStack(spacing: 16) {

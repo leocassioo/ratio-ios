@@ -38,19 +38,9 @@ struct SubscriptionsView: View {
                 }
                 .padding()
             } else if viewModel.subscriptions.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "creditcard")
-                        .font(.system(size: 40))
-                        .foregroundStyle(.secondary)
-                    Text("Sem assinaturas ainda")
-                        .font(.headline)
-                    Text("Cadastre sua primeira assinatura.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 260)
+                SubscriptionsEmptyStateView {
+                    openCreate()
                 }
-                .padding()
             } else {
                 List {
                         ForEach(viewModel.subscriptions) { subscription in
