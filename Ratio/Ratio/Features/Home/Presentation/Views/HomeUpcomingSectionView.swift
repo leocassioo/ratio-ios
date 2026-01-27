@@ -12,6 +12,7 @@ struct HomeUpcomingSectionView: View {
     let items: [UpcomingPaymentItem]
     let destinationTab: MainTab
     let estimated: (UpcomingPaymentItem) -> (Double, String)?
+    let onTap: (UpcomingPaymentItem) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -38,11 +39,16 @@ struct HomeUpcomingSectionView: View {
                 VStack(spacing: 10) {
                     ForEach(items) { item in
                         let estimate = estimated(item)
-                        HomeUpcomingRowView(
-                            item: item,
-                            estimatedAmount: estimate?.0,
-                            estimatedCurrencyCode: estimate?.1
-                        )
+                        Button {
+                            onTap(item)
+                        } label: {
+                            HomeUpcomingRowView(
+                                item: item,
+                                estimatedAmount: estimate?.0,
+                                estimatedCurrencyCode: estimate?.1
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }

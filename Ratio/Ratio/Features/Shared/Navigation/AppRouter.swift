@@ -38,6 +38,7 @@ enum AppSheet: Identifiable, Equatable {
     case editProfile(user: User)
     case onboardingTutorial
     case whatsNew(state: WhatsNewState)
+    case homeInsight(item: HomeInsightItem)
 
     var id: String {
         switch self {
@@ -59,6 +60,8 @@ enum AppSheet: Identifiable, Equatable {
             return "onboardingTutorial"
         case .whatsNew:
             return "whatsNew"
+        case .homeInsight(let item):
+            return "homeInsight-\(item.id)"
         }
     }
 
@@ -86,6 +89,7 @@ enum AppFullScreenCover: Identifiable, Equatable {
 final class AppRouter: ObservableObject {
     @Published var selectedTab: MainTab = .home
     @Published var pendingGroupId: String?
+    @Published var pendingSubscriptionId: String?
     @Published var homePath = NavigationPath()
     @Published var subscriptionsPath = NavigationPath()
     @Published var groupsPath = NavigationPath()

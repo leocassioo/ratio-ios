@@ -9,12 +9,18 @@ import SwiftUI
 
 struct HomeInsightsRowView: View {
     let insights: [HomeInsightItem]
+    let onTap: (HomeInsightItem) -> Void
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 ForEach(insights) { insight in
-                    HomeInsightChipView(item: insight)
+                    Button {
+                        onTap(insight)
+                    } label: {
+                        HomeInsightChipView(item: insight)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 4)

@@ -12,6 +12,7 @@ struct HomeSummaryCardView: View {
     let currencyCode: String
     let deltaText: String
     let estimatedBRL: Double?
+    let onIndicatorTap: (() -> Void)?
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -24,19 +25,24 @@ struct HomeSummaryCardView: View {
                     .font(.system(size: 34, weight: .bold))
                     .foregroundStyle(.white)
 
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.up.right")
-                        .font(.caption.weight(.bold))
-                    Text(deltaText)
-                        .font(.caption.weight(.semibold))
+                Button {
+                    onIndicatorTap?()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption.weight(.bold))
+                        Text(deltaText)
+                            .font(.caption.weight(.semibold))
+                    }
+                    .foregroundStyle(.white.opacity(0.9))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(Color.white.opacity(0.15))
+                    )
                 }
-                .foregroundStyle(.white.opacity(0.9))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(
-                    Capsule()
-                        .fill(Color.white.opacity(0.15))
-                )
+                .buttonStyle(.plain)
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)

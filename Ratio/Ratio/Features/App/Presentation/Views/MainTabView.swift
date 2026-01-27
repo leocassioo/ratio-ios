@@ -206,6 +206,16 @@ struct MainTabView: View {
                 }
             )
             .presentationDetents([.large])
+        case .homeInsight(let item):
+            HomeInsightDetailSheetView(
+                item: item,
+                onOpen: item.destination == nil ? nil : {
+                    if let destination = item.destination {
+                        router.route(to: destination)
+                    }
+                }
+            )
+            .presentationDetents([.fraction(0.6)])
         }
     }
 

@@ -9,6 +9,8 @@ import Foundation
 
 struct UpcomingPaymentItem: Identifiable {
     let id = UUID()
+    let subscriptionId: String?
+    let groupId: String?
     let name: String
     let initials: String
     let amount: Double

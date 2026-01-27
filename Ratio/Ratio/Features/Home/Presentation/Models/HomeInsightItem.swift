@@ -11,4 +11,6 @@ struct HomeInsightItem: Identifiable {
     let id = UUID()
     let title: String
     let icon: String
+    let detail: String
+    let destination: MainTab?
 }

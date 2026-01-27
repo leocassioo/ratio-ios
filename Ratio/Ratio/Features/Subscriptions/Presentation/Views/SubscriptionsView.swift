@@ -122,6 +122,12 @@ struct SubscriptionsView: View {
                 viewModel.startListening(userId: userId)
             }
         }
+        .onChange(of: viewModel.subscriptions) { _, _ in
+            openPendingSubscriptionIfNeeded()
+        }
+        .onChange(of: router.pendingSubscriptionId) { _, _ in
+            openPendingSubscriptionIfNeeded()
+        }
         .onDisappear {
             viewModel.stopListening()
         }
@@ -215,6 +221,13 @@ struct SubscriptionsView: View {
                 }
             }
         ))
+    }
+
+    private func openPendingSubscriptionIfNeeded() {
+        guard let subscriptionId = router.pendingSubscriptionId else { return }
+        guard let subscription = viewModel.subscriptions.first(where: { $0.id == subscriptionId }) else { return }
+        openEdit(subscription)
+        router.pendingSubscriptionId = nil
     }
 
     private func formattedCurrency(_ value: Double, currencyCode: String) -> String {

@@ -21,6 +21,8 @@ struct HomeView: View {
     @State private var showPushPrompt = false
     private let upcomingPayments: [UpcomingPaymentItem] = [
         UpcomingPaymentItem(
+            subscriptionId: nil,
+            groupId: nil,
             name: "SmartFit",
             initials: "S",
             amount: 119.90,
@@ -29,6 +31,8 @@ struct HomeView: View {
             period: "Mensal"
         ),
         UpcomingPaymentItem(
+            subscriptionId: nil,
+            groupId: nil,
             name: "Netflix Premium",
             initials: "N",
             amount: 55.90,
@@ -37,6 +41,8 @@ struct HomeView: View {
             period: "Mensal"
         ),
         UpcomingPaymentItem(
+            subscriptionId: nil,
+            groupId: nil,
             name: "Spotify Duo",
             initials: "S",
             amount: 27.90,
@@ -59,7 +65,10 @@ struct HomeView: View {
                         totalAmount: viewModel.totalMonthlyAmount,
                         currencyCode: viewModel.currencyCode,
                         deltaText: summarySubtitle,
-                        estimatedBRL: viewModel.estimatedBRL(forAmount: viewModel.totalMonthlyAmount, currencyCode: viewModel.currencyCode)
+                        estimatedBRL: viewModel.estimatedBRL(forAmount: viewModel.totalMonthlyAmount, currencyCode: viewModel.currencyCode),
+                        onIndicatorTap: {
+                            router.present(.homeInsight(item: summaryDetailItem))
+                        }
                     )
 
                         if !viewModel.isLoading && !viewModel.hasSubscriptions && !viewModel.hasGroups {
@@ -82,7 +91,9 @@ struct HomeView: View {
                     }
 
                     if !viewModel.insights.isEmpty {
-                        HomeInsightsRowView(insights: viewModel.insights)
+                        HomeInsightsRowView(insights: viewModel.insights) { insight in
+                            router.present(.homeInsight(item: insight))
+                        }
                     }
 
                     HomeUpcomingSectionView(
@@ -98,6 +109,14 @@ struct HomeView: View {
                                 return nil
                             }
                             return (estimated, preferredCurrency)
+                        },
+                        onTap: { item in
+                            if let groupId = item.groupId {
+                                router.route(to: .groups, groupId: groupId)
+                            } else if let subscriptionId = item.subscriptionId {
+                                router.pendingSubscriptionId = subscriptionId
+                                router.route(to: .subscriptions)
+                            }
                         }
                     )
 
@@ -187,6 +206,29 @@ struct HomeView: View {
             return "Total exibido na moeda principal"
         }
         return "Baseado nas assinaturas ativas"
+    }
+
+    private var summaryDetailItem: HomeInsightItem {
+        let totalText = formattedCurrency(viewModel.totalMonthlyAmount, currencyCode: viewModel.currencyCode)
+        var detail = "Este é o total mensal estimado de assinaturas e grupos. Total atual: \(totalText)."
+        if viewModel.hasMixedCurrencies {
+            detail += " Valores de outras moedas são convertidos para a moeda principal."
+        }
+
+        return HomeInsightItem(
+            title: "Total mensal",
+            icon: "info.circle",
+            detail: detail,
+            destination: nil
+        )
+    }
+
+    private func formattedCurrency(_ value: Double, currencyCode: String) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currencyCode
+        formatter.locale = Locale(identifier: "pt_BR")
+        return formatter.string(from: NSNumber(value: value)) ?? "\(currencyCode) \(value)"
     }
 
     private var upcomingDestination: MainTab {

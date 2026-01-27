@@ -421,7 +421,9 @@ final class HomeViewModel: ObservableObject {
         if !subscriptionsWithoutGroup.isEmpty {
             items.append(HomeInsightItem(
                 title: "\(subscriptionsWithoutGroup.count) assinaturas sem grupo",
-                icon: "person.3"
+                icon: "person.3",
+                detail: "Você tem \(subscriptionsWithoutGroup.count) assinaturas sem grupo. Crie um grupo para dividir custos ou organizar pagamentos.",
+                destination: .subscriptions
             ))
         }
 
@@ -429,21 +431,27 @@ final class HomeViewModel: ObservableObject {
         if dueTodayTotal > 0 {
             items.append(HomeInsightItem(
                 title: "\(dueTodayTotal) cobranças hoje",
-                icon: "bell.badge"
+                icon: "bell.badge",
+                detail: "Há \(dueTodayTotal) cobranças vencendo hoje. Revise os pagamentos para evitar atrasos.",
+                destination: hasSubscriptions ? .subscriptions : .groups
             ))
         }
 
         if pendingApprovals > 0 {
             items.append(HomeInsightItem(
                 title: "\(pendingApprovals) pagamentos para aprovar",
-                icon: "checkmark.seal"
+                icon: "checkmark.seal",
+                detail: "Existem \(pendingApprovals) pagamentos aguardando sua aprovação nos grupos.",
+                destination: .groups
             ))
         }
 
         if savings > 0 {
             items.append(HomeInsightItem(
                 title: "\(formattedCurrency(savings)) economizados",
-                icon: "leaf"
+                icon: "leaf",
+                detail: "Economia estimada ao compartilhar assinaturas: \(formattedCurrency(savings)).",
+                destination: nil
             ))
         }
 
@@ -459,6 +467,8 @@ final class HomeViewModel: ObservableObject {
         let subscriptionItems: [UpcomingPaymentItem] = subscriptions.map { item in
             let effectiveDate = nextDateForDisplay(item.nextBillingDate, period: item.period)
             return UpcomingPaymentItem(
+                subscriptionId: item.id,
+                groupId: nil,
                 name: item.name,
                 initials: initials(for: item.name),
                 amount: item.amount,
@@ -479,6 +489,8 @@ final class HomeViewModel: ObservableObject {
             guard let member = group.members.first(where: { $0.userId == userId }) else { return nil }
             let effectiveDate = nextDateForDisplay(dueDate, period: periodFromGroup(group))
             return UpcomingPaymentItem(
+                subscriptionId: nil,
+                groupId: group.id,
                 name: group.name,
                 initials: initials(for: group.name),
                 amount: member.amount,
