@@ -57,18 +57,74 @@ final class GroupsStore {
         return groupRef.documentID
     }
 
-    func updateGroup(groupId: String, data: [String: Any], members: [GroupMemberDraft], ownerId: String) async throws {
+    func updateGroup(
+        groupId: String,
+        data: [String: Any],
+        members: [GroupMemberDraft],
+        ownerId: String,
+        removedMemberIds: [String] = []
+    ) async throws {
         let groupRef = db.collection("groups").document(groupId)
-        let batch = db.batch()
-        batch.setData(data, forDocument: groupRef, merge: true)
+        let groupSnapshot = try await groupRef.getDocument()
+        let existingData = groupSnapshot.data() ?? [:]
+        let existingPreview = (existingData["membersPreview"] as? [[String: Any]]) ?? []
+        let existingMemberIds = (existingData["memberIds"] as? [String]) ?? []
+
+        var mergedPreview = existingPreview
+        let incomingPreview = (data["membersPreview"] as? [[String: Any]]) ?? []
+
+        for incoming in incomingPreview {
+            let incomingUserId = incoming["userId"] as? String
+            let incomingId = incoming["id"] as? String
+            if let index = mergedPreview.firstIndex(where: { preview in
+                if let userId = incomingUserId {
+                    return (preview["userId"] as? String) == userId
+                }
+                if let id = incomingId {
+                    return (preview["id"] as? String) == id
+                }
+                return false
+            }) {
+                mergedPreview[index] = incoming
+            } else {
+                mergedPreview.append(incoming)
+            }
+        }
+
+        let incomingMemberIds = (data["memberIds"] as? [String]) ?? []
+        var mergedMemberIds = Array(Set(existingMemberIds + incomingMemberIds))
+
+        let removedSet = Set(removedMemberIds)
+        if !removedSet.isEmpty {
+            mergedPreview = mergedPreview.filter { preview in
+                let userId = preview["userId"] as? String
+                let id = preview["id"] as? String
+                let key = userId ?? id ?? ""
+                return !removedSet.contains(key)
+            }
+            mergedMemberIds = mergedMemberIds.filter { !removedSet.contains($0) }
+        }
+
+        var mergedData = data
+        mergedData["membersPreview"] = mergedPreview
+        mergedData["memberIds"] = mergedMemberIds
 
         let existingMembers = try await groupRef.collection("members").getDocuments()
-        existingMembers.documents.forEach { document in
-            batch.deleteDocument(document.reference)
+        let existingMemberIdsSet = Set(existingMembers.documents.map { $0.documentID })
+
+        let batch = db.batch()
+        batch.setData(mergedData, forDocument: groupRef, merge: true)
+
+        if !removedSet.isEmpty {
+            for memberId in removedSet {
+                let memberRef = groupRef.collection("members").document(memberId)
+                batch.deleteDocument(memberRef)
+            }
         }
 
         for member in members {
-            let memberRef = groupRef.collection("members").document(member.id)
+            let memberDocId = member.userId ?? member.id
+            let memberRef = groupRef.collection("members").document(memberDocId)
             let role = member.userId == ownerId ? "owner" : "member"
             let memberData: [String: Any] = [
                 "name": member.name,
@@ -78,9 +134,15 @@ final class GroupsStore {
                 "photoURL": member.photoURL as Any,
                 "receiptURL": member.receiptURL as Any,
                 "role": role,
-                "createdAt": FieldValue.serverTimestamp()
+                "updatedAt": FieldValue.serverTimestamp()
             ]
-            batch.setData(memberData, forDocument: memberRef)
+            if existingMemberIdsSet.contains(memberDocId) {
+                batch.updateData(memberData, forDocument: memberRef)
+            } else {
+                var createdData = memberData
+                createdData["createdAt"] = FieldValue.serverTimestamp()
+                batch.setData(createdData, forDocument: memberRef)
+            }
         }
 
         try await batch.commit()

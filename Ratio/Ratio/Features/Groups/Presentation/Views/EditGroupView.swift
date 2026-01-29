@@ -33,11 +33,13 @@ struct EditGroupView: View {
     @State private var memberValues: [String: Double] = [:]
     @State private var newMemberName = ""
     @State private var showDeleteAlert = false
+    @State private var showOwnerRemovalAlert = false
     @State private var didCopyMessage = false
     @State private var didCopyToken = false
     @State private var showSubscriptionInUseAlert = false
     @State private var subscriptionInUseName = ""
     @State private var clearedSubscription = false
+    @State private var removedMemberIds: Set<String> = []
     @StateObject private var creationViewModel: GroupCreationViewModel
     @StateObject private var inviteViewModel: GroupInviteViewModel
     private let isOwner: Bool
@@ -124,7 +126,8 @@ struct EditGroupView: View {
                                 pixKey: pixKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : pixKey,
                                 ownerPhoneNumber: ownerPhoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : ownerPhoneNumber,
                                 members: normalizedMembers,
-                                ownerId: ownerId
+                                ownerId: ownerId,
+                                removedMemberIds: Array(removedMemberIds)
                             )
                         } else {
                             let normalizedMembers = normalizedMemberList()
@@ -142,7 +145,8 @@ struct EditGroupView: View {
                                 pixKey: pixKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : pixKey,
                                 ownerPhoneNumber: ownerPhoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : ownerPhoneNumber,
                                 members: normalizedMembers,
-                                ownerId: ownerId
+                                ownerId: ownerId,
+                                removedMemberIds: Array(removedMemberIds)
                             )
                         }
                         dismiss()
@@ -161,6 +165,11 @@ struct EditGroupView: View {
             }
         } message: {
             Text("Essa ação é permanente e remove o grupo para todos os membros.")
+        }
+        .alert("Não é possível remover o organizador", isPresented: $showOwnerRemovalAlert) {
+            Button("Ok", role: .cancel) {}
+        } message: {
+            Text("O organizador precisa permanecer no grupo.")
         }
         .alert("Assinatura já vinculada", isPresented: $showSubscriptionInUseAlert) {
             Button("Ok", role: .cancel) {}
@@ -464,7 +473,22 @@ struct EditGroupView: View {
     }
 
     private func deleteMember(at offsets: IndexSet) {
-        members.remove(atOffsets: offsets)
+        let removableOffsets = offsets.filter { index in
+            let member = members[index]
+            return member.userId != ownerId
+        }
+
+        if removableOffsets.count != offsets.count {
+            showOwnerRemovalAlert = true
+        }
+
+        for index in removableOffsets {
+            let member = members[index]
+            let key = member.userId ?? member.id
+            removedMemberIds.insert(key)
+        }
+
+        members.remove(atOffsets: IndexSet(removableOffsets))
     }
 
     private func applyEqualSplit() {

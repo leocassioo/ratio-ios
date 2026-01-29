@@ -446,6 +446,9 @@
     "Moeda principal" : {
 
     },
+    "Não é possível remover o organizador" : {
+
+    },
     "Não foi possível alterar o email" : {
 
     },
@@ -501,6 +504,9 @@
 
     },
     "O organizador do grupo será notificado sobre sua saída." : {
+
+    },
+    "O organizador precisa permanecer no grupo." : {
 
     },
     "O Ratio Pro está ativo. Aproveite análises inteligentes e controle total das suas assinaturas." : {

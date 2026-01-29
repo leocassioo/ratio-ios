@@ -288,7 +288,8 @@ final class GroupsViewModel: ObservableObject {
         pixKey: String?,
         ownerPhoneNumber: String?,
         members: [GroupMemberDraft],
-        ownerId: String
+        ownerId: String,
+        removedMemberIds: [String] = []
     ) async {
         let memberIds = members.compactMap { $0.userId }.unique() + [ownerId]
         let membersPreview: [[String: Any]] = members.map { member in
@@ -328,7 +329,13 @@ final class GroupsViewModel: ObservableObject {
         ]
 
         do {
-            try await store.updateGroup(groupId: groupId, data: data, members: members, ownerId: ownerId)
+            try await store.updateGroup(
+                groupId: groupId,
+                data: data,
+                members: members,
+                ownerId: ownerId,
+                removedMemberIds: removedMemberIds
+            )
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -348,7 +355,8 @@ final class GroupsViewModel: ObservableObject {
         pixKey: String?,
         ownerPhoneNumber: String?,
         members: [GroupMemberDraft],
-        ownerId: String
+        ownerId: String,
+        removedMemberIds: [String] = []
     ) async {
         let memberIds = members.compactMap { $0.userId }.unique() + [ownerId]
         let membersPreview: [[String: Any]] = members.map { member in
@@ -389,7 +397,13 @@ final class GroupsViewModel: ObservableObject {
         ]
 
         do {
-            try await store.updateGroup(groupId: groupId, data: data, members: members, ownerId: ownerId)
+            try await store.updateGroup(
+                groupId: groupId,
+                data: data,
+                members: members,
+                ownerId: ownerId,
+                removedMemberIds: removedMemberIds
+            )
         } catch {
             errorMessage = error.localizedDescription
         }
