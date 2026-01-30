@@ -560,9 +560,8 @@ const runBillingReminders = async (
       const memberList =
         overdueMemberNames.length <= 3
           ? overdueMemberNames.join(", ")
-          : `${overdueMemberNames.slice(0, 3).join(", ")} e mais ${
-              overdueMemberNames.length - 3
-            }`;
+          : `${overdueMemberNames.slice(0, 3).join(", ")} e mais ${overdueMemberNames.length - 3
+          }`;
       const body =
         count == 1
           ? `${memberList} está em atraso no grupo ${data.name || "Grupo"}.`
@@ -1013,9 +1012,8 @@ export const markOverdueTest = onRequest(async (req, res) => {
     const memberList =
       overdueMemberNames.length <= 3
         ? overdueMemberNames.join(", ")
-        : `${overdueMemberNames.slice(0, 3).join(", ")} e mais ${
-            overdueMemberNames.length - 3
-          }`;
+        : `${overdueMemberNames.slice(0, 3).join(", ")} e mais ${overdueMemberNames.length - 3
+        }`;
     const body =
       count == 1
         ? `${memberList} está em atraso no grupo ${data.name || "Grupo"}.`
@@ -1055,7 +1053,12 @@ export const notifyOwnerOnPaymentSubmitted = onDocumentUpdated(
       return;
     }
 
-    if (before.status == "submitted" || after.status != "submitted") {
+    if (after.status != "submitted") {
+      return;
+    }
+
+    // Ignora se já estava submitted e a URL não mudou (evita duplicidade se atualizar outro campo)
+    if (before.status == "submitted" && before.receiptURL == after.receiptURL) {
       return;
     }
 

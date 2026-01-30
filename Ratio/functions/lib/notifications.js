@@ -817,7 +817,11 @@ exports.notifyOwnerOnPaymentSubmitted = (0, firestore_2.onDocumentUpdated)("grou
     if (!before || !after) {
         return;
     }
-    if (before.status == "submitted" || after.status != "submitted") {
+    if (after.status != "submitted") {
+        return;
+    }
+    // Ignora se já estava submitted e a URL não mudou (evita duplicidade se atualizar outro campo)
+    if (before.status == "submitted" && before.receiptURL == after.receiptURL) {
         return;
     }
     const groupId = event.params.groupId;
