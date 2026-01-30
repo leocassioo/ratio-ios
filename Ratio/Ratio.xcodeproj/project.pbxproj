@@ -15,24 +15,67 @@
 		470F576E2EF89A35006D57A9 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 470F576D2EF89A35006D57A9 /* FirebaseMessaging */; };
 		470F57702EF89A35006D57A9 /* FirebasePerformance in Frameworks */ = {isa = PBXBuildFile; productRef = 470F576F2EF89A35006D57A9 /* FirebasePerformance */; };
 		470F57722EF89A35006D57A9 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 470F57712EF89A35006D57A9 /* FirebaseStorage */; };
+		472342152F2CFA7100B601B3 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 472342142F2CFA7100B601B3 /* FirebaseAuth */; };
+		472342172F2CFA7100B601B3 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 472342162F2CFA7100B601B3 /* FirebaseFirestore */; };
+		472342192F2CFA7100B601B3 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 472342182F2CFA7100B601B3 /* FirebaseStorage */; };
 		47332E162F1EAA08003F1AB4 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 47332E152F1EAA08003F1AB4 /* AppIcon.icon */; };
 		47332EA42F1EBAE4003F1AB4 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 47332EA32F1EBAE4003F1AB4 /* GoogleSignIn */; };
 		47332EA62F1EBAE4003F1AB4 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 47332EA52F1EBAE4003F1AB4 /* GoogleSignInSwift */; };
 		47A9A6B82F17C42E00BEC507 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 47A9A6B72F17C42E00BEC507 /* FirebaseRemoteConfig */; };
+		47F099662F2CF0D80022276D /* RatioShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 47F0995C2F2CF0D80022276D /* RatioShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		47F099642F2CF0D80022276D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 470F573A2EF894B0006D57A9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 47F0995B2F2CF0D80022276D;
+			remoteInfo = RatioShareExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		47F099672F2CF0D80022276D /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				47F099662F2CF0D80022276D /* RatioShareExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		470F57422EF894B0006D57A9 /* Ratio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ratio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		47332E152F1EAA08003F1AB4 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		47F0995C2F2CF0D80022276D /* RatioShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RatioShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4723421B2F2D06BC00B601B3 /* Exceptions for "Ratio" folder in "RatioShareExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"GoogleService-Info.plist",
+			);
+			target = 47F0995B2F2CF0D80022276D /* RatioShareExtension */;
+		};
 		47450DAA2F0FF7BA00CD0629 /* Exceptions for "Ratio" folder in "Ratio" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = 470F57412EF894B0006D57A9 /* Ratio */;
+		};
+		47F0996B2F2CF0D80022276D /* Exceptions for "RatioShareExtension" folder in "RatioShareExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 47F0995B2F2CF0D80022276D /* RatioShareExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -41,8 +84,17 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				47450DAA2F0FF7BA00CD0629 /* Exceptions for "Ratio" folder in "Ratio" target */,
+				4723421B2F2D06BC00B601B3 /* Exceptions for "Ratio" folder in "RatioShareExtension" target */,
 			);
 			path = Ratio;
+			sourceTree = "<group>";
+		};
+		47F0995D2F2CF0D80022276D /* RatioShareExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				47F0996B2F2CF0D80022276D /* Exceptions for "RatioShareExtension" folder in "RatioShareExtension" target */,
+			);
+			path = RatioShareExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -66,6 +118,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		47F099592F2CF0D80022276D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				472342152F2CFA7100B601B3 /* FirebaseAuth in Frameworks */,
+				472342172F2CFA7100B601B3 /* FirebaseFirestore in Frameworks */,
+				472342192F2CFA7100B601B3 /* FirebaseStorage in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -74,6 +136,7 @@
 			children = (
 				47332E152F1EAA08003F1AB4 /* AppIcon.icon */,
 				470F57442EF894B0006D57A9 /* Ratio */,
+				47F0995D2F2CF0D80022276D /* RatioShareExtension */,
 				4710C5E42EFD79030094F63E /* Frameworks */,
 				470F57432EF894B0006D57A9 /* Products */,
 			);
@@ -83,6 +146,7 @@
 			isa = PBXGroup;
 			children = (
 				470F57422EF894B0006D57A9 /* Ratio.app */,
+				47F0995C2F2CF0D80022276D /* RatioShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -105,10 +169,12 @@
 				470F573F2EF894B0006D57A9 /* Frameworks */,
 				470F57402EF894B0006D57A9 /* Resources */,
 				471B9C612F245DAA00E913C8 /* Run Script Crashlytics */,
+				47F099672F2CF0D80022276D /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				47F099652F2CF0D80022276D /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				470F57442EF894B0006D57A9 /* Ratio */,
@@ -131,6 +197,31 @@
 			productReference = 470F57422EF894B0006D57A9 /* Ratio.app */;
 			productType = "com.apple.product-type.application";
 		};
+		47F0995B2F2CF0D80022276D /* RatioShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 47F0996A2F2CF0D80022276D /* Build configuration list for PBXNativeTarget "RatioShareExtension" */;
+			buildPhases = (
+				47F099582F2CF0D80022276D /* Sources */,
+				47F099592F2CF0D80022276D /* Frameworks */,
+				47F0995A2F2CF0D80022276D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				47F0995D2F2CF0D80022276D /* RatioShareExtension */,
+			);
+			name = RatioShareExtension;
+			packageProductDependencies = (
+				472342142F2CFA7100B601B3 /* FirebaseAuth */,
+				472342162F2CFA7100B601B3 /* FirebaseFirestore */,
+				472342182F2CFA7100B601B3 /* FirebaseStorage */,
+			);
+			productName = RatioShareExtension;
+			productReference = 47F0995C2F2CF0D80022276D /* RatioShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -138,11 +229,14 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2610;
+				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					470F57412EF894B0006D57A9 = {
 						CreatedOnToolsVersion = 26.1.1;
+					};
+					47F0995B2F2CF0D80022276D = {
+						CreatedOnToolsVersion = 26.2;
 					};
 				};
 			};
@@ -165,6 +259,7 @@
 			projectRoot = "";
 			targets = (
 				470F57412EF894B0006D57A9 /* Ratio */,
+				47F0995B2F2CF0D80022276D /* RatioShareExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -175,6 +270,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				47332E162F1EAA08003F1AB4 /* AppIcon.icon in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		47F0995A2F2CF0D80022276D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -214,7 +316,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		47F099582F2CF0D80022276D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		47F099652F2CF0D80022276D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 47F0995B2F2CF0D80022276D /* RatioShareExtension */;
+			targetProxy = 47F099642F2CF0D80022276D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		470F574B2EF894B1006D57A9 /* Debug */ = {
@@ -455,6 +572,69 @@
 			};
 			name = Release;
 		};
+		47F099682F2CF0D80022276D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = RatioShareExtension/RatioShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = GH7SLB4C75;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RatioShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RatioShareExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.redpixel.Ratio.RatioShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		47F099692F2CF0D80022276D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = RatioShareExtension/RatioShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = GH7SLB4C75;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RatioShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RatioShareExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.redpixel.Ratio.RatioShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -472,6 +652,15 @@
 			buildConfigurations = (
 				470F574E2EF894B1006D57A9 /* Debug */,
 				470F574F2EF894B1006D57A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		47F0996A2F2CF0D80022276D /* Build configuration list for PBXNativeTarget "RatioShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				47F099682F2CF0D80022276D /* Debug */,
+				47F099692F2CF0D80022276D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -534,6 +723,21 @@
 			productName = FirebasePerformance;
 		};
 		470F57712EF89A35006D57A9 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 470F57622EF89A35006D57A9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		472342142F2CFA7100B601B3 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 470F57622EF89A35006D57A9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		472342162F2CFA7100B601B3 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 470F57622EF89A35006D57A9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		472342182F2CFA7100B601B3 /* FirebaseStorage */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 470F57622EF89A35006D57A9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;

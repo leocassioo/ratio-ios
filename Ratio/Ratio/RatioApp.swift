@@ -58,6 +58,7 @@ struct RatioApp: App {
     @StateObject private var pushPermissionState = PushPermissionState()
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     @StateObject private var router = AppRouter()
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         let pageControl = UIPageControl.appearance()

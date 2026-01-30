@@ -21,6 +21,11 @@ final class GroupsStore {
                 }
 
                 let groups = snapshot?.documents.compactMap(GroupMapper.group(from:)) ?? []
+                
+                // Sync with Share Extension
+                SharedDataManager.shared.saveCurrentUserId(userId)
+                SharedDataManager.shared.saveGroupsToSharedContainer(groups: groups)
+                
                 onChange(.success(groups))
             }
     }
