@@ -35,6 +35,9 @@
     "A assinatura \"%@\" já está vinculada a um grupo. Edite o grupo existente ou escolha outra assinatura." : {
 
     },
+    "Abrir comprovante" : {
+
+    },
     "Ações" : {
 
     },
@@ -174,6 +177,9 @@
 
     },
     "Comprovante (opcional)" : {
+
+    },
+    "Comprovantes" : {
 
     },
     "Configure seu perfil e comece." : {
@@ -408,6 +414,9 @@
     "Ligar" : {
 
     },
+    "Link inválido" : {
+
+    },
     "Login" : {
 
     },
@@ -465,6 +474,9 @@
 
     },
     "Não foi possível excluir a conta" : {
+
+    },
+    "Nenhum comprovante disponível." : {
 
     },
     "Nenhum pagamento próximo" : {
@@ -735,7 +747,7 @@
     "Valor total" : {
 
     },
-    "Ver comprovante" : {
+    "Ver comprovantes" : {
 
     },
     "Ver planos" : {
