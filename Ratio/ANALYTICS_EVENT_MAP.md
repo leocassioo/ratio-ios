@@ -9,6 +9,8 @@ Este documento define eventos, parâmetros e propriedades de usuário para rastr
 - `onboarding_complete`
 - `push_permission_view`
 - `push_permission_result` (params: `status` = granted/denied)
+- `deeplink_open` (params: `source`, `route`)
+- `tab_select` (params: `tab` = home/subscriptions/groups/advisor/settings)
 
 ## 2) Autenticação
 - `auth_login_start` (params: `method` = email/apple/google)
@@ -49,11 +51,15 @@ Este documento define eventos, parâmetros e propriedades de usuário para rastr
 - `payment_submit_error` (params: `reason`)
 - `payment_approve` (params: `group_id`, `member_id`)
 - `payment_reject` (params: `group_id`, `member_id`)
+- `payment_sheet_open` (params: `group_id`)
 - `receipt_view` (params: `group_id`, `member_id`)
+- `receipt_history_open` (params: `group_id`, `member_id`)
 - `receipt_share` (params: `group_id`, `member_id`)
 - `receipt_save_photos` (params: `group_id`, `member_id`, `result`)
 - `share_extension_open`
 - `share_extension_submit` (params: `group_id`, `result`)
+- `share_extension_error` (params: `reason`)
+- `share_extension_cancel`
 
 ## 7) Notificações / Push
 - `notification_received` (params: `type` = billing/overdue/payment_submitted/payment_status)
@@ -68,6 +74,7 @@ Este documento define eventos, parâmetros e propriedades de usuário para rastr
 - `home_upcoming_payment_tap` (params: `item_type` = subscription/group)
 - `home_chart_category_tap` (params: `category`)
 - `home_chart_monthly_tap` (params: `month_index`)
+- `home_empty_state_view`
 
 ## 9) Advisor (IA)
 - `advisor_open`
@@ -94,6 +101,7 @@ Este documento define eventos, parâmetros e propriedades de usuário para rastr
 - `settings_delete_account_success`
 - `settings_delete_account_error` (params: `reason`)
 - `settings_whats_new_open`
+- `settings_help_open` (params: `source` = tutorial/faq)
 
 ## 12) Monetização / Pro
 - `paywall_open` (params: `source`)
@@ -127,24 +135,70 @@ Este documento define eventos, parâmetros e propriedades de usuário para rastr
 - Parâmetros curtos e consistentes.
 - Não enviar dados pessoais.
 
-## Screen Views (nomes manuais)
+## 14) Screen Views (todas telas e sheets)
+**Onboarding / Permissões**
 - `screen_onboarding`
+- `screen_onboarding_ai`
+- `screen_onboarding_tutorial`
+- `screen_push_permission`
+
+**Autenticação**
 - `screen_login`
 - `screen_signup`
 - `screen_password_reset`
+
+**Home**
 - `screen_home`
+- `screen_home_empty`
+- `screen_home_insight_detail` (sheet)
+
+**Assinaturas**
 - `screen_subscriptions`
-- `screen_subscription_detail`
+- `screen_subscriptions_empty`
+- `screen_create_subscription` (sheet)
+- `screen_edit_subscription` (sheet)
+
+**Grupos**
 - `screen_groups`
-- `screen_group_detail`
-- `screen_payment_submit`
-- `screen_receipt_history`
+- `screen_groups_empty`
+- `screen_create_group` (sheet)
+- `screen_edit_group` (sheet)
+- `screen_group_detail` (sheet)
+- `screen_payment_submit` (sheet)
+- `screen_receipt_history` (sheet)
 - `screen_receipt_preview`
+- `screen_invite_accept`
+- `screen_invite_redeem`
+
+**Notificações**
 - `screen_notifications_history`
+
+**Advisor**
 - `screen_advisor`
+
+**Configurações / Conta**
 - `screen_settings`
 - `screen_profile`
 - `screen_change_email`
 - `screen_delete_account`
-- `screen_history`
+- `screen_billing_history`
+
+**Monetização / Pro**
+- `screen_paywall` (upgrade prompt)
+- `screen_subscription_benefits`
+- `screen_subscription_success`
+
+**WhatsNew**
 - `screen_whats_new`
+
+**Share Extension**
+- `screen_share_extension`
+
+## 15) Caminhos principais (journeys)
+- `onboarding → push_permission → login → home`
+- `home → create_subscription → subscription_success`
+- `home → groups → group_detail → payment_submit → receipt_history → receipt_preview`
+- `groups → create_group → invite_create → invite_share`
+- `settings → profile → change_email`
+- `settings → delete_account`
+- `notifications_history → notification_open → group_detail`
