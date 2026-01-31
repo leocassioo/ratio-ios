@@ -11,6 +11,7 @@ class SharedDataManager {
     // WARNING: This ID must match the one configured in Xcode Capabilities > App Groups
     private let appGroupId = "group.com.redpixel.Ratio"
     private let groupsFilename = "groups_lite.json"
+    private let groupsOwnerFilename = "groups_owner_map.json"
     private let receiptsQueueKey = "receipts_queue"
     
     private var containerURL: URL? {
@@ -22,12 +23,23 @@ class SharedDataManager {
             print("❌ Shared Container not found. Check App Group ID.")
             return
         }
+        guard let ownerURL = containerURL?.appendingPathComponent(groupsOwnerFilename) else {
+            print("❌ Shared Container not found. Check App Group ID.")
+            return
+        }
         
         let liteGroups = groups.map { LiteGroup(id: $0.id, name: $0.name) }
+        let ownerMap: [String: String] = groups.reduce(into: [:]) { result, group in
+            if let ownerId = group.ownerId {
+                result[group.id] = ownerId
+            }
+        }
         
         do {
             let data = try JSONEncoder().encode(liteGroups)
             try data.write(to: url)
+            let ownerData = try JSONEncoder().encode(ownerMap)
+            try ownerData.write(to: ownerURL)
             print("✅ Groups synced to Shared Container: \(liteGroups.count) groups")
         } catch {
             print("❌ Failed to save groups to shared container: \(error)")
@@ -40,4 +52,3 @@ class SharedDataManager {
         }
     }
 }
-

@@ -23,6 +23,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>O Ratio precisa de acesso para salvar comprovantes na sua galeria.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

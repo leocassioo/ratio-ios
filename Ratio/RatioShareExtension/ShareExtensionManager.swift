@@ -40,6 +40,16 @@ class ShareExtensionManager {
             return []
         }
     }
+
+    func getOwnerId(for groupId: String) -> String? {
+        guard let container = containerURL else { return nil }
+        let ownerMapURL = container.appendingPathComponent("groups_owner_map.json")
+        guard let data = try? Data(contentsOf: ownerMapURL),
+              let map = try? JSONDecoder().decode([String: String].self, from: data) else {
+            return nil
+        }
+        return map[groupId]
+    }
     
     func getCurrentUserId() -> String? {
         // Try to get from Auth first (Keychain Shared)
@@ -145,6 +155,14 @@ class ShareExtensionManager {
             }
             
             guard let data = groupDocument.data() else { return nil }
+            if let ownerId = data["ownerId"] as? String, ownerId == userId {
+                errorPointer?.pointee = NSError(
+                    domain: "ShareExtension",
+                    code: 403,
+                    userInfo: [NSLocalizedDescriptionKey: "O organizador não pode enviar comprovante para o próprio grupo."]
+                )
+                return nil
+            }
             
             // 1. Update membersPreview array
             var membersPreview = (data["membersPreview"] as? [[String: Any]]) 

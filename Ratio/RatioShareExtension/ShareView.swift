@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 struct ShareView: View {
     @State private var selectedGroup: LiteGroup?
     @State private var groups: [LiteGroup] = []
+    @State private var isSelectedGroupOwner = false
     @State private var image: UIImage?
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -40,6 +41,7 @@ struct ShareView: View {
                         ForEach(groups) { group in
                             Button {
                                 selectedGroup = group
+                                updateOwnerFlag(for: group)
                             } label: {
                                 if selectedGroup?.id == group.id {
                                     Label(group.name, systemImage: "checkmark")
@@ -70,7 +72,9 @@ struct ShareView: View {
                         )
                     }
                     
-                    Text("O organizador será notificado assim que você enviar.")
+                    Text(isSelectedGroupOwner
+                         ? "Você é o organizador deste grupo e não pode enviar comprovante."
+                         : "O organizador será notificado assim que você enviar.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -88,7 +92,7 @@ struct ShareView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .disabled(selectedGroup == nil || image == nil || isLoading)
+                .disabled(selectedGroup == nil || image == nil || isLoading || isSelectedGroupOwner)
             }
             .padding()
             .navigationTitle("Novo Comprovante")
@@ -111,9 +115,18 @@ struct ShareView: View {
         // Load Groups
         self.groups = ShareExtensionManager.shared.loadGroups()
         self.selectedGroup = groups.first
+        if let group = selectedGroup {
+            updateOwnerFlag(for: group)
+        }
         
         // Load Image
         extractImage()
+    }
+
+    private func updateOwnerFlag(for group: LiteGroup) {
+        let ownerId = ShareExtensionManager.shared.getOwnerId(for: group.id)
+        let currentUserId = ShareExtensionManager.shared.getCurrentUserId()
+        isSelectedGroupOwner = ownerId != nil && ownerId == currentUserId
     }
     
     private func extractImage() {
