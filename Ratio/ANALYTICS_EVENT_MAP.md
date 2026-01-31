@@ -202,3 +202,83 @@ Este documento define eventos, parâmetros e propriedades de usuário para rastr
 - `settings → profile → change_email`
 - `settings → delete_account`
 - `notifications_history → notification_open → group_detail`
+
+---
+
+## 16) Cobertura por Tela (Checklist)
+**Objetivo:** garantir que todas as telas e caminhos tenham eventos mínimos (`screen_view` + ações principais).
+
+### Onboarding / Permissões
+- [ ] `screen_onboarding` → `onboarding_view`, `onboarding_complete`
+- [ ] `screen_onboarding_ai` → `onboarding_view`
+- [ ] `screen_onboarding_tutorial` → `onboarding_view`
+- [ ] `screen_push_permission` → `push_permission_view`, `push_permission_result`
+
+### Autenticação
+- [ ] `screen_login` → `auth_login_start`, `auth_login_success`, `auth_login_error`
+- [ ] `screen_signup` → `auth_signup_start`, `auth_signup_success`, `auth_signup_error`
+- [ ] `screen_password_reset` → `auth_password_reset_start`, `auth_password_reset_success`, `auth_password_reset_error`
+
+### Home / Dashboard
+- [ ] `screen_home` → `home_open`
+- [ ] `screen_home_empty` → `home_empty_state_view`
+- [ ] `screen_home_insight_detail` → `home_insight_tap`
+- [ ] `home_total_monthly_tap`
+- [ ] `home_upcoming_payment_tap`
+- [ ] `home_chart_category_tap`
+- [ ] `home_chart_monthly_tap`
+
+### Assinaturas
+- [ ] `screen_subscriptions` → `subscription_view`
+- [ ] `screen_subscriptions_empty`
+- [ ] `screen_create_subscription` → `subscription_create`
+- [ ] `screen_edit_subscription` → `subscription_edit`, `subscription_delete`
+
+### Grupos
+- [ ] `screen_groups` → `group_view`
+- [ ] `screen_groups_empty`
+- [ ] `screen_create_group` → `group_create`
+- [ ] `screen_edit_group` → `group_edit`, `group_delete`
+- [ ] `screen_group_detail` → `group_view`
+- [ ] `screen_payment_submit` → `payment_submit`, `payment_submit_success`, `payment_submit_error`
+- [ ] `screen_receipt_history` → `receipt_history_open`
+- [ ] `screen_receipt_preview` → `receipt_view`, `receipt_share`, `receipt_save_photos`
+- [ ] `group_leave`
+
+### Convites
+- [ ] `screen_invite_accept` → `invite_open`, `invite_accept_success`, `invite_accept_error`
+- [ ] `screen_invite_redeem` → `invite_redeem_manual`
+- [ ] `invite_create`, `invite_share`
+
+### Notificações
+- [ ] `screen_notifications_history` → `notification_history_open`, `notification_mark_read`
+- [ ] `notification_received`, `notification_open`
+
+### Advisor (IA)
+- [ ] `screen_advisor` → `advisor_open`, `advisor_cta_tap`, `advisor_generate`, `advisor_generate_success`, `advisor_generate_error`
+
+### Configurações / Conta
+- [ ] `screen_settings` → `settings_open`
+- [ ] `screen_profile` → `settings_profile_open`, `settings_profile_edit`
+- [ ] `screen_change_email` → `settings_change_email_open`, `settings_change_email_success`
+- [ ] `screen_delete_account` → `settings_delete_account_start`, `settings_delete_account_success`, `settings_delete_account_error`
+- [ ] `screen_billing_history` → `history_open`
+- [ ] `settings_currency_change`
+- [ ] `settings_whats_new_open`
+
+### Monetização / Pro
+- [ ] `screen_paywall` → `paywall_open`, `paywall_cta_tap`
+- [ ] `screen_subscription_benefits` → `subscription_start`, `subscription_success`
+- [ ] `screen_subscription_success`
+- [ ] `restore_tap`, `restore_success`
+- [ ] `pro_feature_blocked`
+
+### WhatsNew
+- [ ] `screen_whats_new` → `whatsnew_view`, `whatsnew_continue`, `whatsnew_update_tap`
+
+### Share Extension
+- [ ] `screen_share_extension` → `share_extension_open`, `share_extension_submit`, `share_extension_error`, `share_extension_cancel`
+
+### Navegação / Deep Links
+- [ ] `deeplink_open`
+- [ ] `tab_select`
