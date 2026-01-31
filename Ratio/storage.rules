@@ -23,6 +23,15 @@ service firebase.storage {
         groupDoc(groupId).data.ownerId == request.auth.uid;
     }
 
+    function memberDoc(groupId, memberId) {
+      return firestore.get(/databases/(default)/documents/groups/$(groupId)/members/$(memberId));
+    }
+
+    function isMemberSelf(groupId, memberId) {
+      return isSignedIn() &&
+        memberDoc(groupId, memberId).data.userId == request.auth.uid;
+    }
+
     match /users/{userId}/profile.jpg {
       allow read: if isSignedIn();
       allow write: if isSelf(userId);
@@ -30,8 +39,10 @@ service firebase.storage {
 
     match /groups/{groupId}/receipts/{memberId}/{fileName} {
       allow read: if isGroupOwner(groupId) || isGroupMember(groupId);
-      allow write: if isSelf(memberId) && isGroupMember(groupId);
-      allow delete: if isGroupOwner(groupId) || isSelf(memberId);
+      allow write: if isGroupMember(groupId) &&
+        (isMemberSelf(groupId, memberId) || memberId == request.auth.uid);
+      allow delete: if isGroupOwner(groupId) ||
+        isMemberSelf(groupId, memberId) || memberId == request.auth.uid;
     }
   }
 }
