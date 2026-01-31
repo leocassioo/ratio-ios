@@ -1,10 +1,15 @@
 import UIKit
 import SwiftUI
+import FirebaseCore
 
 class ShareViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+        }
         
         // Host the SwiftUI View
         // Pass extensionContext to allow the view to close itself

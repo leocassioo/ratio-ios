@@ -21,6 +21,7 @@ enum AppRoute: Hashable {
     case signup
     case passwordReset
     case deleteAccount
+    case receiptPreview(receipt: ReceiptHistoryItem)
 }
 
 enum AppSheet: Identifiable, Equatable {

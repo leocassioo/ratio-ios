@@ -119,6 +119,8 @@ struct MainTabView: View {
             PasswordResetView()
         case .deleteAccount:
             DeleteAccountView()
+        case .receiptPreview(let receipt):
+            ReceiptPreviewView(receipt: receipt)
         }
     }
 

@@ -35,9 +35,6 @@
     "A assinatura \"%@\" já está vinculada a um grupo. Edite o grupo existente ou escolha outra assinatura." : {
 
     },
-    "Abrir comprovante" : {
-
-    },
     "Ações" : {
 
     },
@@ -174,6 +171,9 @@
 
     },
     "Compartilhe o link com os membros do grupo." : {
+
+    },
+    "Comprovante" : {
 
     },
     "Comprovante (opcional)" : {
@@ -414,7 +414,7 @@
     "Ligar" : {
 
     },
-    "Link inválido" : {
+    "Link inválido." : {
 
     },
     "Login" : {
@@ -459,6 +459,9 @@
 
     },
     "Não foi possível alterar o email" : {
+
+    },
+    "Não foi possível carregar o comprovante." : {
 
     },
     "Não foi possível criar a conta" : {
@@ -745,6 +748,9 @@
 
     },
     "Valor total" : {
+
+    },
+    "Ver comprovante" : {
 
     },
     "Ver comprovantes" : {

@@ -43,7 +43,8 @@ final class GroupsStore {
 
         let batch = db.batch()
         for member in members {
-            let memberRef = groupRef.collection("members").document(member.id)
+            let memberDocId = member.userId ?? member.id
+            let memberRef = groupRef.collection("members").document(memberDocId)
             let role = member.userId == ownerId ? "owner" : "member"
             let memberData: [String: Any] = [
                 "name": member.name,

@@ -704,8 +704,8 @@ struct EditGroupView: View {
                 servicePassword: nil,
                 pixKey: nil,
                 members: [
-                    GroupMember(id: "1", name: "Leo", amount: 20, status: .paid, userId: "1", photoURL: nil, receiptURL: nil, submittedAt: nil, approvedAt: nil),
-                    GroupMember(id: "2", name: "Pessoa", amount: 20, status: .pending, userId: nil, photoURL: nil, receiptURL: nil, submittedAt: nil, approvedAt: nil)
+                    GroupMember(id: "1", name: "Leo", amount: 20, status: .paid, userId: "1", photoURL: nil, receiptURL: nil, receiptHistory: [], submittedAt: nil, approvedAt: nil),
+                    GroupMember(id: "2", name: "Pessoa", amount: 20, status: .pending, userId: nil, photoURL: nil, receiptURL: nil, receiptHistory: [], submittedAt: nil, approvedAt: nil)
                 ]
             ),
             ownerId: "preview"

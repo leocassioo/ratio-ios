@@ -24,13 +24,19 @@ final class GroupPaymentsStore {
         let groupRef = db.collection("groups").document(groupId)
         let memberRef = groupRef.collection("members").document(memberId)
 
+        var removedReceiptURLs: [String] = []
         try await runTransaction { transaction in
             let groupSnapshot = try transaction.getDocument(groupRef)
+            let memberSnapshot = try transaction.getDocument(memberRef)
+            let receiptUpdate = self.updatedReceiptHistory(from: memberSnapshot, receiptURL: receiptURL)
+            let updatedHistory = receiptUpdate.history
+            removedReceiptURLs = receiptUpdate.removedURLs
             let updatedPreview = self.updatedMembersPreview(
                 from: groupSnapshot,
                 memberId: memberId,
                 status: GroupMemberStatus.submitted.rawValue,
-                receiptURL: receiptURL
+                receiptURL: receiptURL,
+                receiptHistory: updatedHistory
             )
 
             var memberData: [String: Any] = [
@@ -41,9 +47,16 @@ final class GroupPaymentsStore {
             if let receiptURL {
                 memberData["receiptURL"] = receiptURL
             }
+            if !updatedHistory.isEmpty {
+                memberData["receiptHistory"] = updatedHistory
+            }
 
             transaction.updateData(memberData, forDocument: memberRef)
             transaction.updateData(["membersPreview": updatedPreview], forDocument: groupRef)
+        }
+
+        if !removedReceiptURLs.isEmpty {
+            await deleteReceipts(urls: removedReceiptURLs)
         }
     }
 
@@ -57,7 +70,8 @@ final class GroupPaymentsStore {
                 from: groupSnapshot,
                 memberId: memberId,
                 status: GroupMemberStatus.paid.rawValue,
-                receiptURL: nil
+                receiptURL: nil,
+                receiptHistory: nil
             )
 
             let memberData: [String: Any] = [
@@ -75,7 +89,8 @@ final class GroupPaymentsStore {
         from snapshot: DocumentSnapshot,
         memberId: String,
         status: String,
-        receiptURL: String?
+        receiptURL: String?,
+        receiptHistory: [[String: Any]]?
     ) -> [[String: Any]] {
         let preview = (snapshot.data()?["membersPreview"] as? [[String: Any]])
             ?? (snapshot.data()?["members"] as? [[String: Any]] ?? [])
@@ -89,7 +104,35 @@ final class GroupPaymentsStore {
             if let receiptURL {
                 updated["receiptURL"] = receiptURL
             }
+            if let receiptHistory {
+                updated["receiptHistory"] = receiptHistory
+            }
             return updated
+        }
+    }
+
+    private func updatedReceiptHistory(from snapshot: DocumentSnapshot, receiptURL: String?) -> (history: [[String: Any]], removedURLs: [String]) {
+        guard let receiptURL else { return ([], []) }
+        let existing = snapshot.data()?["receiptHistory"] as? [[String: Any]] ?? []
+        let entry: [String: Any] = [
+            "id": UUID().uuidString,
+            "url": receiptURL,
+            "submittedAt": Timestamp(date: Date())
+        ]
+        let combined = [entry] + existing
+        let trimmed = Array(combined.prefix(6))
+        let removedURLs = combined.dropFirst(6).compactMap { $0["url"] as? String }
+        return (trimmed, removedURLs)
+    }
+
+    private func deleteReceipts(urls: [String]) async {
+        for url in urls {
+            let ref = storage.reference(forURL: url)
+            do {
+                try await ref.delete()
+            } catch {
+                continue
+            }
         }
     }
 

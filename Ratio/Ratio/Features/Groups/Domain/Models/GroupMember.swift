@@ -15,6 +15,7 @@ struct GroupMember: Identifiable, Equatable {
     let userId: String?
     let photoURL: String?
     let receiptURL: String?
+    let receiptHistory: [ReceiptHistoryItem]
     let submittedAt: Date?
     let approvedAt: Date?
 }

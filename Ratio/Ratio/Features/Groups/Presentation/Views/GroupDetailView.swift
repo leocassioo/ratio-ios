@@ -19,6 +19,7 @@ struct GroupDetailView: View {
     @State private var showPaymentSheet = false
     @State private var showPaymentError = false
     @State private var showLeaveConfirm = false
+    @State private var selectedMemberForReceipts: GroupMember?
     @State private var showLeaveError = false
     @State private var leaveErrorMessage: String = "Não foi possível sair do grupo."
     @State private var isLeavingGroup = false
@@ -111,9 +112,10 @@ struct GroupDetailView: View {
                         }
                     }
 
-                    if let receiptURL = currentMember.receiptURL,
-                       let url = URL(string: receiptURL) {
-                        Link("Ver comprovante", destination: url)
+                    if hasReceipts(currentMember) {
+                        Button("Ver comprovantes") {
+                            selectedMemberForReceipts = currentMember
+                        }
                     }
 
                     if currentMember.status == .pending || currentMember.status == .overdue {
@@ -239,9 +241,10 @@ struct GroupDetailView: View {
                         }
                         Spacer()
 
-                        if let receiptURL = member.receiptURL,
-                           let url = URL(string: receiptURL) {
-                            Link(destination: url) {
+                        if hasReceipts(member) {
+                            Button {
+                                selectedMemberForReceipts = member
+                            } label: {
                                 Image(systemName: "doc.text.magnifyingglass")
                             }
                             .buttonStyle(.plain)
@@ -323,6 +326,9 @@ struct GroupDetailView: View {
                 }
             }
         }
+        .sheet(item: $selectedMemberForReceipts) { member in
+            ReceiptHistorySheetView(memberName: member.name, receipts: receipts(for: member))
+        }
         .task {
             preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
             if let currentUserId {
@@ -365,7 +371,7 @@ struct GroupDetailView: View {
                 NavigationStack {
                     PaymentSubmissionView(
                         groupId: currentGroup.id,
-                        memberId: currentMember.id,
+                        memberId: currentMember.userId ?? currentMember.id,
                         amount: currentMember.amount,
                         currencyCode: currentGroup.currencyCode,
                         onSubmitted: {
@@ -455,6 +461,20 @@ struct GroupDetailView: View {
         formatter.currencyCode = currencyCode ?? currentGroup.currencyCode
         formatter.locale = Locale(identifier: "pt_BR")
         return formatter.string(from: NSNumber(value: value)) ?? "R$ 0,00"
+    }
+
+    private func receipts(for member: GroupMember) -> [ReceiptHistoryItem] {
+        if !member.receiptHistory.isEmpty {
+            return member.receiptHistory.sorted { $0.submittedAt > $1.submittedAt }
+        }
+        if let url = member.receiptURL {
+            return [ReceiptHistoryItem(id: UUID().uuidString, url: url, submittedAt: member.submittedAt ?? Date())]
+        }
+        return []
+    }
+
+    private func hasReceipts(_ member: GroupMember) -> Bool {
+        !member.receiptHistory.isEmpty || member.receiptURL != nil
     }
 
     private func estimatedAmount(for amount: Double) -> Double? {
@@ -588,6 +608,7 @@ struct GroupDetailView: View {
                     userId: member.userId,
                     photoURL: member.photoURL,
                     receiptURL: member.receiptURL,
+                    receiptHistory: member.receiptHistory,
                     submittedAt: status == .submitted ? Date() : member.submittedAt,
                     approvedAt: status == .paid ? Date() : member.approvedAt
                 )
@@ -621,8 +642,8 @@ struct GroupDetailView: View {
                 servicePassword: nil,
                 pixKey: nil,
                 members: [
-                    GroupMember(id: "1", name: "Leo", amount: 20, status: .paid, userId: "1", photoURL: nil, receiptURL: nil, submittedAt: nil, approvedAt: nil),
-                    GroupMember(id: "2", name: "Pessoa", amount: 20, status: .pending, userId: nil, photoURL: nil, receiptURL: nil, submittedAt: nil, approvedAt: nil)
+                    GroupMember(id: "1", name: "Leo", amount: 20, status: .paid, userId: "1", photoURL: nil, receiptURL: nil, receiptHistory: [], submittedAt: nil, approvedAt: nil),
+                    GroupMember(id: "2", name: "Pessoa", amount: 20, status: .pending, userId: nil, photoURL: nil, receiptURL: nil, receiptHistory: [], submittedAt: nil, approvedAt: nil)
                 ]
             ),
             currentUserId: "1"

@@ -177,8 +177,9 @@ final class GroupsViewModel: ObservableObject {
     ) async -> String? {
         let memberIds = members.compactMap { $0.userId }.unique() + [ownerId]
         let membersPreview: [[String: Any]] = members.map { member in
-            [
-                "id": member.id,
+            let previewId = member.userId ?? member.id
+            return [
+                "id": previewId,
                 "name": member.name,
                 "amount": member.amountValue,
                 "status": member.status.rawValue,
@@ -238,8 +239,9 @@ final class GroupsViewModel: ObservableObject {
     ) async -> String? {
         let memberIds = members.compactMap { $0.userId }.unique() + [ownerId]
         let membersPreview: [[String: Any]] = members.map { member in
-            [
-                "id": member.id,
+            let previewId = member.userId ?? member.id
+            return [
+                "id": previewId,
                 "name": member.name,
                 "amount": member.amountValue,
                 "status": member.status.rawValue,

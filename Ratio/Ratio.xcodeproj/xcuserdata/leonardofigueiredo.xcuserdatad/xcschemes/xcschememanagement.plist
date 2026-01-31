@@ -7,7 +7,7 @@
 		<key>Promises (Playground).xcscheme</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>1</integer>
+			<integer>2</integer>
 		</dict>
 		<key>Ratio.xcscheme_^#shared#^_</key>
 		<dict>
@@ -23,6 +23,11 @@
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
 		<key>470F57412EF894B0006D57A9</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>47F0995B2F2CF0D80022276D</key>
 		<dict>
 			<key>primary</key>
 			<true/>

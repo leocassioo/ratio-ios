@@ -56,13 +56,17 @@ class ShareExtensionManager {
             return
         }
         
-        let receiptId = UUID().uuidString
-        let storageRef = Storage.storage().reference().child("groups/\(groupId)/receipts/\(userId)/\(receiptId).jpg")
+        // 1. Resize Image (Max 1024px side - same as Main App)
+        let resizedImage = resizeImage(image, maxDimension: 1024)
         
-        guard let imageData = image.jpegData(compressionQuality: 0.7) else {
+        // 2. Compress (Target < 100KB - same as Main App)
+        guard let imageData = compressImageData(resizedImage, maxBytes: 100_000) else {
             completion(.failure(NSError(domain: "ShareExtension", code: 400, userInfo: [NSLocalizedDescriptionKey: "Erro ao processar imagem"])))
             return
         }
+        
+        let receiptId = UUID().uuidString
+        let storageRef = Storage.storage().reference().child("groups/\(groupId)/receipts/\(userId)/\(receiptId).jpg")
         
         let metadata = StorageMetadata()
         metadata.contentType = "image/jpeg"
@@ -78,19 +82,63 @@ class ShareExtensionManager {
                     completion(.failure(error ?? NSError(domain: "ShareExtension", code: 500)))
                     return
                 }
-                self?.updateFirestore(groupId: groupId, userId: userId, url: downloadURL.absoluteString, completion: completion)
+                self?.updateFirestore(groupId: groupId, userId: userId, url: downloadURL.absoluteString) { result in
+                    switch result {
+                    case .success(let removedURLs):
+                        if !removedURLs.isEmpty {
+                            self?.deleteReceipts(urls: removedURLs)
+                        }
+                        completion(.success(()))
+                    case .failure(let error):
+                        completion(.failure(error))
+                    }
+                }
             }
         }
     }
     
-    private func updateFirestore(groupId: String, userId: String, url: String, completion: @escaping (Result<Void, Error>) -> Void) {
+    private func resizeImage(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
+        let size = image.size
+        let maxSide = max(size.width, size.height)
+        
+        guard maxSide > maxDimension else { return image }
+        
+        let scale = maxDimension / maxSide
+        let newSize = CGSize(width: size.width * scale, height: size.height * scale)
+        
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: newSize))
+        }
+    }
+    
+    private func compressImageData(_ image: UIImage, maxBytes: Int) -> Data? {
+        var quality: CGFloat = 0.45
+        var data = image.jpegData(compressionQuality: quality)
+        while let current = data, current.count > maxBytes, quality > 0.3 {
+            quality -= 0.08
+            data = image.jpegData(compressionQuality: quality)
+        }
+        return data
+    }
+    
+    private func updateFirestore(
+        groupId: String,
+        userId: String,
+        url: String,
+        completion: @escaping (Result<[String], Error>) -> Void
+    ) {
         let db = Firestore.firestore()
         let groupRef = db.collection("groups").document(groupId)
+        let memberRef = groupRef.collection("members").document(userId)
         
-        db.runTransaction({ (transaction, errorPointer) -> Any? in
+        let now = Date()
+        db.runTransaction({ [self] (transaction, errorPointer) -> Any? in
             let groupDocument: DocumentSnapshot
+            let memberDocument: DocumentSnapshot
             do {
                 try groupDocument = transaction.getDocument(groupRef)
+                try memberDocument = transaction.getDocument(memberRef)
             } catch let fetchError as NSError {
                 errorPointer?.pointee = fetchError
                 return nil
@@ -103,12 +151,17 @@ class ShareExtensionManager {
                 ?? (data["members"] as? [[String: Any]] ?? [])
             
             var didUpdate = false
+            let historyUpdate = self.updatedReceiptHistory(from: memberDocument, url: url, now: now)
             for (index, member) in membersPreview.enumerated() {
                 if let id = member["userId"] as? String, id == userId {
                     var updatedMember = member
                     updatedMember["receiptURL"] = url
                     updatedMember["status"] = "submitted"
-                    updatedMember["updatedAt"] = Timestamp(date: Date())
+                    updatedMember["submittedAt"] = Timestamp(date: now)
+                    updatedMember["updatedAt"] = Timestamp(date: now)
+                    if !historyUpdate.history.isEmpty {
+                        updatedMember["receiptHistory"] = historyUpdate.history
+                    }
                     membersPreview[index] = updatedMember
                     didUpdate = true
                     break
@@ -120,20 +173,41 @@ class ShareExtensionManager {
             }
             
             // 2. Update Subcollection Member Document
-            let memberRef = groupRef.collection("members").document(userId)
             transaction.updateData([
                 "receiptURL": url,
                 "status": "submitted",
+                "submittedAt": FieldValue.serverTimestamp(),
+                "receiptHistory": historyUpdate.history,
                 "updatedAt": FieldValue.serverTimestamp()
             ], forDocument: memberRef)
             
-            return nil
+            return historyUpdate.removedURLs
         }) { (object, error) in
             if let error = error {
                 completion(.failure(error))
             } else {
-                completion(.success(()))
+                completion(.success(object as? [String] ?? []))
             }
+        }
+    }
+
+    private func updatedReceiptHistory(from snapshot: DocumentSnapshot, url: String, now: Date) -> (history: [[String: Any]], removedURLs: [String]) {
+        let existing = snapshot.data()?["receiptHistory"] as? [[String: Any]] ?? []
+        let entry: [String: Any] = [
+            "id": UUID().uuidString,
+            "url": url,
+            "submittedAt": Timestamp(date: now)
+        ]
+        let combined = [entry] + existing
+        let trimmed = Array(combined.prefix(6))
+        let removedURLs = combined.dropFirst(6).compactMap { $0["url"] as? String }
+        return (trimmed, removedURLs)
+    }
+
+    private func deleteReceipts(urls: [String]) {
+        for url in urls {
+            let ref = Storage.storage().reference(forURL: url)
+            ref.delete { _ in }
         }
     }
 }

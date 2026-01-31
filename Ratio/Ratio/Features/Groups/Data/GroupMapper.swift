@@ -47,6 +47,13 @@ enum GroupMapper {
             let userId = memberData["userId"] as? String
             let photoURL = memberData["photoURL"] as? String
             let receiptURL = memberData["receiptURL"] as? String
+            let receiptHistoryData = memberData["receiptHistory"] as? [[String: Any]] ?? []
+            let receiptHistory = receiptHistoryData.compactMap { entry -> ReceiptHistoryItem? in
+                guard let url = entry["url"] as? String else { return nil }
+                let submittedAt = (entry["submittedAt"] as? Timestamp)?.dateValue() ?? Date()
+                let id = entry["id"] as? String ?? UUID().uuidString
+                return ReceiptHistoryItem(id: id, url: url, submittedAt: submittedAt)
+            }
             let submittedAtTimestamp = memberData["submittedAt"] as? Timestamp
             let approvedAtTimestamp = memberData["approvedAt"] as? Timestamp
             return GroupMember(
@@ -57,6 +64,7 @@ enum GroupMapper {
                 userId: userId,
                 photoURL: photoURL,
                 receiptURL: receiptURL,
+                receiptHistory: receiptHistory,
                 submittedAt: submittedAtTimestamp?.dateValue(),
                 approvedAt: approvedAtTimestamp?.dateValue()
             )
