@@ -19,13 +19,19 @@ final class GroupsViewModel: ObservableObject {
 
     private let store: GroupsStore
     private let exchangeRateStore: ExchangeRateStore
+    private let analytics: AnalyticsService
     private var listener: ListenerRegistration?
     private var exchangeRateListener: ListenerRegistration?
     private var eurRateListener: ListenerRegistration?
 
-    init(store: GroupsStore? = nil, exchangeRateStore: ExchangeRateStore? = nil) {
+    init(
+        store: GroupsStore? = nil,
+        exchangeRateStore: ExchangeRateStore? = nil,
+        analytics: AnalyticsService = .shared
+    ) {
         self.store = store ?? GroupsStore()
         self.exchangeRateStore = exchangeRateStore ?? ExchangeRateStore()
+        self.analytics = analytics
     }
 
     deinit {
@@ -215,7 +221,15 @@ final class GroupsViewModel: ObservableObject {
         ]
 
         do {
-            return try await store.createGroup(data: data, members: members, ownerId: ownerId)
+            let groupId = try await store.createGroup(data: data, members: members, ownerId: ownerId)
+            analytics.track(.group_create, parameters: [
+                "group_id": groupId,
+                "category": subscription.category.rawValue,
+                "period": subscription.period.rawValue,
+                "currency": subscription.currencyCode,
+                "source": "from_subscription"
+            ])
+            return groupId
         } catch {
             errorMessage = error.localizedDescription
             return nil
@@ -272,7 +286,15 @@ final class GroupsViewModel: ObservableObject {
         ]
 
         do {
-            return try await store.createGroup(data: data, members: members, ownerId: ownerId)
+            let groupId = try await store.createGroup(data: data, members: members, ownerId: ownerId)
+            analytics.track(.group_create, parameters: [
+                "group_id": groupId,
+                "category": category.rawValue,
+                "period": period.rawValue,
+                "currency": currencyCode,
+                "source": "manual"
+            ])
+            return groupId
         } catch {
             errorMessage = error.localizedDescription
             return nil
@@ -338,6 +360,7 @@ final class GroupsViewModel: ObservableObject {
                 ownerId: ownerId,
                 removedMemberIds: removedMemberIds
             )
+            analytics.track(.group_edit, parameters: ["group_id": groupId])
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -406,6 +429,7 @@ final class GroupsViewModel: ObservableObject {
                 ownerId: ownerId,
                 removedMemberIds: removedMemberIds
             )
+            analytics.track(.group_edit, parameters: ["group_id": groupId])
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -414,6 +438,7 @@ final class GroupsViewModel: ObservableObject {
     func deleteGroup(groupId: String) async {
         do {
             try await store.deleteGroup(groupId: groupId)
+            analytics.track(.group_delete, parameters: ["group_id": groupId])
         } catch {
             errorMessage = error.localizedDescription
         }

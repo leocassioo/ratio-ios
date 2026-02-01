@@ -16,6 +16,7 @@ struct GroupDetailView: View {
     @State private var currentGroup: SharedGroup
     @StateObject private var paymentsViewModel = GroupPaymentsViewModel()
     private let groupsStore = GroupsStore()
+    private let analytics = AnalyticsService.shared
     @State private var showPaymentSheet = false
     @State private var showPaymentError = false
     @State private var showLeaveConfirm = false
@@ -401,6 +402,10 @@ struct GroupDetailView: View {
                         try await groupsStore.leaveGroup(groupId: currentGroup.id, userId: currentUserId)
                         await MainActor.run {
                             isLeavingGroup = false
+                            analytics.track(.group_leave, parameters: [
+                                "group_id": currentGroup.id,
+                                "role": isOwner ? "owner" : "member"
+                            ])
                             dismiss()
                         }
                     } catch {
@@ -431,6 +436,10 @@ struct GroupDetailView: View {
         }
         .onChange(of: paymentsViewModel.errorMessage) { _, newValue in
             showPaymentError = newValue != nil
+        }
+        .onAppear {
+            analytics.screenView(.screen_group_detail)
+            analytics.track(.group_view, parameters: ["group_id": currentGroup.id])
         }
     }
 

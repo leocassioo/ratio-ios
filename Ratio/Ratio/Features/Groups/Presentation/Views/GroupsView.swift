@@ -15,6 +15,7 @@ struct GroupsView: View {
     @StateObject private var viewModel = GroupsViewModel()
     @State private var preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
     private let freeGroupLimit = 2
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         ZStack {
@@ -37,6 +38,9 @@ struct GroupsView: View {
             } else if viewModel.groups.isEmpty {
                 GroupsEmptyStateView {
                     openCreate()
+                }
+                .onAppear {
+                    analytics.screenView(.screen_groups_empty)
                 }
             } else {
                 ScrollView {
@@ -96,6 +100,7 @@ struct GroupsView: View {
             }
         }
         .onAppear {
+            analytics.screenView(.screen_groups)
             preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
             if let userId = authViewModel.user?.uid {
                 viewModel.startListening(userId: userId)

@@ -13,6 +13,7 @@ struct EditGroupView: View {
     @ObservedObject var viewModel: GroupsViewModel
     let group: SharedGroup
     let ownerId: String
+    private let analytics = AnalyticsService.shared
 
     @State private var groupName: String
     @State private var selectedSubscriptionId: String?
@@ -177,6 +178,7 @@ struct EditGroupView: View {
             Text("A assinatura \"\(subscriptionInUseName)\" já está vinculada a outro grupo. Edite o grupo existente ou escolha outra assinatura.")
         }
         .onAppear {
+            analytics.screenView(.screen_edit_group)
             creationViewModel.startListening()
             updateSelectedSubscription()
         }

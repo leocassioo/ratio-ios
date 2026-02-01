@@ -16,6 +16,7 @@ struct CreateGroupView: View {
     let ownerId: String
     let ownerName: String
     private let subscriptionsStore = SubscriptionsStore()
+    private let analytics = AnalyticsService.shared
 
     @State private var groupName = ""
     @State private var selectedSubscriptionId: String?
@@ -147,6 +148,7 @@ struct CreateGroupView: View {
             }
         }
         .onAppear {
+            analytics.screenView(.screen_create_group)
             if members.isEmpty {
                 members = [
                     GroupMemberDraft(
