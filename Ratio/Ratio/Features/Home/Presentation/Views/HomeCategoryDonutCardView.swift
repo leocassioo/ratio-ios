@@ -65,9 +65,9 @@ struct HomeCategoryDonutCardView: View {
                             }
                             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                             .onTapGesture {
-                                router.present(.subscriptionBenefits)
-                            }
-                    }
+                router.present(.subscriptionBenefits(source: .charts))
+            }
+        }
                 }
             }
         }

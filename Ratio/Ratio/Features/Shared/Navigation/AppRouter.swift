@@ -25,7 +25,7 @@ enum AppRoute: Hashable {
 }
 
 enum AppSheet: Identifiable, Equatable {
-    case upgradePrompt(title: String, subtitle: String, benefits: [String])
+    case upgradePrompt(title: String, subtitle: String, benefits: [String], source: PaywallSource)
     case createSubscription(ownerId: String, onSave: (SubscriptionItem) -> Void)
     case editSubscription(
         subscription: SubscriptionItem,
@@ -72,12 +72,12 @@ enum AppSheet: Identifiable, Equatable {
 }
 
 enum AppFullScreenCover: Identifiable, Equatable {
-    case subscriptionBenefits
+    case subscriptionBenefits(source: PaywallSource)
 
     var id: String {
         switch self {
-        case .subscriptionBenefits:
-            return "subscriptionBenefits"
+        case .subscriptionBenefits(let source):
+            return "subscriptionBenefits-\(source.rawValue)"
         }
     }
 

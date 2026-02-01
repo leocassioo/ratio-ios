@@ -11,8 +11,14 @@ struct WhatsNewState {
     let payload: WhatsNewPayload
     let slides: [WhatsNewPayload.WhatsNewSlide]
     let isOutdated: Bool
+    let source: WhatsNewSource
 
     var appStoreURL: URL? { payload.appStoreURL }
+}
+
+enum WhatsNewSource {
+    case auto
+    case settings
 }
 
 struct WhatsNewView: View {
@@ -24,6 +30,7 @@ struct WhatsNewView: View {
     @State private var currentIndex = 0
     @State private var didFinalize = false
     @State private var expandedImageURL: String?
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         NavigationStack {
@@ -58,6 +65,7 @@ struct WhatsNewView: View {
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                                 Button {
                                     finalize {
+                                        analytics.track(.whatsnew_update_tap)
                                         onUpdate(state.appStoreURL)
                                     }
                                 } label: {
@@ -69,6 +77,7 @@ struct WhatsNewView: View {
 
                                 Button {
                                     finalize {
+                                        analytics.track(.whatsnew_continue)
                                         onContinue()
                                     }
                                 } label: {
@@ -81,6 +90,7 @@ struct WhatsNewView: View {
                         } else {
                             Button {
                                 finalize {
+                                    analytics.track(.whatsnew_continue)
                                     onContinue()
                                 }
                             } label: {
@@ -113,6 +123,13 @@ struct WhatsNewView: View {
         }
         .onDisappear {
             finalize { onContinue() }
+        }
+        .onAppear {
+            analytics.screenView(.screen_whats_new)
+            analytics.track(.whatsnew_view)
+            if state.source == .settings {
+                analytics.track(.settings_whats_new_open)
+            }
         }
         .sheet(
             isPresented: Binding(
@@ -268,6 +285,6 @@ private struct WhatsNewImageViewer: View {
             ]
         ]
     )
-    let state = WhatsNewState(payload: payload, slides: payload.slides(for: Locale(identifier: "pt-BR")), isOutdated: false)
+    let state = WhatsNewState(payload: payload, slides: payload.slides(for: Locale(identifier: "pt-BR")), isOutdated: false, source: .auto)
     return WhatsNewView(state: state, onContinue: {}, onUpdate: { _ in })
 }

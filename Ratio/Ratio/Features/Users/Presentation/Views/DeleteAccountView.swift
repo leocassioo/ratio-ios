@@ -14,6 +14,7 @@ struct DeleteAccountView: View {
     @State private var appleNonce = ""
     @State private var showErrorAlert = false
     @State private var showPassword = false
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         ScrollView {
@@ -148,6 +149,7 @@ struct DeleteAccountView: View {
             showErrorAlert = newValue != nil
         }
         .onAppear {
+            analytics.screenView(.screen_delete_account)
             viewModel.refreshProviders()
         }
         .alert("Não foi possível excluir a conta", isPresented: $showErrorAlert) {

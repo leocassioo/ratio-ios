@@ -16,6 +16,11 @@ final class ChangeEmailViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var successMessage: String?
+    private let analytics: AnalyticsService
+
+    init(analytics: AnalyticsService = .shared) {
+        self.analytics = analytics
+    }
 
     func updateEmail() {
         guard let user = Auth.auth().currentUser else {
@@ -47,6 +52,7 @@ final class ChangeEmailViewModel: ObservableObject {
                 try await user.reauthenticate(with: credential)
                 try await user.sendEmailVerification(beforeUpdatingEmail: trimmedEmail)
                 successMessage = "Enviamos um link de confirmação. Faça login novamente após confirmar."
+                analytics.track(.settings_change_email_success)
                 currentPassword = ""
                 PreferencesStore.shared.setPendingEmailChangeNotice(true)
                 try Auth.auth().signOut()

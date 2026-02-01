@@ -89,7 +89,8 @@ struct GroupsView: View {
                                 "Grupos compartilhados ilimitados",
                                 "Mais controle sobre cobranças e rateios",
                                 "Prioridade para novos recursos"
-                            ]
+                            ],
+                            source: .groups_limit
                         ))
                     }
                 } label: {

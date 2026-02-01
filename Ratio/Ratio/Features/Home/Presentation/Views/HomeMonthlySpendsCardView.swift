@@ -129,9 +129,9 @@ struct HomeMonthlySpendsCardView: View {
             }
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .onTapGesture {
-                router.present(.subscriptionBenefits)
+                router.present(.subscriptionBenefits(source: .charts))
+            }
         }
-    }
 
     private var monthlyLegend: some View {
         VStack(spacing: 8) {

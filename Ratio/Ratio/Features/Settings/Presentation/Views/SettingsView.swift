@@ -17,6 +17,10 @@ struct SettingsView: View {
     @AppStorage(PreferencesStore.PrefKey.primaryCurrencyCode) private var primaryCurrencyCodeRaw: String = "BRL"
     @State private var showSignOutConfirm = false
     @State private var isSigningOut = false
+    @State private var showWhatsNewError = false
+    @State private var isLoadingWhatsNew = false
+    @State private var didLogScreen = false
+    private let analytics = AnalyticsService.shared
 
     private var appTheme: Binding<AppTheme> {
         Binding(
@@ -44,6 +48,7 @@ struct SettingsView: View {
             Section {
                 if let user = authViewModel.user {
                     Button {
+                        analytics.track(.settings_profile_open)
                         router.push(.editProfile, in: .settings)
                     } label: {
                         HStack(spacing: 12) {
@@ -115,7 +120,7 @@ struct SettingsView: View {
             if !subscriptionManager.hasProAccess {
                 Section {
                     Button {
-                        router.present(.subscriptionBenefits)
+                        router.present(.subscriptionBenefits(source: .settings))
                     } label: {
                         Label("Ratio Pro", systemImage: "crown.fill")
                     }
@@ -130,10 +135,18 @@ struct SettingsView: View {
 
             Section {
                 Button {
+                    analytics.track(.settings_help_open, parameters: ["source": "tutorial"])
                     router.push(.onboardingTutorial, in: .settings)
                 } label: {
                     Label("Tutorial rápido", systemImage: "questionmark.circle")
                 }
+
+                Button {
+                    openWhatsNew()
+                } label: {
+                    Label("Novidades da versão", systemImage: "sparkles")
+                }
+                .disabled(isLoadingWhatsNew)
             } header: {
                 Text("Ajuda e tutorial")
             } footer: {
@@ -186,6 +199,19 @@ struct SettingsView: View {
         }
         .disabled(isSigningOut)
         .navigationTitle("Ajustes")
+        .onAppear {
+            if !didLogScreen {
+                analytics.screenView(.screen_settings)
+                analytics.track(.settings_open)
+                didLogScreen = true
+            }
+        }
+        .onDisappear {
+            didLogScreen = false
+        }
+        .onChange(of: primaryCurrencyCodeRaw) { _, newValue in
+            analytics.track(.settings_currency_change, parameters: ["currency": newValue])
+        }
         .alert("Sair da conta?", isPresented: $showSignOutConfirm) {
             Button("Cancelar", role: .cancel) {}
             Button("Sair", role: .destructive) {
@@ -194,6 +220,11 @@ struct SettingsView: View {
             }
         } message: {
             Text("Você precisará fazer login novamente para acessar o app.")
+        }
+        .alert("Novidades indisponíveis", isPresented: $showWhatsNewError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Não foi possível carregar as novidades agora.")
         }
         .overlay {
             if isSigningOut {
@@ -220,6 +251,30 @@ struct SettingsView: View {
                 router.dismissSheet()
                 router.dismissFullScreenCover()
             }
+        }
+    }
+
+    private func openWhatsNew() {
+        guard !isLoadingWhatsNew else { return }
+        isLoadingWhatsNew = true
+        Task { @MainActor in
+            _ = await RemoteConfigService.shared.fetchAndActivate()
+            guard let payload = RemoteConfigService.shared.whatsNewPayload else {
+                showWhatsNewError = true
+                isLoadingWhatsNew = false
+                return
+            }
+            let slides = payload.slides(for: Locale.current)
+            guard !slides.isEmpty else {
+                showWhatsNewError = true
+                isLoadingWhatsNew = false
+                return
+            }
+            let currentVersion = AppVersion.current
+            let isOutdated = payload.minVersion.map { AppVersion.isLower(currentVersion, than: $0) } ?? false
+            let state = WhatsNewState(payload: payload, slides: slides, isOutdated: isOutdated, source: .settings)
+            router.present(.whatsNew(state: state))
+            isLoadingWhatsNew = false
         }
     }
 }

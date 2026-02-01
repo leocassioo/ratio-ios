@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct SubscriptionBenefitsView: View {
+    let source: PaywallSource
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @State private var selectedPlan: SubscriptionProduct = .annual
@@ -16,6 +17,7 @@ struct SubscriptionBenefitsView: View {
     @State private var isRestoring = false
     @State private var restoreMessage: String?
     @State private var showRestoreAlert = false
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         ZStack {
@@ -58,6 +60,10 @@ struct SubscriptionBenefitsView: View {
             SubscriptionSuccessView {
                 dismiss()
             }
+        }
+        .onAppear {
+            analytics.screenView(.screen_subscription_benefits)
+            analytics.track(.paywall_open, parameters: ["source": source.rawValue])
         }
     }
 
@@ -153,8 +159,15 @@ struct SubscriptionBenefitsView: View {
         VStack(spacing: 12) {
             Button {
                 Task {
+                    let planKey = analyticsPlanKey(selectedPlan)
+                    analytics.track(.paywall_cta_tap, parameters: ["plan": planKey])
+                    analytics.track(.subscription_start, parameters: [
+                        "plan": planKey,
+                        "price": subscriptionManager.displayPrice(for: selectedPlan)
+                    ])
                     let result = await subscriptionManager.purchase(product: selectedPlan)
                     if case .success = result {
+                        analytics.track(.subscription_success)
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                             showSuccess = true
                         }
@@ -181,11 +194,13 @@ struct SubscriptionBenefitsView: View {
 
             Button {
                 Task {
+                    analytics.track(.restore_tap)
                     isRestoring = true
                     await subscriptionManager.refreshEntitlements()
                     isRestoring = false
 
                     if subscriptionManager.hasProAccess {
+                        analytics.track(.restore_success)
                         restoreMessage = "Assinatura restaurada com sucesso."
                         showSuccess = true
                     } else {
@@ -243,6 +258,17 @@ struct SubscriptionBenefitsView: View {
             return "Assinar semestral"
         case .monthly:
             return "Assinar mensal"
+        }
+    }
+
+    private func analyticsPlanKey(_ product: SubscriptionProduct) -> String {
+        switch product {
+        case .monthly:
+            return "monthly"
+        case .semiannual:
+            return "semiannual"
+        case .annual:
+            return "annual"
         }
     }
 }

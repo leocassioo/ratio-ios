@@ -28,11 +28,13 @@ final class EditProfileViewModel: ObservableObject {
     private let user: User
     private let usersStore: UsersStore
     private let groupsStore: GroupsStore
+    private let analytics: AnalyticsService
 
-    init(user: User, usersStore: UsersStore? = nil, groupsStore: GroupsStore? = nil) {
+    init(user: User, usersStore: UsersStore? = nil, groupsStore: GroupsStore? = nil, analytics: AnalyticsService = .shared) {
         self.user = user
         self.usersStore = usersStore ?? UsersStore()
         self.groupsStore = groupsStore ?? GroupsStore()
+        self.analytics = analytics
         self.name = user.displayName ?? ""
         self.email = user.email ?? ""
         self.phoneNumber = ""
@@ -110,6 +112,7 @@ final class EditProfileViewModel: ObservableObject {
                 )
 
                 remotePhotoURL = updatedPhotoURL
+                analytics.track(.settings_profile_edit)
                 saveSuccess = true
                 Task { [weak self] in
                     try? await Task.sleep(nanoseconds: 3_000_000_000)

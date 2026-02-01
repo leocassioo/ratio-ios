@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SubscriptionSuccessView: View {
     let onDone: () -> Void
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         VStack(spacing: 24) {
@@ -41,5 +42,8 @@ struct SubscriptionSuccessView: View {
             Spacer()
         }
         .padding()
+        .onAppear {
+            analytics.screenView(.screen_subscription_success)
+        }
     }
 }

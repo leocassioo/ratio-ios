@@ -29,8 +29,10 @@ final class DeleteAccountViewModel: ObservableObject {
     private(set) var supportsPassword = false
     private(set) var supportsApple = false
     private(set) var supportsGoogle = false
+    private let analytics: AnalyticsService
 
-    init() {
+    init(analytics: AnalyticsService = .shared) {
+        self.analytics = analytics
         refreshProviders()
     }
 
@@ -62,6 +64,7 @@ final class DeleteAccountViewModel: ObservableObject {
 
         isLoading = true
         errorMessage = nil
+        analytics.track(.settings_delete_account_start)
 
         Task {
             do {
@@ -69,8 +72,10 @@ final class DeleteAccountViewModel: ObservableObject {
                 try await user.reauthenticate(with: credential)
                 try await user.delete()
                 try? Auth.auth().signOut()
+                analytics.track(.settings_delete_account_success)
             } catch {
                 errorMessage = error.localizedDescription
+                analytics.track(.settings_delete_account_error, parameters: ["reason": String(describing: error)])
             }
             isLoading = false
         }
@@ -85,6 +90,7 @@ final class DeleteAccountViewModel: ObservableObject {
 
         isLoading = true
         errorMessage = nil
+        analytics.track(.settings_delete_account_start)
 
         Task {
             do {
@@ -107,8 +113,10 @@ final class DeleteAccountViewModel: ObservableObject {
                 try await user.reauthenticate(with: credential)
                 try await user.delete()
                 try? Auth.auth().signOut()
+                analytics.track(.settings_delete_account_success)
             } catch {
                 errorMessage = error.localizedDescription
+                analytics.track(.settings_delete_account_error, parameters: ["reason": String(describing: error)])
             }
             isLoading = false
         }
@@ -123,6 +131,7 @@ final class DeleteAccountViewModel: ObservableObject {
 
         isLoading = true
         errorMessage = nil
+        analytics.track(.settings_delete_account_start)
 
         Task {
             do {
@@ -146,8 +155,10 @@ final class DeleteAccountViewModel: ObservableObject {
                 try await user.reauthenticate(with: credential)
                 try await user.delete()
                 try? Auth.auth().signOut()
+                analytics.track(.settings_delete_account_success)
             } catch {
                 errorMessage = error.localizedDescription
+                analytics.track(.settings_delete_account_error, parameters: ["reason": String(describing: error)])
             }
             isLoading = false
         }

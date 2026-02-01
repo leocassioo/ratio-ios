@@ -10,6 +10,7 @@ import SwiftUI
 struct ChangeEmailView: View {
     @StateObject private var viewModel = ChangeEmailViewModel()
     @State private var showErrorAlert = false
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         let isLocked = viewModel.isLoading || viewModel.successMessage != nil
@@ -81,6 +82,10 @@ struct ChangeEmailView: View {
         }
         .navigationTitle("Alterar email")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            analytics.screenView(.screen_change_email)
+            analytics.track(.settings_change_email_open)
+        }
         .onChange(of: viewModel.errorMessage) { _, newValue in
             showErrorAlert = newValue != nil
         }

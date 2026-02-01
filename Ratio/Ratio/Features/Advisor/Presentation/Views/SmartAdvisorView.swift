@@ -220,7 +220,8 @@ struct SmartAdvisorView: View {
                     "Insights personalizados sobre seus gastos",
                     "Sugestões de economia com IA",
                     "Relatórios avançados"
-                ]
+                ],
+                source: .advisor
             ))
             return
         }

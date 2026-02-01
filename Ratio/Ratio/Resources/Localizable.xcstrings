@@ -464,6 +464,9 @@
     "Não foi possível alterar o email" : {
 
     },
+    "Não foi possível carregar as novidades agora." : {
+
+    },
     "Não foi possível carregar o comprovante." : {
 
     },
@@ -510,6 +513,12 @@
 
     },
     "Novidades" : {
+
+    },
+    "Novidades da versão" : {
+
+    },
+    "Novidades indisponíveis" : {
 
     },
     "Novo email" : {

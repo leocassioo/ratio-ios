@@ -110,7 +110,8 @@ struct SubscriptionsView: View {
                                 "Assinaturas pessoais ilimitadas",
                                 "Lembretes avançados de cobrança",
                                 "Insights inteligentes com IA"
-                            ]
+                            ],
+                            source: .subscriptions_limit
                         ))
                     }
                 } label: {

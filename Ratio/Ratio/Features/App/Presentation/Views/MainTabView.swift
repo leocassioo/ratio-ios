@@ -131,14 +131,15 @@ struct MainTabView: View {
     @ViewBuilder
     private func sheetContent(for sheet: AppSheet) -> some View {
         switch sheet {
-        case .upgradePrompt(let title, let subtitle, let benefits):
+        case .upgradePrompt(let title, let subtitle, let benefits, let source):
             UpgradePromptView(
                 title: title,
                 subtitle: subtitle,
                 benefits: benefits,
-                onViewPlans: {
+                source: source,
+                onViewPlans: { selectedSource in
                     router.dismissSheet()
-                    router.present(.subscriptionBenefits)
+                    router.present(.subscriptionBenefits(source: selectedSource))
                 }
             )
         case .createSubscription(let ownerId, let onSave):
@@ -228,9 +229,9 @@ struct MainTabView: View {
     @ViewBuilder
     private func coverContent(for cover: AppFullScreenCover) -> some View {
         switch cover {
-        case .subscriptionBenefits:
+        case .subscriptionBenefits(let source):
             NavigationStack {
-                SubscriptionBenefitsView()
+                SubscriptionBenefitsView(source: source)
             }
         }
     }
@@ -247,7 +248,7 @@ struct MainTabView: View {
 
         let currentVersion = AppVersion.current
         let isOutdated = payload.minVersion.map { AppVersion.isLower(currentVersion, than: $0) } ?? false
-        let state = WhatsNewState(payload: payload, slides: slides, isOutdated: isOutdated)
+        let state = WhatsNewState(payload: payload, slides: slides, isOutdated: isOutdated, source: .auto)
         router.present(.whatsNew(state: state))
     }
 

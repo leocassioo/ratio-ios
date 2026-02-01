@@ -11,8 +11,10 @@ struct UpgradePromptView: View {
     let title: String
     let subtitle: String
     let benefits: [String]
-    let onViewPlans: () -> Void
+    let source: PaywallSource
+    let onViewPlans: (PaywallSource) -> Void
     @Environment(\.dismiss) private var dismiss
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         NavigationStack {
@@ -60,7 +62,7 @@ struct UpgradePromptView: View {
             .safeAreaInset(edge: .bottom) {
                 Button {
                     dismiss()
-                    onViewPlans()
+                    onViewPlans(source)
                 } label: {
                     Text("Ver planos")
                         .font(.headline)
@@ -88,6 +90,9 @@ struct UpgradePromptView: View {
                 }
             }
         }
+        .onAppear {
+            analytics.screenView(.screen_paywall)
+        }
         .presentationDetents([.fraction(0.75), .large])
     }
 }
@@ -103,6 +108,7 @@ struct UpgradePromptView: View {
             "Histórico completo com gráficos por categoria",
             "Estimativas automáticas de câmbio"
         ],
-        onViewPlans: {}
+        source: .unknown,
+        onViewPlans: { _ in }
     )
 }

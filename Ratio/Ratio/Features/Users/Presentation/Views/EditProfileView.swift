@@ -12,6 +12,7 @@ import SwiftUI
 struct EditProfileView: View {
     @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel: EditProfileViewModel
+    private let analytics = AnalyticsService.shared
 
     init(user: User) {
         _viewModel = StateObject(wrappedValue: EditProfileViewModel(user: user))
@@ -112,6 +113,7 @@ struct EditProfileView: View {
         .navigationTitle("Perfil")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            analytics.screenView(.screen_profile)
             viewModel.loadProfile()
             viewModel.saveSuccess = false
         }
