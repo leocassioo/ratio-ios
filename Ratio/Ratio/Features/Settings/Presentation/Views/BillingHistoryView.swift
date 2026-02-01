@@ -12,6 +12,9 @@ struct BillingHistoryView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel = BillingHistoryViewModel()
+    @State private var didLogScreen = false
+    @State private var loggedMonths: Set<String> = []
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         ZStack {
@@ -60,6 +63,9 @@ struct BillingHistoryView: View {
                                     historyCard(item)
                                 }
                             }
+                            .onAppear {
+                                logMonthIfNeeded(section.monthStart)
+                            }
                         }
                     }
                     .padding(20)
@@ -69,6 +75,11 @@ struct BillingHistoryView: View {
         .navigationTitle("Histórico")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            if !didLogScreen {
+                analytics.screenView(.screen_billing_history)
+                analytics.track(.history_open)
+                didLogScreen = true
+            }
             if let userId = authViewModel.user?.uid {
                 viewModel.startListening(userId: userId)
                 viewModel.loadAnnualEstimate(userId: userId)
@@ -76,6 +87,8 @@ struct BillingHistoryView: View {
         }
         .onDisappear {
             viewModel.stopListening()
+            didLogScreen = false
+            loggedMonths.removeAll()
         }
     }
 
@@ -95,6 +108,10 @@ struct BillingHistoryView: View {
                 .font(.subheadline.weight(.semibold))
         }
         .padding(14)
+        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onTapGesture {
+            analytics.track(.history_item_view, parameters: ["source": item.type.rawValue])
+        }
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(cardBackground)
@@ -190,6 +207,20 @@ struct BillingHistoryView: View {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.locale = Locale(identifier: "pt_BR")
+        return formatter.string(from: date)
+    }
+
+    private func logMonthIfNeeded(_ date: Date) {
+        let key = monthKey(for: date)
+        guard !loggedMonths.contains(key) else { return }
+        loggedMonths.insert(key)
+        analytics.track(.history_month_view, parameters: ["month": key])
+    }
+
+    private func monthKey(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         return formatter.string(from: date)
     }
 }
