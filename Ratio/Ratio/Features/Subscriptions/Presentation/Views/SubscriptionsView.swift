@@ -17,6 +17,7 @@ struct SubscriptionsView: View {
     @State private var pendingDelete: SubscriptionItem?
     @State private var showDeleteConfirm = false
     @State private var preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
+    @State private var didLogScreen = false
     private let freeSubscriptionLimit = 4
     private let analytics = AnalyticsService.shared
 
@@ -41,9 +42,6 @@ struct SubscriptionsView: View {
             } else if viewModel.subscriptions.isEmpty {
                 SubscriptionsEmptyStateView {
                     openCreate()
-                }
-                .onAppear {
-                    analytics.screenView(.screen_subscriptions_empty)
                 }
             } else {
                 List {
@@ -121,20 +119,25 @@ struct SubscriptionsView: View {
             }
         }
         .onAppear {
-            analytics.screenView(.screen_subscriptions)
             preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
             if let userId = authViewModel.user?.uid {
                 viewModel.startListening(userId: userId)
             }
+            logScreenIfNeeded()
+        }
+        .onChange(of: viewModel.isLoading) { _, _ in
+            logScreenIfNeeded()
         }
         .onChange(of: viewModel.subscriptions) { _, _ in
             openPendingSubscriptionIfNeeded()
+            logScreenIfNeeded()
         }
         .onChange(of: router.pendingSubscriptionId) { _, _ in
             openPendingSubscriptionIfNeeded()
         }
         .onDisappear {
             viewModel.stopListening()
+            didLogScreen = false
         }
         .onChange(of: viewModel.errorMessage) { _, newValue in
             showErrorAlert = newValue != nil
@@ -249,6 +252,16 @@ struct SubscriptionsView: View {
         formatter.dateStyle = .medium
         formatter.locale = Locale(identifier: "pt_BR")
         return formatter.string(from: date)
+    }
+
+    private func logScreenIfNeeded() {
+        guard !didLogScreen, !viewModel.isLoading else { return }
+        if viewModel.subscriptions.isEmpty {
+            analytics.screenView(.screen_subscriptions_empty)
+        } else {
+            analytics.screenView(.screen_subscriptions)
+        }
+        didLogScreen = true
     }
 }
 
