@@ -46,6 +46,7 @@ final class NotificationManager {
 
 final class NotificationCenterDelegate: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationCenterDelegate()
+    private let analytics = AnalyticsService.shared
 
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
@@ -57,6 +58,7 @@ final class NotificationCenterDelegate: NSObject, UNUserNotificationCenterDelega
             completionHandler()
             return
         }
+        analytics.track(.notification_open, parameters: notificationParams(from: userInfo))
         NotificationRouteHandler.shared.handle(userInfo: userInfo)
         completionHandler()
     }
@@ -71,6 +73,7 @@ final class NotificationCenterDelegate: NSObject, UNUserNotificationCenterDelega
             completionHandler([])
             return
         }
+        analytics.track(.notification_received, parameters: notificationParams(from: userInfo))
         completionHandler([.banner, .list, .sound, .badge])
     }
 
@@ -82,5 +85,11 @@ final class NotificationCenterDelegate: NSObject, UNUserNotificationCenterDelega
             return false
         }
         return targetUserId == currentUserId
+    }
+
+    private func notificationParams(from userInfo: [AnyHashable: Any]) -> [String: Any] {
+        let type = userInfo["type"] as? String ?? "unknown"
+        let route = userInfo["route"] as? String ?? "unknown"
+        return ["type": type, "route": route]
     }
 }

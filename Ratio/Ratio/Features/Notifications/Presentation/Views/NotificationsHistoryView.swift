@@ -12,6 +12,7 @@ struct NotificationsHistoryView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel = NotificationsHistoryViewModel()
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         List {
@@ -47,6 +48,8 @@ struct NotificationsHistoryView: View {
         .navigationTitle("Notificações")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            analytics.screenView(.screen_notifications_history)
+            analytics.track(.notification_history_open)
             if let userId = authViewModel.user?.uid {
                 viewModel.startListening(userId: userId)
             }
@@ -61,11 +64,18 @@ struct NotificationsHistoryView: View {
     }
 
     private func handleTap(_ item: NotificationItem) {
+        analytics.track(.notification_open, parameters: [
+            "type": item.type,
+            "route": item.route.rawValue
+        ])
         if let userId = authViewModel.user?.uid {
             Task {
                 await viewModel.markAsRead(userId: userId, notificationId: item.id)
             }
         }
+        analytics.track(.notification_mark_read, parameters: [
+            "type": item.type
+        ])
         switch item.route {
         case .groups:
             router.route(to: .groups, groupId: item.data["groupId"])
