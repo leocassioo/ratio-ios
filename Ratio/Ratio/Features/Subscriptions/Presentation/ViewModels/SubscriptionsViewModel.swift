@@ -23,6 +23,7 @@ final class SubscriptionsViewModel: ObservableObject {
     private let store: SubscriptionsStore
     private let groupsStore: GroupsStore
     private let exchangeRateStore: ExchangeRateStore
+    private let analytics: AnalyticsService
     private var listener: ListenerRegistration?
     private var groupsListener: ListenerRegistration?
     private var exchangeRateListener: ListenerRegistration?
@@ -31,11 +32,13 @@ final class SubscriptionsViewModel: ObservableObject {
     init(
         store: SubscriptionsStore? = nil,
         groupsStore: GroupsStore? = nil,
-        exchangeRateStore: ExchangeRateStore? = nil
+        exchangeRateStore: ExchangeRateStore? = nil,
+        analytics: AnalyticsService = .shared
     ) {
         self.store = store ?? SubscriptionsStore()
         self.groupsStore = groupsStore ?? GroupsStore()
         self.exchangeRateStore = exchangeRateStore ?? ExchangeRateStore()
+        self.analytics = analytics
     }
 
     deinit {
@@ -147,8 +150,22 @@ final class SubscriptionsViewModel: ObservableObject {
 
         do {
             try await store.createSubscription(userId: ownerId, data: data)
+            analytics.track(.subscription_create, parameters: [
+                "category": category.rawValue,
+                "period": period.rawValue,
+                "currency": currencyCode,
+                "source": "manual",
+                "result": "success"
+            ])
         } catch {
             errorMessage = error.localizedDescription
+            analytics.track(.subscription_create, parameters: [
+                "category": category.rawValue,
+                "period": period.rawValue,
+                "currency": currencyCode,
+                "source": "manual",
+                "result": "error"
+            ])
         }
     }
 
@@ -163,6 +180,12 @@ final class SubscriptionsViewModel: ObservableObject {
         notes: String?,
         ownerId: String
     ) async {
+        analytics.track(.subscription_edit, parameters: [
+            "subscription_id": id,
+            "category": category.rawValue,
+            "period": period.rawValue,
+            "currency": currencyCode
+        ])
         let data: [String: Any] = [
             "name": name,
             "amount": amount,
@@ -196,8 +219,10 @@ final class SubscriptionsViewModel: ObservableObject {
     func deleteSubscription(id: String, ownerId: String) async {
         do {
             try await store.deleteSubscription(userId: ownerId, id: id)
+            analytics.track(.subscription_delete, parameters: ["subscription_id": id, "result": "success"])
         } catch {
             errorMessage = error.localizedDescription
+            analytics.track(.subscription_delete, parameters: ["subscription_id": id, "result": "error"])
         }
     }
 

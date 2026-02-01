@@ -10,6 +10,7 @@ import SwiftUI
 struct CreateSubscriptionView: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
+    private let analytics = AnalyticsService.shared
 
     @State private var name = ""
     @State private var amountText = ""
@@ -108,6 +109,7 @@ struct CreateSubscriptionView: View {
             }
         }
         .onAppear {
+            analytics.screenView(.screen_create_subscription)
             if amountValue > 0 {
                 amountText = formatAmount(amountValue)
             }

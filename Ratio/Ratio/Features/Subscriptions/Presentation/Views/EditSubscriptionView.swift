@@ -10,6 +10,7 @@ import SwiftUI
 struct EditSubscriptionView: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
+    private let analytics = AnalyticsService.shared
 
     @State private var name: String
     @State private var amountText: String
@@ -153,6 +154,9 @@ struct EditSubscriptionView: View {
             }
         } message: {
             Text("Tem certeza que deseja excluir esta assinatura? Essa ação não pode ser desfeita.")
+        }
+        .onAppear {
+            analytics.screenView(.screen_edit_subscription)
         }
     }
 

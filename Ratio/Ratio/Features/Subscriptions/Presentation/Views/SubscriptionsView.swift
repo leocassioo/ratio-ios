@@ -18,6 +18,7 @@ struct SubscriptionsView: View {
     @State private var showDeleteConfirm = false
     @State private var preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
     private let freeSubscriptionLimit = 4
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         ZStack {
@@ -40,6 +41,9 @@ struct SubscriptionsView: View {
             } else if viewModel.subscriptions.isEmpty {
                 SubscriptionsEmptyStateView {
                     openCreate()
+                }
+                .onAppear {
+                    analytics.screenView(.screen_subscriptions_empty)
                 }
             } else {
                 List {
@@ -117,6 +121,7 @@ struct SubscriptionsView: View {
             }
         }
         .onAppear {
+            analytics.screenView(.screen_subscriptions)
             preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
             if let userId = authViewModel.user?.uid {
                 viewModel.startListening(userId: userId)
@@ -198,6 +203,7 @@ struct SubscriptionsView: View {
 
     private func openEdit(_ subscription: SubscriptionItem) {
         guard let userId = authViewModel.user?.uid else { return }
+        analytics.track(.subscription_view, parameters: ["subscription_id": subscription.id])
         router.present(.editSubscription(
             subscription: subscription,
             canDelete: canDelete(subscription),
