@@ -42,6 +42,15 @@ final class NotificationManager {
                 }
             }
     }
+
+    func updateBadge(count: Int) {
+        let safeCount = max(count, 0)
+        if #available(iOS 16.0, *) {
+            UNUserNotificationCenter.current().setBadgeCount(safeCount)
+        } else {
+            UIApplication.shared.applicationIconBadgeNumber = safeCount
+        }
+    }
 }
 
 final class NotificationCenterDelegate: NSObject, UNUserNotificationCenterDelegate {

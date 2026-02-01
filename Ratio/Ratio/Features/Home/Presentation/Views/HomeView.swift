@@ -286,13 +286,23 @@ struct HomeView: View {
             Image(systemName: "bell")
                 .font(.system(size: 18, weight: .semibold))
 
-            if notificationsBadgeViewModel.hasUnread {
-                Circle()
-                    .fill(Color.red)
-                    .frame(width: 8, height: 8)
-                    .offset(x: 4, y: -2)
+            if notificationsBadgeViewModel.unreadCount > 0 {
+                Text(notificationBadgeText)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 5)
+                    .frame(minWidth: 16, minHeight: 16)
+                    .background(
+                        Capsule().fill(Color.red.opacity(1))
+                    )
+                    .offset(x: 3, y: -3)
             }
         }
+    }
+
+    private var notificationBadgeText: String {
+        let count = notificationsBadgeViewModel.unreadCount
+        return count > 9 ? "9+" : "\(count)"
     }
 
     private func evaluatePushPrompt() {

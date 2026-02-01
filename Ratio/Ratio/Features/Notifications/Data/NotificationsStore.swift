@@ -55,4 +55,32 @@ final class NotificationsStore {
             .document(notificationId)
             .updateData(["isRead": true])
     }
+
+    func markAllAsRead(userId: String) async throws {
+        let snapshot = try await db.collection("users")
+            .document(userId)
+            .collection("notifications")
+            .whereField("isRead", isEqualTo: false)
+            .getDocuments()
+
+        guard !snapshot.documents.isEmpty else { return }
+
+        var batch = db.batch()
+        var operations = 0
+
+        for doc in snapshot.documents {
+            batch.updateData(["isRead": true], forDocument: doc.reference)
+            operations += 1
+
+            if operations >= 450 {
+                try await batch.commit()
+                batch = db.batch()
+                operations = 0
+            }
+        }
+
+        if operations > 0 {
+            try await batch.commit()
+        }
+    }
 }

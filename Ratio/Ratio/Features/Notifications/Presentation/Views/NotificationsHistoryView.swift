@@ -47,6 +47,20 @@ struct NotificationsHistoryView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Notificações")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if hasUnread {
+                    Button {
+                        markAllAsRead()
+                    }
+                    label: {
+                        Image(systemName: "checkmark.circle")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .accessibilityLabel("Marcar todas como lidas")
+                }
+            }
+        }
         .onAppear {
             analytics.screenView(.screen_notifications_history)
             analytics.track(.notification_history_open)
@@ -85,6 +99,20 @@ struct NotificationsHistoryView: View {
             router.route(to: .home)
         case .settings:
             router.route(to: .settings)
+        }
+    }
+
+    private var hasUnread: Bool {
+        viewModel.sections.contains { section in
+            section.items.contains { !$0.isRead }
+        }
+    }
+
+    private func markAllAsRead() {
+        analytics.track(.notification_mark_read, parameters: ["bulk": true])
+        guard let userId = authViewModel.user?.uid else { return }
+        Task {
+            await viewModel.markAllAsRead(userId: userId)
         }
     }
 }

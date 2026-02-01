@@ -51,6 +51,14 @@ final class NotificationsHistoryViewModel: ObservableObject {
         }
     }
 
+    func markAllAsRead(userId: String) async {
+        do {
+            try await store.markAllAsRead(userId: userId)
+        } catch {
+            return
+        }
+    }
+
     private static func buildSections(from items: [NotificationItem]) -> [Section] {
         guard !items.isEmpty else { return [] }
         let calendar = Calendar.current
