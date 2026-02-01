@@ -11,6 +11,7 @@ struct OnboardingView: View {
     let showsFinishButton: Bool
     let onFinish: () -> Void
     @State private var currentPage = 0
+    @StateObject private var viewModel = OnboardingViewModel()
 
     init(showsFinishButton: Bool = true, onFinish: @escaping () -> Void) {
         self.showsFinishButton = showsFinishButton
@@ -46,7 +47,7 @@ struct OnboardingView: View {
                                 description: page.2
                             )
                             if showsFinishButton {
-                                Button(action: onFinish) {
+                                Button(action: handleFinish) {
                                     Text("Começar a usar")
                                         .font(.headline)
                                         .frame(maxWidth: .infinity)
@@ -120,5 +121,17 @@ struct OnboardingView: View {
                 }
             }
         }
+        .onAppear {
+            AnalyticsService.shared.screenView(.screen_onboarding)
+            viewModel.trackOnboardingView(stepIndex: currentPage)
+        }
+        .onChange(of: currentPage) { _, newValue in
+            viewModel.trackOnboardingView(stepIndex: newValue)
+        }
+    }
+
+    private func handleFinish() {
+        viewModel.trackOnboardingComplete()
+        onFinish()
     }
 }

@@ -11,6 +11,7 @@ struct ContentView: View {
     @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var inviteCoordinator = InviteCoordinator()
     @EnvironmentObject private var router: AppRouter
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         Group {
@@ -45,6 +46,10 @@ struct ContentView: View {
         }
         .onOpenURL { url in
             inviteCoordinator.handleURL(url)
+            analytics.track(.deeplink_open, parameters: [
+                "source": url.host ?? "unknown",
+                "route": url.path
+            ])
         }
         .onAppear {
             if let payload = NotificationRouteHandler.shared.consumePendingPayload() {

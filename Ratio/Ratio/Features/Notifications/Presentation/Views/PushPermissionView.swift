@@ -12,6 +12,17 @@ struct PushPermissionView: View {
     let onRequestDone: () -> Void
     let onSkip: () -> Void
     @State private var isRequesting = false
+    private let analytics: AnalyticsService
+
+    init(
+        onRequestDone: @escaping () -> Void,
+        onSkip: @escaping () -> Void,
+        analytics: AnalyticsService = .shared
+    ) {
+        self.onRequestDone = onRequestDone
+        self.onSkip = onSkip
+        self.analytics = analytics
+    }
 
     var body: some View {
         VStack(spacing: 24) {
@@ -40,6 +51,7 @@ struct PushPermissionView: View {
                         DispatchQueue.main.async {
                             if settings.authorizationStatus == .denied {
                                 isRequesting = false
+                                analytics.track(.push_permission_result, parameters: ["status": "denied"])
                                 if let url = URL(string: UIApplication.openSettingsURLString) {
                                     UIApplication.shared.open(url)
                                 }
@@ -47,8 +59,10 @@ struct PushPermissionView: View {
                                 return
                             }
 
-                            NotificationManager.shared.requestAuthorization { _ in
+                            NotificationManager.shared.requestAuthorization { granted in
                                 isRequesting = false
+                                let status = granted ? "granted" : "denied"
+                                analytics.track(.push_permission_result, parameters: ["status": status])
                                 onRequestDone()
                             }
                         }
@@ -64,6 +78,7 @@ struct PushPermissionView: View {
                 .disabled(isRequesting)
 
                 Button {
+                    analytics.track(.push_permission_result, parameters: ["status": "denied"])
                     onSkip()
                 } label: {
                     Text("Agora não")
@@ -77,5 +92,9 @@ struct PushPermissionView: View {
             Spacer()
         }
         .padding()
+        .onAppear {
+            analytics.screenView(.screen_push_permission)
+            analytics.track(.push_permission_view)
+        }
     }
 }

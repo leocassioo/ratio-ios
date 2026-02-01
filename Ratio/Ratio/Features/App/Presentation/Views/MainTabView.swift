@@ -14,6 +14,7 @@ struct MainTabView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
     @AppStorage(PreferencesStore.PrefKey.lastSeenWhatsNewVersion) private var lastSeenWhatsNewVersion: String = ""
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         TabView(selection: $router.selectedTab) {
@@ -80,6 +81,9 @@ struct MainTabView: View {
         }
         .onAppear {
             Task { await refreshWhatsNewIfNeeded() }
+        }
+        .onChange(of: router.selectedTab) { _, newValue in
+            analytics.track(.tab_select, parameters: ["tab": newValue.rawValue])
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
