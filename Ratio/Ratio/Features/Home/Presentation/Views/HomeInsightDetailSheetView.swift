@@ -12,6 +12,7 @@ struct HomeInsightDetailSheetView: View {
     let onOpen: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         NavigationStack {
@@ -74,6 +75,9 @@ struct HomeInsightDetailSheetView: View {
                     }
                 }
             }
+        }
+        .onAppear {
+            analytics.screenView(.screen_home_insight_detail)
         }
     }
 

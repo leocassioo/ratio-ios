@@ -31,6 +31,7 @@ final class HomeViewModel: ObservableObject {
     private let groupsStore: GroupsStore
     private let exchangeRateStore: ExchangeRateStore
     private let historyStore: BillingHistoryStore
+    private let analytics: AnalyticsService
     private var listener: ListenerRegistration?
     private var groupsListener: ListenerRegistration?
     private var exchangeRateListener: ListenerRegistration?
@@ -50,12 +51,14 @@ final class HomeViewModel: ObservableObject {
         store: SubscriptionsStore? = nil,
         groupsStore: GroupsStore? = nil,
         exchangeRateStore: ExchangeRateStore? = nil,
-        historyStore: BillingHistoryStore? = nil
+        historyStore: BillingHistoryStore? = nil,
+        analytics: AnalyticsService = .shared
     ) {
         self.subscriptionsStore = store ?? SubscriptionsStore()
         self.groupsStore = groupsStore ?? GroupsStore()
         self.exchangeRateStore = exchangeRateStore ?? ExchangeRateStore()
         self.historyStore = historyStore ?? BillingHistoryStore()
+        self.analytics = analytics
     }
 
     deinit {
@@ -275,6 +278,7 @@ final class HomeViewModel: ObservableObject {
             currencyCode = "BRL"
             hasMixedCurrencies = false
             totalsByCurrency = [:]
+            updateUserProperties()
             return
         }
 
@@ -310,6 +314,14 @@ final class HomeViewModel: ObservableObject {
         currencyCode = selectedCurrency
         hasMixedCurrencies = totalsByCurrency.keys.contains { $0 != selectedCurrency }
         totalMonthlyAmount = totalsByCurrency[selectedCurrency] ?? 0
+        updateUserProperties()
+    }
+
+    private func updateUserProperties() {
+        let subscriptionBucket = subscriptions.count >= 3 ? "3+" : String(subscriptions.count)
+        let groupsBucket = groups.count >= 3 ? "3+" : String(groups.count)
+        analytics.setUserProperty(.subscriptions_count, value: subscriptionBucket)
+        analytics.setUserProperty(.groups_count, value: groupsBucket)
     }
 
     private func convert(amount: Double, from: String, to: String) -> Double? {

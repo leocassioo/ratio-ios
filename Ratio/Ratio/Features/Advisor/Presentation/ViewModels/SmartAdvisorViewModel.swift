@@ -132,6 +132,7 @@ final class SmartAdvisorViewModel: ObservableObject {
                 } else {
                     analytics.track(.advisor_generate_success)
                 }
+                analytics.setUserProperty(.uses_advisor, value: true)
             } catch {
                 errorMessage = "Não foi possível gerar insights agora."
                 analytics.track(.advisor_generate_error, parameters: ["reason": String(describing: error)])

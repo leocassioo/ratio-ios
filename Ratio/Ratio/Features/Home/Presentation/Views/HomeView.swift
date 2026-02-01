@@ -19,6 +19,7 @@ struct HomeView: View {
     @AppStorage(PreferencesStore.PrefKey.primaryCurrencyCode) private var primaryCurrencyCodeRaw: String = "BRL"
     @AppStorage(PreferencesStore.PrefKey.lastPushPromptDate) private var lastPushPromptDateRaw: String = ""
     @State private var showPushPrompt = false
+    @State private var didLogScreen = false
     private let analytics = AnalyticsService.shared
     private let upcomingPayments: [UpcomingPaymentItem] = [
         UpcomingPaymentItem(
@@ -163,7 +164,6 @@ struct HomeView: View {
         }
         .navigationTitle("Resumo")
         .onAppear {
-            analytics.screenView(.screen_home)
             analytics.track(.home_open)
             if let userId = authViewModel.user?.uid {
                 viewModel.startListening(userId: userId)
@@ -173,6 +173,16 @@ struct HomeView: View {
             viewModel.setProAccess(subscriptionManager.hasProAccess)
             pushPermissionState.refresh()
             evaluatePushPrompt()
+            logScreenIfNeeded()
+        }
+        .onChange(of: viewModel.isLoading) { _, _ in
+            logScreenIfNeeded()
+        }
+        .onChange(of: viewModel.hasSubscriptions) { _, _ in
+            logScreenIfNeeded()
+        }
+        .onChange(of: viewModel.hasGroups) { _, _ in
+            logScreenIfNeeded()
         }
         .onChange(of: pushPermissionState.status) { _, _ in
             evaluatePushPrompt()
@@ -196,6 +206,7 @@ struct HomeView: View {
         .onDisappear {
             viewModel.stopListening()
             notificationsBadgeViewModel.stopListening()
+            didLogScreen = false
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -225,6 +236,16 @@ struct HomeView: View {
             return "Total exibido na moeda principal"
         }
         return "Baseado nas assinaturas ativas"
+    }
+
+    private func logScreenIfNeeded() {
+        guard !didLogScreen, !viewModel.isLoading else { return }
+        if !viewModel.hasSubscriptions && !viewModel.hasGroups {
+            analytics.screenView(.screen_home_empty)
+        } else {
+            analytics.screenView(.screen_home)
+        }
+        didLogScreen = true
     }
 
     private var summaryDetailItem: HomeInsightItem {

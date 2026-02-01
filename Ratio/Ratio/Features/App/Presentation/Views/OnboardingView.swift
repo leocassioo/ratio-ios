@@ -12,6 +12,7 @@ struct OnboardingView: View {
     let onFinish: () -> Void
     @State private var currentPage = 0
     @StateObject private var viewModel = OnboardingViewModel()
+    private let analytics = AnalyticsService.shared
 
     init(showsFinishButton: Bool = true, onFinish: @escaping () -> Void) {
         self.showsFinishButton = showsFinishButton
@@ -122,11 +123,18 @@ struct OnboardingView: View {
             }
         }
         .onAppear {
-            AnalyticsService.shared.screenView(.screen_onboarding)
+            if showsFinishButton {
+                analytics.screenView(.screen_onboarding)
+            } else {
+                analytics.screenView(.screen_onboarding_tutorial)
+            }
             viewModel.trackOnboardingView(stepIndex: currentPage)
         }
         .onChange(of: currentPage) { _, newValue in
             viewModel.trackOnboardingView(stepIndex: newValue)
+            if newValue == 1 {
+                analytics.screenView(.screen_onboarding_ai)
+            }
         }
     }
 

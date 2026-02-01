@@ -115,6 +115,7 @@ struct ShareView: View {
     }
     
     private func loadData() {
+        logScreenView("screen_share_extension")
         logEvent("share_extension_open", parameters: nil)
         // Load Groups
         self.groups = ShareExtensionManager.shared.loadGroups()
@@ -168,6 +169,9 @@ struct ShareView: View {
                         "group_id": group.id,
                         "result": "success"
                     ])
+                    #if canImport(FirebaseAnalytics)
+                    Analytics.setUserProperty("true", forName: "uses_share_extension")
+                    #endif
                     extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
                 case .failure(let error):
                     errorMessage = error.localizedDescription
@@ -187,6 +191,14 @@ struct ShareView: View {
     private func logEvent(_ name: String, parameters: [String: Any]?) {
         #if canImport(FirebaseAnalytics)
         Analytics.logEvent(name, parameters: parameters)
+        #endif
+    }
+
+    private func logScreenView(_ name: String) {
+        #if canImport(FirebaseAnalytics)
+        Analytics.logEvent(AnalyticsEventScreenView, parameters: [
+            AnalyticsParameterScreenName: name
+        ])
         #endif
     }
 }

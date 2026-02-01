@@ -10,10 +10,14 @@ import SwiftUI
 
 struct MainTabView: View {
     @EnvironmentObject private var router: AppRouter
+    @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @Environment(\.locale) private var locale
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
     @AppStorage(PreferencesStore.PrefKey.lastSeenWhatsNewVersion) private var lastSeenWhatsNewVersion: String = ""
+    @AppStorage(PreferencesStore.PrefKey.appTheme) private var appThemeRaw: String = AppTheme.system.rawValue
+    @AppStorage(PreferencesStore.PrefKey.appLanguage) private var appLanguageRaw: String = AppLanguage.system.rawValue
+    @AppStorage(PreferencesStore.PrefKey.primaryCurrencyCode) private var primaryCurrencyCodeRaw: String = "BRL"
     private let analytics = AnalyticsService.shared
 
     var body: some View {
@@ -80,7 +84,20 @@ struct MainTabView: View {
             coverContent(for: cover)
         }
         .onAppear {
+            setBaseUserProperties()
             Task { await refreshWhatsNewIfNeeded() }
+        }
+        .onChange(of: appThemeRaw) { _, newValue in
+            analytics.setUserProperty(.theme, value: newValue)
+        }
+        .onChange(of: appLanguageRaw) { _, newValue in
+            analytics.setUserProperty(.app_language, value: newValue)
+        }
+        .onChange(of: subscriptionManager.hasProAccess) { _, newValue in
+            analytics.setUserProperty(.is_pro, value: newValue)
+        }
+        .onChange(of: primaryCurrencyCodeRaw) { _, newValue in
+            analytics.setUserProperty(.primary_currency, value: newValue)
         }
         .onChange(of: router.selectedTab) { _, newValue in
             analytics.track(.tab_select, parameters: ["tab": newValue.rawValue])
@@ -89,6 +106,23 @@ struct MainTabView: View {
             if newPhase == .active {
                 Task { await refreshWhatsNewIfNeeded() }
             }
+        }
+    }
+
+    private func setBaseUserProperties() {
+        analytics.setUserProperty(.theme, value: appThemeRaw)
+        analytics.setUserProperty(.app_language, value: appLanguageRaw)
+        analytics.setUserProperty(.is_pro, value: subscriptionManager.hasProAccess)
+        analytics.setUserProperty(.primary_currency, value: primaryCurrencyCodeRaw)
+
+        #if targetEnvironment(macCatalyst)
+        analytics.setUserProperty(.platform, value: "mac_catalyst")
+        #else
+        analytics.setUserProperty(.platform, value: "ios")
+        #endif
+
+        if let region = Locale.current.region?.identifier {
+            analytics.setUserProperty(.locale_region, value: region)
         }
     }
 
@@ -104,7 +138,7 @@ struct MainTabView: View {
         case .redeemInvite:
             RedeemInviteView()
         case .subscriptionBenefits:
-            SubscriptionBenefitsView()
+            SubscriptionBenefitsView(source: .unknown)
         case .editProfile:
             if let user = Auth.auth().currentUser {
                 EditProfileView(user: user)
@@ -261,4 +295,5 @@ struct MainTabView: View {
 #Preview {
     MainTabView()
         .environmentObject(AppRouter())
+        .environmentObject(SubscriptionManager.shared)
 }
