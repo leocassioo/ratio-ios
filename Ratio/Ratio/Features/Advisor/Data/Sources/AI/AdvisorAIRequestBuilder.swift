@@ -26,19 +26,19 @@ struct AdvisorAIRequestBuilder {
         return request
     }
 
-    func perform(_ request: URLRequest) async throws -> String {
+    func perform(_ request: URLRequest) async throws -> AdvisorAIResponse {
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
               (200..<300).contains(httpResponse.statusCode) else {
             throw AdvisorAIError.invalidResponse
         }
-        guard let content = parseContent(from: data), !content.isEmpty else {
+        guard let response = parseResponse(from: data), !response.content.isEmpty else {
             throw AdvisorAIError.emptyResponse
         }
-        return content
+        return response
     }
 
-    private func parseContent(from data: Data) -> String? {
+    private func parseResponse(from data: Data) -> AdvisorAIResponse? {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let choices = json["choices"] as? [[String: Any]],
               let first = choices.first,
@@ -46,6 +46,13 @@ struct AdvisorAIRequestBuilder {
               let content = message["content"] as? String else {
             return nil
         }
-        return content
+        let usage = json["usage"] as? [String: Any]
+        let totalTokens = usage?["total_tokens"] as? Int
+        return AdvisorAIResponse(content: content, totalTokens: totalTokens)
     }
+}
+
+struct AdvisorAIResponse {
+    let content: String
+    let totalTokens: Int?
 }

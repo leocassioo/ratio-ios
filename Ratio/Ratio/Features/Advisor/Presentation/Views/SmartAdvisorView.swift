@@ -14,6 +14,7 @@ struct SmartAdvisorView: View {
     @EnvironmentObject private var router: AppRouter
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel = SmartAdvisorViewModel()
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         ScrollView {
@@ -46,6 +47,8 @@ struct SmartAdvisorView: View {
             }
         }
         .onAppear {
+            analytics.screenView(.screen_advisor)
+            analytics.track(.advisor_open)
             if let userId = authViewModel.user?.uid {
                 viewModel.start(userId: userId)
             }
@@ -98,7 +101,7 @@ struct SmartAdvisorView: View {
                 .foregroundStyle(.secondary)
 
             Button {
-                handleRefreshTap()
+                handleCtaTap()
             } label: {
                 Text("Gerar análise")
                     .frame(maxWidth: .infinity)
@@ -198,7 +201,18 @@ struct SmartAdvisorView: View {
     }
 
     private func handleRefreshTap() {
+        analytics.track(.advisor_refresh)
+        requestAdvisorAnalysis()
+    }
+
+    private func handleCtaTap() {
+        analytics.track(.advisor_cta_tap)
+        requestAdvisorAnalysis()
+    }
+
+    private func requestAdvisorAnalysis() {
         guard subscriptionManager.hasProAccess else {
+            analytics.track(.pro_feature_blocked, parameters: ["feature": "advisor"])
             router.present(.upgradePrompt(
                 title: "Desbloqueie o Advisor inteligente",
                 subtitle: "O Advisor com IA está disponível apenas no Ratio Pro.",

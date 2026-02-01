@@ -20,6 +20,7 @@ final class SmartAdvisorViewModel: ObservableObject {
     private let subscriptionsStore: SubscriptionsStore
     private let groupsStore: GroupsStore
     private let provider: AdvisorAIProvider
+    private let analytics: AnalyticsService
     private var subscriptions: [SubscriptionItem] = []
     private var groups: [SharedGroup] = []
     private var subscriptionsListener: ListenerRegistration?
@@ -31,10 +32,12 @@ final class SmartAdvisorViewModel: ObservableObject {
     init(
         subscriptionsStore: SubscriptionsStore = SubscriptionsStore(),
         groupsStore: GroupsStore = GroupsStore(),
-        provider: AdvisorAIProvider? = nil
+        provider: AdvisorAIProvider? = nil,
+        analytics: AnalyticsService = .shared
     ) {
         self.subscriptionsStore = subscriptionsStore
         self.groupsStore = groupsStore
+        self.analytics = analytics
 
         if let provider {
             self.provider = provider
@@ -102,9 +105,17 @@ final class SmartAdvisorViewModel: ObservableObject {
         errorMessage = nil
         hasRequestedAnalysis = true
 
+        let model = RemoteConfigService.shared.gptModel ?? "gpt-5-nano-2025-08-07"
+        let reasoningEffort = RemoteConfigService.shared.reasoningEffortForAnalysis ?? "low"
+        analytics.track(.advisor_generate, parameters: [
+            "model": model,
+            "reasoning_effort": reasoningEffort
+        ])
+
         let remoteKey = RemoteConfigService.shared.openAiApiKey
         if remoteKey?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
             errorMessage = "Análises indisponíveis no momento. Tente novamente mais tarde."
+            analytics.track(.advisor_generate_error, parameters: ["reason": "missing_api_key"])
             isLoading = false
             return
         }
@@ -116,8 +127,14 @@ final class SmartAdvisorViewModel: ObservableObject {
                 let result = try await provider.generateInsights(context: context)
                 insights = result.insights
                 stats = result.stats
+                if let tokens = result.tokenUsage {
+                    analytics.track(.advisor_generate_success, parameters: ["tokens": tokens])
+                } else {
+                    analytics.track(.advisor_generate_success)
+                }
             } catch {
                 errorMessage = "Não foi possível gerar insights agora."
+                analytics.track(.advisor_generate_error, parameters: ["reason": String(describing: error)])
             }
             isLoading = false
             hasLoadedOnce = true

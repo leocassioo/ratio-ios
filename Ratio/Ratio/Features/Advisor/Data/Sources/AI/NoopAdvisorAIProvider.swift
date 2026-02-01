@@ -8,8 +8,8 @@
 import Foundation
 
 final class NoopAdvisorAIProvider: AdvisorAIProvider {
-    func generateInsights(context: String) async throws -> (insights: [AdvisorInsight], stats: [AdvisorStat]) {
-        (
+    func generateInsights(context: String) async throws -> AdvisorAIResult {
+        AdvisorAIResult(
             insights: [
                 AdvisorInsight(
                     id: UUID().uuidString,
@@ -40,7 +40,8 @@ final class NoopAdvisorAIProvider: AdvisorAIProvider {
                     detail: "Economia potencial mensal identificada.",
                     isHighlighted: true
                 )
-            ]
+            ],
+            tokenUsage: nil
         )
     }
 }

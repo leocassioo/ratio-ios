@@ -15,7 +15,7 @@ final class OpenAIChatAdvisorProvider: AdvisorAIProvider {
         self.requestBuilder = AdvisorAIRequestBuilder(apiKey: apiKey, session: session)
     }
 
-    func generateInsights(context: String) async throws -> (insights: [AdvisorInsight], stats: [AdvisorStat]) {
+    func generateInsights(context: String) async throws -> AdvisorAIResult {
         let prompt = """
         Você é um consultor financeiro pessoal. Use o contexto abaixo para gerar insights úteis sobre assinaturas.
 
@@ -58,19 +58,27 @@ final class OpenAIChatAdvisorProvider: AdvisorAIProvider {
         ]
 
         let request = try requestBuilder.makeRequest(.chatCompletions, body: body)
-        let content = try await requestBuilder.perform(request)
-        return parseInsights(from: content)
+        let response = try await requestBuilder.perform(request)
+        return parseInsights(from: response.content, tokenUsage: response.totalTokens)
     }
 
-    private func parseInsights(from content: String) -> (insights: [AdvisorInsight], stats: [AdvisorStat]) {
+    private func parseInsights(from content: String, tokenUsage: Int?) -> AdvisorAIResult {
         guard let data = sanitizedJSON(from: content)?.data(using: .utf8),
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return (defaultInsights(), defaultStats())
+            return AdvisorAIResult(
+                insights: defaultInsights(),
+                stats: defaultStats(),
+                tokenUsage: tokenUsage
+            )
         }
 
         let insights = parseInsights(from: object["insights"])
         let stats = parseStats(from: object["stats"])
-        return (insights.isEmpty ? defaultInsights() : insights, stats.isEmpty ? defaultStats() : stats)
+        return AdvisorAIResult(
+            insights: insights.isEmpty ? defaultInsights() : insights,
+            stats: stats.isEmpty ? defaultStats() : stats,
+            tokenUsage: tokenUsage
+        )
     }
 
     private func sanitizedJSON(from content: String) -> String? {
