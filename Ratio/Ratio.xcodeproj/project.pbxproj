@@ -18,6 +18,8 @@
 		472342152F2CFA7100B601B3 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 472342142F2CFA7100B601B3 /* FirebaseAuth */; };
 		472342172F2CFA7100B601B3 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 472342162F2CFA7100B601B3 /* FirebaseFirestore */; };
 		472342192F2CFA7100B601B3 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 472342182F2CFA7100B601B3 /* FirebaseStorage */; };
+		472342CF2F2F8BAC00B601B3 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 472342CE2F2F8BAC00B601B3 /* FirebaseAnalytics */; };
+		472342D12F2F8BB500B601B3 /* FirebaseInstallations in Frameworks */ = {isa = PBXBuildFile; productRef = 472342D02F2F8BB500B601B3 /* FirebaseInstallations */; };
 		47332E162F1EAA08003F1AB4 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 47332E152F1EAA08003F1AB4 /* AppIcon.icon */; };
 		47332EA42F1EBAE4003F1AB4 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 47332EA32F1EBAE4003F1AB4 /* GoogleSignIn */; };
 		47332EA62F1EBAE4003F1AB4 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 47332EA52F1EBAE4003F1AB4 /* GoogleSignInSwift */; };
@@ -124,7 +126,9 @@
 			files = (
 				472342152F2CFA7100B601B3 /* FirebaseAuth in Frameworks */,
 				472342172F2CFA7100B601B3 /* FirebaseFirestore in Frameworks */,
+				472342CF2F2F8BAC00B601B3 /* FirebaseAnalytics in Frameworks */,
 				472342192F2CFA7100B601B3 /* FirebaseStorage in Frameworks */,
+				472342D12F2F8BB500B601B3 /* FirebaseInstallations in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -217,6 +221,8 @@
 				472342142F2CFA7100B601B3 /* FirebaseAuth */,
 				472342162F2CFA7100B601B3 /* FirebaseFirestore */,
 				472342182F2CFA7100B601B3 /* FirebaseStorage */,
+				472342CE2F2F8BAC00B601B3 /* FirebaseAnalytics */,
+				472342D02F2F8BB500B601B3 /* FirebaseInstallations */,
 			);
 			productName = RatioShareExtension;
 			productReference = 47F0995C2F2CF0D80022276D /* RatioShareExtension.appex */;
@@ -741,6 +747,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 470F57622EF89A35006D57A9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		472342CE2F2F8BAC00B601B3 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 470F57622EF89A35006D57A9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		472342D02F2F8BB500B601B3 /* FirebaseInstallations */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 470F57622EF89A35006D57A9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseInstallations;
 		};
 		47332EA32F1EBAE4003F1AB4 /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;
