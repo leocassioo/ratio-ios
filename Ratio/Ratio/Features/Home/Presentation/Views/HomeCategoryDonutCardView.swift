@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HomeCategoryDonutCardView: View {
     let items: [CategorySpendItem]
+    let onCategoryTap: ((String) -> Void)?
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @EnvironmentObject private var router: AppRouter
     @Environment(\.colorScheme) private var colorScheme
@@ -39,7 +40,12 @@ struct HomeCategoryDonutCardView: View {
 
                         VStack(alignment: .leading, spacing: 10) {
                             ForEach(items) { item in
-                                HomeCategoryLegendRowView(item: item)
+                                Button {
+                                    onCategoryTap?(item.label)
+                                } label: {
+                                    HomeCategoryLegendRowView(item: item)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)

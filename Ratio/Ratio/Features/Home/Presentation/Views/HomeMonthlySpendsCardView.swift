@@ -12,6 +12,7 @@ struct HomeMonthlySpendsCardView: View {
     let items: [MonthlySpendItem]
     let categoryBreakdown: [CategorySpendItem]
     let currencyCode: String
+    let onMonthTap: ((Int) -> Void)?
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @EnvironmentObject private var router: AppRouter
@@ -134,22 +135,27 @@ struct HomeMonthlySpendsCardView: View {
 
     private var monthlyLegend: some View {
         VStack(spacing: 8) {
-            ForEach(items) { item in
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(Color(.systemGray4))
-                        .frame(width: 6, height: 6)
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                Button {
+                    onMonthTap?(index)
+                } label: {
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(Color(.systemGray4))
+                            .frame(width: 6, height: 6)
 
-                    Text(item.label)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        Text(item.label)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
 
-                    Spacer()
+                        Spacer()
 
-                    Text(formattedCurrency(item.amount))
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        Text(formattedCurrency(item.amount))
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.primary)
+                    }
                 }
+                .buttonStyle(.plain)
             }
         }
     }

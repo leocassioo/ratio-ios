@@ -19,6 +19,7 @@ struct HomeView: View {
     @AppStorage(PreferencesStore.PrefKey.primaryCurrencyCode) private var primaryCurrencyCodeRaw: String = "BRL"
     @AppStorage(PreferencesStore.PrefKey.lastPushPromptDate) private var lastPushPromptDateRaw: String = ""
     @State private var showPushPrompt = false
+    private let analytics = AnalyticsService.shared
     private let upcomingPayments: [UpcomingPaymentItem] = [
         UpcomingPaymentItem(
             subscriptionId: nil,
@@ -67,6 +68,7 @@ struct HomeView: View {
                         deltaText: summarySubtitle,
                         estimatedBRL: viewModel.estimatedBRL(forAmount: viewModel.totalMonthlyAmount, currencyCode: viewModel.currencyCode),
                         onIndicatorTap: {
+                            analytics.track(.home_total_monthly_tap)
                             router.present(.homeInsight(item: summaryDetailItem))
                         }
                     )
@@ -80,6 +82,9 @@ struct HomeView: View {
                                     router.route(to: .groups)
                                 }
                             )
+                            .onAppear {
+                                analytics.track(.home_empty_state_view)
+                            }
                         }
                     if viewModel.hasMixedCurrencies {
                         let preferredCurrencyCode = primaryCurrencyCodeRaw
@@ -92,6 +97,7 @@ struct HomeView: View {
 
                     if !viewModel.insights.isEmpty {
                         HomeInsightsRowView(insights: viewModel.insights) { insight in
+                            analytics.track(.home_insight_tap, parameters: ["insight_type": insight.icon])
                             router.present(.homeInsight(item: insight))
                         }
                     }
@@ -111,6 +117,9 @@ struct HomeView: View {
                             return (estimated, preferredCurrency)
                         },
                         onTap: { item in
+                            analytics.track(.home_upcoming_payment_tap, parameters: [
+                                "item_type": item.groupId != nil ? "group" : "subscription"
+                            ])
                             if let groupId = item.groupId {
                                 router.route(to: .groups, groupId: groupId)
                             } else if let subscriptionId = item.subscriptionId {
@@ -120,12 +129,20 @@ struct HomeView: View {
                         }
                     )
 
-                    HomeCategoryDonutCardView(items: viewModel.categorySpends)
+                    HomeCategoryDonutCardView(
+                        items: viewModel.categorySpends,
+                        onCategoryTap: { category in
+                            analytics.track(.home_chart_category_tap, parameters: ["category": category])
+                        }
+                    )
 
                     HomeMonthlySpendsCardView(
                         items: viewModel.monthlySpends,
                         categoryBreakdown: viewModel.categorySpends,
-                        currencyCode: viewModel.monthlySpendsCurrencyCode
+                        currencyCode: viewModel.monthlySpendsCurrencyCode,
+                        onMonthTap: { month in
+                            analytics.track(.home_chart_monthly_tap, parameters: ["month_index": month])
+                        }
                     )
                 }
                 .padding(.horizontal, 20)
@@ -146,6 +163,8 @@ struct HomeView: View {
         }
         .navigationTitle("Resumo")
         .onAppear {
+            analytics.screenView(.screen_home)
+            analytics.track(.home_open)
             if let userId = authViewModel.user?.uid {
                 viewModel.startListening(userId: userId)
                 notificationsBadgeViewModel.startListening(userId: userId)
