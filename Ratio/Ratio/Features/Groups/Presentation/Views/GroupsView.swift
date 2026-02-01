@@ -14,6 +14,7 @@ struct GroupsView: View {
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @StateObject private var viewModel = GroupsViewModel()
     @State private var preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
+    @State private var didLogScreen = false
     private let freeGroupLimit = 2
     private let analytics = AnalyticsService.shared
 
@@ -38,9 +39,6 @@ struct GroupsView: View {
             } else if viewModel.groups.isEmpty {
                 GroupsEmptyStateView {
                     openCreate()
-                }
-                .onAppear {
-                    analytics.screenView(.screen_groups_empty)
                 }
             } else {
                 ScrollView {
@@ -100,21 +98,26 @@ struct GroupsView: View {
             }
         }
         .onAppear {
-            analytics.screenView(.screen_groups)
             preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
             if let userId = authViewModel.user?.uid {
                 viewModel.startListening(userId: userId)
             }
+            logScreenIfNeeded()
+        }
+        .onChange(of: viewModel.isLoading) { _, _ in
+            logScreenIfNeeded()
         }
         .onChange(of: viewModel.groups) { _, _ in
             openPendingGroupIfNeeded()
             refreshGroupDetailIfNeeded()
+            logScreenIfNeeded()
         }
         .onChange(of: router.pendingGroupId) { _, _ in
             openPendingGroupIfNeeded()
         }
         .onDisappear {
             viewModel.stopListening()
+            didLogScreen = false
         }
     }
 
@@ -151,6 +154,16 @@ struct GroupsView: View {
 
     private func openDetail(_ group: SharedGroup) {
         router.present(.groupDetail(group: group, currentUserId: authViewModel.user?.uid))
+    }
+
+    private func logScreenIfNeeded() {
+        guard !didLogScreen, !viewModel.isLoading else { return }
+        if viewModel.groups.isEmpty {
+            analytics.screenView(.screen_groups_empty)
+        } else {
+            analytics.screenView(.screen_groups)
+        }
+        didLogScreen = true
     }
 }
 
