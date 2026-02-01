@@ -18,6 +18,7 @@ struct LoginView: View {
     @State private var password = ""
     @State private var isPasswordVisible = false
     @State private var appleNonce = ""
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         ScrollView {
@@ -128,6 +129,9 @@ struct LoginView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle("Login")
+        .onAppear {
+            analytics.screenView(.screen_login)
+        }
         .onChange(of: authViewModel.errorMessage) { _, newValue in
             showErrorAlert = newValue != nil
         }
@@ -184,6 +188,10 @@ struct LoginView: View {
                 case .success(let auth):
                     authViewModel.signInWithApple(authorization: auth, rawNonce: appleNonce)
                 case .failure(let error):
+                    analytics.track(.auth_login_error, parameters: [
+                        "method": "apple",
+                        "reason": "\(error)"
+                    ])
                     authViewModel.errorMessage = error.localizedDescription
                 }
             }

@@ -23,6 +23,7 @@ struct SignupView: View {
     @State private var profileImageData: Data?
     @State private var isPasswordVisible = false
     @State private var appleNonce = ""
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         ScrollView {
@@ -143,6 +144,9 @@ struct SignupView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle("Criar conta")
+        .onAppear {
+            analytics.screenView(.screen_signup)
+        }
         .onChange(of: authViewModel.errorMessage) { _, newValue in
             showErrorAlert = newValue != nil
         }
@@ -238,6 +242,10 @@ struct SignupView: View {
                 case .success(let auth):
                     authViewModel.signInWithApple(authorization: auth, rawNonce: appleNonce)
                 case .failure(let error):
+                    analytics.track(.auth_login_error, parameters: [
+                        "method": "apple",
+                        "reason": "\(error)"
+                    ])
                     authViewModel.errorMessage = error.localizedDescription
                 }
             }

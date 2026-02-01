@@ -26,8 +26,10 @@ final class AuthViewModel: ObservableObject {
     private var handle: AuthStateDidChangeListenerHandle?
     private let usersStore = UsersStore()
     private let preferencesStore = PreferencesStore.shared
+    private let analytics: AnalyticsService
 
-    init() {
+    init(analytics: AnalyticsService = .shared) {
+        self.analytics = analytics
         handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             self?.user = user
             DispatchQueue.main.async {
@@ -54,7 +56,7 @@ final class AuthViewModel: ObservableObject {
     }
 
     func signIn(email: String, password: String) {
-        authenticate {
+        authenticate(method: "email", isSignup: false) {
             let result = try await Auth.auth().signIn(withEmail: email, password: password)
             try await self.usersStore.updateUserProfile(
                 userId: result.user.uid,
@@ -68,7 +70,7 @@ final class AuthViewModel: ObservableObject {
     }
 
     func signUp(email: String, password: String, displayName: String, phoneNumber: String, pixKey: String, photoData: Data?) {
-        authenticate {
+        authenticate(method: "email", isSignup: true) {
             let result = try await Auth.auth().createUser(withEmail: email, password: password)
             let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
             let changeRequest = result.user.createProfileChangeRequest()
@@ -100,6 +102,7 @@ final class AuthViewModel: ObservableObject {
     }
 
     func signOut() {
+        analytics.track(.auth_logout)
         Task {
             await handleAuthChange(currentUserId: nil, beforeSignOut: true)
             await deleteCurrentFCMToken()
@@ -117,6 +120,7 @@ final class AuthViewModel: ObservableObject {
     func signInWithGoogle(presenting: UIViewController) {
         errorMessage = nil
         isLoading = true
+        analytics.track(.auth_login_start, parameters: ["method": "google"])
 
         Task { [weak self] in
             do {
@@ -148,11 +152,16 @@ final class AuthViewModel: ObservableObject {
                 await MainActor.run {
                     self?.isLoading = false
                 }
+                self?.analytics.track(.auth_login_success, parameters: ["method": "google"])
             } catch {
                 await MainActor.run {
                     self?.isLoading = false
                     self?.errorMessage = error.localizedDescription
                 }
+                self?.analytics.track(.auth_login_error, parameters: [
+                    "method": "google",
+                    "reason": self?.analyticsErrorReason(error) ?? "unknown"
+                ])
             }
         }
     }
@@ -160,6 +169,7 @@ final class AuthViewModel: ObservableObject {
     func signInWithApple(authorization: ASAuthorization, rawNonce: String) {
         errorMessage = nil
         isLoading = true
+        analytics.track(.auth_login_start, parameters: ["method": "apple"])
 
         Task { [weak self] in
             do {
@@ -203,11 +213,16 @@ final class AuthViewModel: ObservableObject {
                 await MainActor.run {
                     self?.isLoading = false
                 }
+                self?.analytics.track(.auth_login_success, parameters: ["method": "apple"])
             } catch {
                 await MainActor.run {
                     self?.isLoading = false
                     self?.errorMessage = error.localizedDescription
                 }
+                self?.analytics.track(.auth_login_error, parameters: [
+                    "method": "apple",
+                    "reason": self?.analyticsErrorReason(error) ?? "unknown"
+                ])
             }
         }
     }
@@ -216,6 +231,7 @@ final class AuthViewModel: ObservableObject {
         errorMessage = nil
         passwordResetSent = false
         isLoading = true
+        analytics.track(.auth_password_reset_start)
 
         Task { [weak self] in
             do {
@@ -224,11 +240,15 @@ final class AuthViewModel: ObservableObject {
                     self?.isLoading = false
                     self?.passwordResetSent = true
                 }
+                self?.analytics.track(.auth_password_reset_success)
             } catch {
                 await MainActor.run {
                     self?.isLoading = false
                     self?.errorMessage = error.localizedDescription
                 }
+                self?.analytics.track(.auth_password_reset_error, parameters: [
+                    "reason": self?.analyticsErrorReason(error) ?? "unknown"
+                ])
             }
         }
     }
@@ -245,9 +265,17 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    private func authenticate(_ operation: @escaping () async throws -> AuthDataResult) {
+    private func authenticate(
+        method: String,
+        isSignup: Bool,
+        operation: @escaping () async throws -> AuthDataResult
+    ) {
         errorMessage = nil
         isLoading = true
+        let startEvent: AnalyticsEventName = isSignup ? .auth_signup_start : .auth_login_start
+        let successEvent: AnalyticsEventName = isSignup ? .auth_signup_success : .auth_login_success
+        let errorEvent: AnalyticsEventName = isSignup ? .auth_signup_error : .auth_login_error
+        analytics.track(startEvent, parameters: ["method": method])
 
         Task { [weak self] in
             do {
@@ -256,13 +284,23 @@ final class AuthViewModel: ObservableObject {
                 await MainActor.run {
                     self?.isLoading = false
                 }
+                self?.analytics.track(successEvent, parameters: ["method": method])
             } catch {
                 await MainActor.run {
                     self?.isLoading = false
                     self?.errorMessage = error.localizedDescription
                 }
+                self?.analytics.track(errorEvent, parameters: [
+                    "method": method,
+                    "reason": self?.analyticsErrorReason(error) ?? "unknown"
+                ])
             }
         }
+    }
+
+    private func analyticsErrorReason(_ error: Error) -> String {
+        let nsError = error as NSError
+        return "\(nsError.domain):\(nsError.code)"
     }
 
     private func uploadProfilePhoto(userId: String, data: Data) async throws -> URL {

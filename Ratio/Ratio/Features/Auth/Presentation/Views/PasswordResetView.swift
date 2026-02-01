@@ -13,6 +13,7 @@ struct PasswordResetView: View {
     @State private var email = ""
     @State private var cooldownRemaining = 0
     @State private var cooldownTimer: Timer?
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         ScrollView {
@@ -71,6 +72,9 @@ struct PasswordResetView: View {
         }
         .navigationTitle("Recuperar senha")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            analytics.screenView(.screen_password_reset)
+        }
         .onChange(of: authViewModel.errorMessage) { _, newValue in
             showErrorAlert = newValue != nil
         }
