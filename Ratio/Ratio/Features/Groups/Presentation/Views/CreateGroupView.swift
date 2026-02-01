@@ -51,6 +51,7 @@ struct CreateGroupView: View {
     @State private var subscriptionInUseName = ""
     @State private var didEditBillingDay = false
     @State private var isSettingBillingDay = false
+    @State private var createdGroupId: String?
 
     init(viewModel: GroupsViewModel, ownerId: String, ownerName: String) {
         self.viewModel = viewModel
@@ -118,6 +119,7 @@ struct CreateGroupView: View {
                                 members: normalizedMembers,
                                 ownerId: ownerId
                             ) {
+                                createdGroupId = groupId
                                 await generateInvite(groupId: groupId, groupName: groupName)
                                 showInviteSheet = true
                             }
@@ -138,6 +140,7 @@ struct CreateGroupView: View {
                                 members: normalizedMembers,
                                 ownerId: ownerId
                             ) {
+                                createdGroupId = groupId
                                 await generateInvite(groupId: groupId, groupName: groupName)
                                 showInviteSheet = true
                             }
@@ -581,6 +584,7 @@ struct CreateGroupView: View {
                 } else if let inviteURL {
                     let message = inviteMessage(for: inviteURL)
                     let token = inviteToken(from: inviteURL)
+                    let groupId = createdGroupId ?? ""
                     Text("Compartilhe o link com os membros do grupo.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -589,10 +593,14 @@ struct CreateGroupView: View {
                     ShareLink(item: message) {
                         Label("Compartilhar convite", systemImage: "square.and.arrow.up")
                     }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        analytics.track(.invite_share, parameters: ["group_id": groupId, "channel": "system_share"])
+                    })
 
                     Button {
                         UIPasteboard.general.string = message
                         setCopiedState(type: .message)
+                        analytics.track(.invite_share, parameters: ["group_id": groupId, "channel": "link"])
                     } label: {
                         Label(
                             didCopyMessage ? "Copiado" : "Copiar mensagem",
@@ -603,6 +611,7 @@ struct CreateGroupView: View {
                     Button {
                         UIPasteboard.general.string = token
                         setCopiedState(type: .token)
+                        analytics.track(.invite_share, parameters: ["group_id": groupId, "channel": "link"])
                     } label: {
                         Label(
                             didCopyToken ? "Código copiado" : "Copiar código do convite",
@@ -647,6 +656,11 @@ struct CreateGroupView: View {
                 maxUses: 0
             )
             inviteURL = URL(string: "https://uaipixel.com/invite?token=\(token)")
+            analytics.track(.invite_create, parameters: [
+                "group_id": groupId,
+                "max_uses": 0,
+                "expires_in_hours": 24
+            ])
         } catch {
             inviteError = "Não foi possível gerar o link."
         }

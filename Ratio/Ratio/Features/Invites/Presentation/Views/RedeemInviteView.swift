@@ -11,6 +11,7 @@ struct RedeemInviteView: View {
     @State private var tokenInput = ""
     @State private var resolvedToken = ""
     @State private var shouldNavigate = false
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         Form {
@@ -32,6 +33,7 @@ struct RedeemInviteView: View {
                     let token = normalizeToken(tokenInput)
                     resolvedToken = token
                     shouldNavigate = !token.isEmpty
+                    analytics.track(.invite_redeem_manual, parameters: ["token_valid": !token.isEmpty])
                 }
                 .disabled(normalizeToken(tokenInput).isEmpty)
             }
@@ -39,6 +41,9 @@ struct RedeemInviteView: View {
         .navigationTitle("Resgatar convite")
         .navigationBarTitleDisplayMode(.inline)
         .background(navigationLink)
+        .onAppear {
+            analytics.screenView(.screen_invite_redeem)
+        }
     }
 
     private var navigationLink: some View {

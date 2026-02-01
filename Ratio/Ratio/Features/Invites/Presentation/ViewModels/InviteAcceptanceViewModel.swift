@@ -18,11 +18,18 @@ final class InviteAcceptanceViewModel: ObservableObject {
     private let token: String
     private let store: InvitesStore
     private let usersStore: UsersStore
+    private let analytics: AnalyticsService
 
-    init(token: String, store: InvitesStore? = nil, usersStore: UsersStore? = nil) {
+    init(
+        token: String,
+        store: InvitesStore? = nil,
+        usersStore: UsersStore? = nil,
+        analytics: AnalyticsService = .shared
+    ) {
         self.token = token
         self.store = store ?? InvitesStore()
         self.usersStore = usersStore ?? UsersStore()
+        self.analytics = analytics
     }
 
     func load() async {
@@ -46,9 +53,21 @@ final class InviteAcceptanceViewModel: ObservableObject {
                 .first(where: { !$0.isEmpty }) ?? "Membro"
             try await store.acceptInvite(token: token, userId: userId, userName: resolvedName)
             didAccept = true
+            if let groupId = inviteInfo?.groupId {
+                analytics.track(.invite_accept_success, parameters: ["group_id": groupId])
+            } else {
+                analytics.track(.invite_accept_success, parameters: [:])
+            }
         } catch {
             errorMessage = error.localizedDescription
+            let reason = Self.errorReason(from: error)
+            analytics.track(.invite_accept_error, parameters: ["reason": reason])
         }
         isLoading = false
+    }
+
+    private static func errorReason(from error: Error) -> String {
+        let nsError = error as NSError
+        return "\(nsError.domain):\(nsError.code)"
     }
 }

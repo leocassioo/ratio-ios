@@ -14,10 +14,13 @@ struct InviteAcceptanceView: View {
     @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel: InviteAcceptanceViewModel
     private let showsCloseButton: Bool
+    private let token: String
+    private let analytics = AnalyticsService.shared
 
     init(token: String, showsCloseButton: Bool = false) {
         _viewModel = StateObject(wrappedValue: InviteAcceptanceViewModel(token: token))
         self.showsCloseButton = showsCloseButton
+        self.token = token
     }
 
     var body: some View {
@@ -82,6 +85,8 @@ struct InviteAcceptanceView: View {
             }
         }
         .onAppear {
+            analytics.screenView(.screen_invite_accept)
+            analytics.track(.invite_open, parameters: ["token": token])
             Task { await viewModel.load() }
         }
         .onChange(of: viewModel.didAccept) { _, newValue in

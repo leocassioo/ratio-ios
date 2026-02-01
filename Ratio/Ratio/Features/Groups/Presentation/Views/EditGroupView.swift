@@ -416,11 +416,15 @@ struct EditGroupView: View {
                 ShareLink(item: message) {
                     Label("Compartilhar convite", systemImage: "square.and.arrow.up")
                 }
+                .simultaneousGesture(TapGesture().onEnded {
+                    analytics.track(.invite_share, parameters: ["group_id": group.id, "channel": "system_share"])
+                })
                 .disabled(!isOwner)
 
                 Button {
                     UIPasteboard.general.string = message
                     setCopiedState(type: .message)
+                    analytics.track(.invite_share, parameters: ["group_id": group.id, "channel": "link"])
                 } label: {
                     Label(
                         didCopyMessage ? "Copiado" : "Copiar mensagem",
@@ -432,6 +436,7 @@ struct EditGroupView: View {
                 Button {
                     UIPasteboard.general.string = token
                     setCopiedState(type: .token)
+                    analytics.track(.invite_share, parameters: ["group_id": group.id, "channel": "link"])
                 } label: {
                     Label(
                         didCopyToken ? "Código copiado" : "Copiar código do convite",
