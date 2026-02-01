@@ -123,8 +123,8 @@ struct MainTabView: View {
             PasswordResetView()
         case .deleteAccount:
             DeleteAccountView()
-        case .receiptPreview(let receipt):
-            ReceiptPreviewView(receipt: receipt)
+        case .receiptPreview(let receipt, let groupId, let memberId):
+            ReceiptPreviewView(receipt: receipt, groupId: groupId, memberId: memberId)
         }
     }
 

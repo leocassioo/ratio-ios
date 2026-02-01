@@ -11,6 +11,8 @@ import Photos
 struct ReceiptPreviewView: View {
     @Environment(\.dismiss) private var dismiss
     let receipt: ReceiptHistoryItem
+    let groupId: String?
+    let memberId: String?
     private var receiptURL: URL? { URL(string: receipt.url) }
     @State private var shareFileURL: URL?
     @State private var isPreparingShare = false
@@ -19,6 +21,7 @@ struct ReceiptPreviewView: View {
     @State private var isSavingToPhotos = false
     @State private var saveMessage: String?
     @State private var isImageLoaded = false
+    private let analytics = AnalyticsService.shared
 
     var body: some View {
         ScrollView {
@@ -103,6 +106,13 @@ struct ReceiptPreviewView: View {
         } message: {
             Text(saveMessage ?? "")
         }
+        .onAppear {
+            analytics.screenView(.screen_receipt_preview)
+            var params: [String: Any] = [:]
+            if let groupId { params["group_id"] = groupId }
+            if let memberId { params["member_id"] = memberId }
+            analytics.track(.receipt_view, parameters: params)
+        }
     }
 
     private func formattedDate(_ date: Date) -> String {
@@ -125,6 +135,10 @@ struct ReceiptPreviewView: View {
                 isShowingShare = true
                 isPreparingShare = false
             }
+            var params: [String: Any] = [:]
+            if let groupId { params["group_id"] = groupId }
+            if let memberId { params["member_id"] = memberId }
+            analytics.track(.receipt_share, parameters: params)
         } catch {
             await MainActor.run {
                 isPreparingShare = false
@@ -163,6 +177,10 @@ struct ReceiptPreviewView: View {
                 isSavingToPhotos = false
                 saveMessage = "Permissão de fotos não concedida."
             }
+            var params: [String: Any] = ["result": "denied"]
+            if let groupId { params["group_id"] = groupId }
+            if let memberId { params["member_id"] = memberId }
+            analytics.track(.receipt_save_photos, parameters: params)
             return
         }
 
@@ -184,11 +202,19 @@ struct ReceiptPreviewView: View {
                 isSavingToPhotos = false
                 saveMessage = "Comprovante salvo na galeria."
             }
+            var params: [String: Any] = ["result": "success"]
+            if let groupId { params["group_id"] = groupId }
+            if let memberId { params["member_id"] = memberId }
+            analytics.track(.receipt_save_photos, parameters: params)
         } catch {
             await MainActor.run {
                 isSavingToPhotos = false
                 saveMessage = "Falha ao salvar na galeria."
             }
+            var params: [String: Any] = ["result": "error"]
+            if let groupId { params["group_id"] = groupId }
+            if let memberId { params["member_id"] = memberId }
+            analytics.track(.receipt_save_photos, parameters: params)
         }
     }
 }

@@ -1,5 +1,8 @@
 import SwiftUI
 import UniformTypeIdentifiers
+#if canImport(FirebaseAnalytics)
+import FirebaseAnalytics
+#endif
 
 struct ShareView: View {
     @State private var selectedGroup: LiteGroup?
@@ -112,6 +115,7 @@ struct ShareView: View {
     }
     
     private func loadData() {
+        logEvent("share_extension_open", parameters: nil)
         // Load Groups
         self.groups = ShareExtensionManager.shared.loadGroups()
         self.selectedGroup = groups.first
@@ -160,15 +164,29 @@ struct ShareView: View {
                 isLoading = false
                 switch result {
                 case .success:
+                    logEvent("share_extension_submit", parameters: [
+                        "group_id": group.id,
+                        "result": "success"
+                    ])
                     extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
                 case .failure(let error):
                     errorMessage = error.localizedDescription
+                    logEvent("share_extension_error", parameters: [
+                        "reason": "\(error)"
+                    ])
                 }
             }
         }
     }
     
     private func cancel() {
+        logEvent("share_extension_cancel", parameters: nil)
         extensionContext?.cancelRequest(withError: NSError(domain: "UserCancelled", code: 0))
+    }
+
+    private func logEvent(_ name: String, parameters: [String: Any]?) {
+        #if canImport(FirebaseAnalytics)
+        Analytics.logEvent(name, parameters: parameters)
+        #endif
     }
 }

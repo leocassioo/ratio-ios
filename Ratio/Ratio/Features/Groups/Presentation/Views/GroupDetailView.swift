@@ -328,7 +328,12 @@ struct GroupDetailView: View {
             }
         }
         .sheet(item: $selectedMemberForReceipts) { member in
-            ReceiptHistorySheetView(memberName: member.name, receipts: receipts(for: member))
+            ReceiptHistorySheetView(
+                memberName: member.name,
+                groupId: currentGroup.id,
+                memberId: member.id,
+                receipts: receipts(for: member)
+            )
         }
         .task {
             preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()

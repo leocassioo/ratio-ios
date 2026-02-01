@@ -13,6 +13,7 @@ struct PaymentSubmissionView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = GroupPaymentsViewModel()
     @AppStorage(PreferencesStore.PrefKey.primaryCurrencyCode) private var primaryCurrencyCodeRaw: String = "BRL"
+    private let analytics = AnalyticsService.shared
 
     let groupId: String
     let memberId: String
@@ -100,6 +101,8 @@ struct PaymentSubmissionView: View {
         }
         .navigationTitle("Confirmar pagamento")
         .onAppear {
+            analytics.screenView(.screen_payment_submit)
+            analytics.track(.payment_sheet_open, parameters: ["group_id": groupId])
             viewModel.startListeningRates()
         }
         .onDisappear {

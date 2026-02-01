@@ -21,17 +21,20 @@ final class GroupPaymentsViewModel: ObservableObject {
     private let store: GroupPaymentsStore
     private let usersStore: UsersStore
     private let exchangeRateStore: ExchangeRateStore
+    private let analytics: AnalyticsService
     private var usdRateListener: ListenerRegistration?
     private var eurRateListener: ListenerRegistration?
 
     init(
         store: GroupPaymentsStore? = nil,
         usersStore: UsersStore = UsersStore(),
-        exchangeRateStore: ExchangeRateStore? = nil
+        exchangeRateStore: ExchangeRateStore? = nil,
+        analytics: AnalyticsService = .shared
     ) {
         self.store = store ?? GroupPaymentsStore()
         self.usersStore = usersStore
         self.exchangeRateStore = exchangeRateStore ?? ExchangeRateStore()
+        self.analytics = analytics
     }
 
     deinit {
@@ -44,15 +47,30 @@ final class GroupPaymentsViewModel: ObservableObject {
         errorMessage = nil
 
         do {
+            analytics.track(.payment_submit, parameters: [
+                "group_id": groupId,
+                "member_id": memberId,
+                "has_receipt": receiptData != nil
+            ])
             var receiptURL: String?
             if let receiptData {
                 let prepared = prepareReceiptData(receiptData)
                 receiptURL = try await store.uploadReceipt(groupId: groupId, memberId: memberId, data: prepared)
             }
             try await store.submitPayment(groupId: groupId, memberId: memberId, receiptURL: receiptURL)
+            analytics.track(.payment_submit_success, parameters: [
+                "group_id": groupId,
+                "member_id": memberId,
+                "has_receipt": receiptData != nil
+            ])
             isLoading = false
         } catch {
             errorMessage = error.localizedDescription
+            analytics.track(.payment_submit_error, parameters: [
+                "group_id": groupId,
+                "member_id": memberId,
+                "reason": errorReason(from: error)
+            ])
             isLoading = false
         }
     }
@@ -63,6 +81,10 @@ final class GroupPaymentsViewModel: ObservableObject {
 
         do {
             try await store.approvePayment(groupId: groupId, memberId: memberId)
+            analytics.track(.payment_approve, parameters: [
+                "group_id": groupId,
+                "member_id": memberId
+            ])
             isLoading = false
         } catch {
             errorMessage = error.localizedDescription
@@ -197,5 +219,10 @@ final class GroupPaymentsViewModel: ObservableObject {
             data = image.jpegData(compressionQuality: quality)
         }
         return data
+    }
+
+    private func errorReason(from error: Error) -> String {
+        let nsError = error as NSError
+        return "\(nsError.domain):\(nsError.code)"
     }
 }
