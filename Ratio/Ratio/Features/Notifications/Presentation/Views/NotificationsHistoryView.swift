@@ -82,6 +82,8 @@ struct NotificationsHistoryView: View {
             "type": item.type,
             "route": item.route.rawValue
         ])
+        let unreadCount = viewModel.markAsReadLocally(notificationId: item.id)
+        NotificationManager.shared.updateBadge(count: unreadCount)
         if let userId = authViewModel.user?.uid {
             Task {
                 await viewModel.markAsRead(userId: userId, notificationId: item.id)
@@ -113,6 +115,7 @@ struct NotificationsHistoryView: View {
         guard let userId = authViewModel.user?.uid else { return }
         Task {
             await viewModel.markAllAsRead(userId: userId)
+            NotificationManager.shared.updateBadge(count: 0)
         }
     }
 }

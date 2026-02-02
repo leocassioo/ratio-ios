@@ -56,6 +56,7 @@ final class NotificationManager {
 final class NotificationCenterDelegate: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationCenterDelegate()
     private let analytics = AnalyticsService.shared
+    private let notificationsStore = NotificationsStore()
 
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
@@ -68,6 +69,7 @@ final class NotificationCenterDelegate: NSObject, UNUserNotificationCenterDelega
             return
         }
         analytics.track(.notification_open, parameters: notificationParams(from: userInfo))
+        markNotificationAsRead(userInfo: userInfo)
         NotificationRouteHandler.shared.handle(userInfo: userInfo)
         completionHandler()
     }
@@ -94,6 +96,29 @@ final class NotificationCenterDelegate: NSObject, UNUserNotificationCenterDelega
             return false
         }
         return targetUserId == currentUserId
+    }
+
+    private func markNotificationAsRead(userInfo: [AnyHashable: Any]) {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+
+        let type = userInfo["type"] as? String
+        let route = userInfo["route"] as? String
+        let groupId = userInfo["groupId"] as? String
+        let subscriptionId = userInfo["subscriptionId"] as? String
+
+        Task {
+            try? await notificationsStore.markLatestMatchingAsRead(
+                userId: userId,
+                type: type,
+                route: route,
+                groupId: groupId,
+                subscriptionId: subscriptionId
+            )
+            if let unread = try? await notificationsStore.fetchUnreadCount(userId: userId) {
+                NotificationManager.shared.updateBadge(count: unread)
+            }
+            analytics.track(.notification_mark_read, parameters: ["source": "push"])
+        }
     }
 
     private func notificationParams(from userInfo: [AnyHashable: Any]) -> [String: Any] {

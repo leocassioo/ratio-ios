@@ -129,6 +129,110 @@ const writeNotifications = async (
   }
 };
 
+const getUnreadCount = async (
+  db: FirebaseFirestore.Firestore,
+  userId: string,
+  cache: Map<string, number>
+): Promise<number> => {
+  if (cache.has(userId)) {
+    return cache.get(userId) ?? 0;
+  }
+  const snapshot = await db
+    .collection("users")
+    .doc(userId)
+    .collection("notifications")
+    .where("isRead", "==", false)
+    .get();
+  const count = snapshot.size ?? 0;
+  cache.set(userId, count);
+  return count;
+};
+
+const sendNotificationWithBadge = async (
+  db: FirebaseFirestore.Firestore,
+  title: string,
+  body: string,
+  tokens: string[],
+  route: NotificationRoute,
+  data: Record<string, string> = {},
+  tokenUserMap?: Map<string, string>,
+  summary?: ReminderSummary
+) => {
+  if (tokens.length == 0) {
+    return;
+  }
+
+  const sendChunk = async (tokenChunk: string[], badge?: number) => {
+    summary && (summary.sends += 1);
+    const message: admin.messaging.MulticastMessage = {
+      notification: { title, body },
+      data: { route, ...data },
+      tokens: tokenChunk
+    };
+    if (badge !== undefined) {
+      message.apns = {
+        payload: {
+          aps: {
+            badge
+          }
+        }
+      };
+    }
+
+    const response = await admin.messaging().sendEachForMulticast(message);
+    await cleanupInvalidTokens(db, tokenChunk, response, tokenUserMap);
+
+    if (summary) {
+      summary.successCount += response.successCount;
+      summary.failureCount += response.failureCount;
+      response.responses.forEach((item, index) => {
+        if (!item.success) {
+          summary.failures.push({
+            token: tokenChunk[index] ?? "",
+            code: item.error?.code,
+            message: item.error?.message
+          });
+        }
+      });
+    }
+  };
+
+  if (!tokenUserMap) {
+    for (const tokenChunk of chunk(tokens, 500)) {
+      await sendChunk(tokenChunk);
+    }
+    return;
+  }
+
+  const tokensByUser = new Map<string, string[]>();
+  const unknownTokens: string[] = [];
+  tokens.forEach((token) => {
+    const userId = tokenUserMap.get(token);
+    if (!userId) {
+      unknownTokens.push(token);
+      return;
+    }
+    if (!tokensByUser.has(userId)) {
+      tokensByUser.set(userId, []);
+    }
+    tokensByUser.get(userId)?.push(token);
+  });
+
+  if (unknownTokens.length > 0) {
+    for (const tokenChunk of chunk(unknownTokens, 500)) {
+      await sendChunk(tokenChunk);
+    }
+  }
+
+  const badgeCache = new Map<string, number>();
+  for (const [userId, userTokens] of tokensByUser.entries()) {
+    const badge = await getUnreadCount(db, userId, badgeCache);
+    for (const tokenChunk of chunk(userTokens, 500)) {
+      await sendChunk(tokenChunk, badge);
+    }
+  }
+};
+
 const runBillingReminders = async (
   includeDiagnostics: boolean,
   allowedUserIds: Set<string> | null
@@ -354,27 +458,16 @@ const runBillingReminders = async (
     data: Record<string, string> = {},
     tokenUserMap?: Map<string, string>
   ) => {
-    summary.sends += 1;
-    for (const tokenChunk of chunk(tokens, 500)) {
-      const response = await admin.messaging().sendEachForMulticast({
-        notification: { title, body },
-        data: { route, ...data },
-        tokens: tokenChunk
-      });
-      await cleanupInvalidTokens(db, tokenChunk, response, tokenUserMap);
-      summary.successCount += response.successCount;
-      summary.failureCount += response.failureCount;
-
-      response.responses.forEach((item, index) => {
-        if (!item.success) {
-          summary.failures.push({
-            token: tokenChunk[index] ?? "",
-            code: item.error?.code,
-            message: item.error?.message
-          });
-        }
-      });
-    }
+    await sendNotificationWithBadge(
+      db,
+      title,
+      body,
+      tokens,
+      route,
+      data,
+      tokenUserMap,
+      summary
+    );
   };
 
   const resetGroupStatusesIfNeeded = async (
@@ -525,14 +618,18 @@ const runBillingReminders = async (
       .filter((userId): userId is string => Boolean(userId));
 
     if (memberUserIds.length > 0) {
-      const memberSnapshots = await Promise.all(
-        memberUserIds.map((userId) => db.collection("users").doc(userId).get())
-      );
-      const memberTokens = new Set<string>();
-      memberSnapshots.forEach((snapshot) => {
-        const tokens: string[] = snapshot.data()?.fcmTokens || [];
-        tokens.forEach((token) => memberTokens.add(token));
+    const memberSnapshots = await Promise.all(
+      memberUserIds.map((userId) => db.collection("users").doc(userId).get())
+    );
+    const memberTokens = new Set<string>();
+    const tokenUserMap = new Map<string, string>();
+    memberSnapshots.forEach((snapshot) => {
+      const tokens: string[] = snapshot.data()?.fcmTokens || [];
+      tokens.forEach((token) => {
+        memberTokens.add(token);
+        tokenUserMap.set(token, snapshot.id);
       });
+    });
 
       const memberBody = `Seu pagamento do grupo ${data.name || "Grupo"} está em atraso.`;
       await writeNotifications(db, memberUserIds, {
@@ -548,7 +645,8 @@ const runBillingReminders = async (
           memberBody,
           Array.from(memberTokens),
           "groups",
-          { groupId: groupDoc.id }
+          { groupId: groupDoc.id },
+          tokenUserMap
         );
       }
     }
@@ -568,6 +666,8 @@ const runBillingReminders = async (
           : `${memberList} estão em atraso no grupo ${data.name || "Grupo"}.`;
 
       if (ownerTokens.length > 0) {
+        const ownerTokenMap = new Map<string, string>();
+        ownerTokens.forEach((token) => ownerTokenMap.set(token, ownerId));
         await writeNotifications(db, [ownerId], {
           title: "Pagamento em atraso",
           body,
@@ -580,7 +680,8 @@ const runBillingReminders = async (
           body,
           ownerTokens,
           "groups",
-          { groupId: groupDoc.id, targetUserId: ownerId }
+          { groupId: groupDoc.id, targetUserId: ownerId },
+          ownerTokenMap
         );
       } else {
         await writeNotifications(db, [ownerId], {
@@ -878,27 +979,16 @@ export const markOverdueTest = onRequest(async (req, res) => {
     data: Record<string, string> = {},
     tokenUserMap?: Map<string, string>
   ) => {
-    summary.sends += 1;
-    for (const tokenChunk of chunk(tokens, 500)) {
-      const response = await admin.messaging().sendEachForMulticast({
-        notification: { title, body },
-        data: { route, ...data },
-        tokens: tokenChunk
-      });
-      await cleanupInvalidTokens(db, tokenChunk, response, tokenUserMap);
-      summary.successCount += response.successCount;
-      summary.failureCount += response.failureCount;
-
-      response.responses.forEach((item, index) => {
-        if (!item.success) {
-          summary.failures.push({
-            token: tokenChunk[index] ?? "",
-            code: item.error?.code,
-            message: item.error?.message
-          });
-        }
-      });
-    }
+    await sendNotificationWithBadge(
+      db,
+      title,
+      body,
+      tokens,
+      route,
+      data,
+      tokenUserMap,
+      summary
+    );
   };
 
   const data = groupSnapshot.data() ?? {};
@@ -1104,12 +1194,15 @@ export const notifyOwnerOnPaymentSubmitted = onDocumentUpdated(
       return;
     }
 
-    const response = await admin.messaging().sendEachForMulticast({
-      notification: { title, body },
-      data: { route: "groups", groupId, targetUserId: ownerId },
-      tokens
-    });
-    await cleanupInvalidTokens(admin.firestore(), tokens, response, tokenUserMap);
+    await sendNotificationWithBadge(
+      admin.firestore(),
+      title,
+      body,
+      tokens,
+      "groups",
+      { groupId, targetUserId: ownerId },
+      tokenUserMap
+    );
   }
 );
 
@@ -1177,12 +1270,15 @@ export const notifyMemberOnPaymentStatusChanged = onDocumentUpdated(
 
     const tokenUserMap = new Map<string, string>();
     tokens.forEach((token) => tokenUserMap.set(token, memberUserId));
-    const response = await admin.messaging().sendEachForMulticast({
-      notification: { title, body },
-      data: { route: "groups", groupId, targetUserId: memberUserId },
-      tokens
-    });
-    await cleanupInvalidTokens(admin.firestore(), tokens, response, tokenUserMap);
+    await sendNotificationWithBadge(
+      admin.firestore(),
+      title,
+      body,
+      tokens,
+      "groups",
+      { groupId, targetUserId: memberUserId },
+      tokenUserMap
+    );
   }
 );
 
@@ -1233,12 +1329,15 @@ export const notifyOwnerOnMemberJoined = onDocumentCreated(
 
     const tokenUserMap = new Map<string, string>();
     tokens.forEach((token) => tokenUserMap.set(token, ownerId));
-    const response = await admin.messaging().sendEachForMulticast({
-      notification: { title, body },
-      data: { route: "groups", groupId, targetUserId: ownerId },
-      tokens
-    });
-    await cleanupInvalidTokens(admin.firestore(), tokens, response, tokenUserMap);
+    await sendNotificationWithBadge(
+      admin.firestore(),
+      title,
+      body,
+      tokens,
+      "groups",
+      { groupId, targetUserId: ownerId },
+      tokenUserMap
+    );
   }
 );
 
@@ -1289,12 +1388,15 @@ export const notifyOwnerOnMemberLeft = onDocumentDeleted(
 
     const tokenUserMap = new Map<string, string>();
     tokens.forEach((token) => tokenUserMap.set(token, ownerId));
-    const response = await admin.messaging().sendEachForMulticast({
-      notification: { title, body },
-      data: { route: "groups", groupId, targetUserId: ownerId },
-      tokens
-    });
-    await cleanupInvalidTokens(admin.firestore(), tokens, response, tokenUserMap);
+    await sendNotificationWithBadge(
+      admin.firestore(),
+      title,
+      body,
+      tokens,
+      "groups",
+      { groupId, targetUserId: ownerId },
+      tokenUserMap
+    );
   }
 );
 
@@ -1307,6 +1409,29 @@ export const notifyOwnerOnPaymentSubmittedTest = onRequest(async (req, res) => {
   const groupId = (req.query.groupId as string) || (req.body?.groupId as string);
   const memberId = (req.query.memberId as string) || (req.body?.memberId as string);
   const targetUserId = (req.query.userId as string | undefined)?.trim();
+
+  const summary: ReminderSummary = {
+    maxDateISO: new Date().toISOString(),
+    usersScanned: 0,
+    usersWithTokens: 0,
+    subscriptionsScanned: 0,
+    subscriptionsMatched: 0,
+    groupsScanned: 0,
+    groupsMatched: 0,
+    groupsMissingNextBillingDateCount: 0,
+    groupsNonTimestampCount: 0,
+    missingNextBillingDateCount: 0,
+    nonTimestampCount: 0,
+    nextBillingDateTypes: {},
+    remindersByOffset: {},
+    groupsReset: 0,
+    groupsOverdue: 0,
+    groupOffsetDebug: [],
+    sends: 0,
+    successCount: 0,
+    failureCount: 0,
+    failures: []
+  };
 
   if (!groupId || !memberId) {
     res.status(400).json({ error: "groupId e memberId são obrigatórios." });
@@ -1363,15 +1488,19 @@ export const notifyOwnerOnPaymentSubmittedTest = onRequest(async (req, res) => {
       res.status(200).json({ message: "Usuário alvo sem tokens." });
       return;
     }
-    const response = await admin.messaging().sendEachForMulticast({
-      notification: { title, body },
-      data: { route: "groups", groupId, targetUserId },
-      tokens: overrideTokens
-    });
-    await cleanupInvalidTokens(admin.firestore(), overrideTokens, response, tokenUserMap);
+    await sendNotificationWithBadge(
+      admin.firestore(),
+      title,
+      body,
+      overrideTokens,
+      "groups",
+      { groupId, targetUserId },
+      tokenUserMap,
+      summary
+    );
     res.status(200).json({
-      successCount: response.successCount,
-      failureCount: response.failureCount
+      successCount: summary.successCount,
+      failureCount: summary.failureCount
     });
     return;
   }
@@ -1391,15 +1520,19 @@ export const notifyOwnerOnPaymentSubmittedTest = onRequest(async (req, res) => {
 
   const tokenUserMap = new Map<string, string>();
   tokens.forEach((token) => tokenUserMap.set(token, ownerId));
-  const response = await admin.messaging().sendEachForMulticast({
-    notification: { title, body },
-    data: { route: "groups", groupId, targetUserId: ownerId },
-    tokens
-  });
-  await cleanupInvalidTokens(admin.firestore(), tokens, response, tokenUserMap);
+  await sendNotificationWithBadge(
+    admin.firestore(),
+    title,
+    body,
+    tokens,
+    "groups",
+    { groupId, targetUserId: ownerId },
+    tokenUserMap,
+    summary
+  );
 
   res.status(200).json({
-    successCount: response.successCount,
-    failureCount: response.failureCount
+    successCount: summary.successCount,
+    failureCount: summary.failureCount
   });
 });

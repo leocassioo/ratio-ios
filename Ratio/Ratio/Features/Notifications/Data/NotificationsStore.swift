@@ -83,4 +83,63 @@ final class NotificationsStore {
             try await batch.commit()
         }
     }
+
+    func fetchUnreadCount(userId: String) async throws -> Int {
+        let snapshot = try await db.collection("users")
+            .document(userId)
+            .collection("notifications")
+            .whereField("isRead", isEqualTo: false)
+            .getDocuments()
+        return snapshot.documents.count
+    }
+
+    func markLatestMatchingAsRead(
+        userId: String,
+        type: String?,
+        route: String?,
+        groupId: String?,
+        subscriptionId: String?
+    ) async throws {
+        var query: Query = db.collection("users")
+            .document(userId)
+            .collection("notifications")
+            .whereField("isRead", isEqualTo: false)
+
+        if let type {
+            query = query.whereField("type", isEqualTo: type)
+        }
+        if let route {
+            query = query.whereField("route", isEqualTo: route)
+        }
+
+        let snapshot = try await query.getDocuments()
+        guard !snapshot.documents.isEmpty else { return }
+
+        let matching = snapshot.documents.filter { doc in
+            let data = doc.data()
+            if let groupId {
+                let payload = data["data"] as? [String: Any]
+                if (payload?["groupId"] as? String) != groupId {
+                    return false
+                }
+            }
+            if let subscriptionId {
+                let payload = data["data"] as? [String: Any]
+                if (payload?["subscriptionId"] as? String) != subscriptionId {
+                    return false
+                }
+            }
+            return true
+        }
+
+        let candidates = matching.isEmpty ? snapshot.documents : matching
+        let selected = candidates.max { lhs, rhs in
+            let leftDate = (lhs.data()["createdAt"] as? Timestamp)?.dateValue() ?? .distantPast
+            let rightDate = (rhs.data()["createdAt"] as? Timestamp)?.dateValue() ?? .distantPast
+            return leftDate < rightDate
+        }
+
+        guard let target = selected else { return }
+        try await target.reference.updateData(["isRead": true])
+    }
 }

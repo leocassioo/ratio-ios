@@ -51,6 +51,31 @@ final class NotificationsHistoryViewModel: ObservableObject {
         }
     }
 
+    @discardableResult
+    func markAsReadLocally(notificationId: String) -> Int {
+        var unreadCount = 0
+        sections = sections.map { section in
+            let updatedItems = section.items.map { item -> NotificationItem in
+                if item.id == notificationId {
+                    return NotificationItem(
+                        id: item.id,
+                        title: item.title,
+                        body: item.body,
+                        route: item.route,
+                        type: item.type,
+                        data: item.data,
+                        isRead: true,
+                        createdAt: item.createdAt
+                    )
+                }
+                return item
+            }
+            unreadCount += updatedItems.filter { !$0.isRead }.count
+            return Section(title: section.title, items: updatedItems)
+        }
+        return unreadCount
+    }
+
     func markAllAsRead(userId: String) async {
         do {
             try await store.markAllAsRead(userId: userId)
