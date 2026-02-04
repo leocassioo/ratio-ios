@@ -55,7 +55,7 @@ final class GroupsViewModel: ObservableObject {
                 self?.isLoading = false
                 switch result {
                 case .success(let groups):
-                    self?.groups = groups
+                    self?.groups = self?.sortedByNextCharge(groups) ?? groups
                 case .failure(let error):
                     self?.errorMessage = error.localizedDescription
                 }
@@ -116,6 +116,14 @@ final class GroupsViewModel: ObservableObject {
 
     func estimatedAmount(for amount: Double, currencyCode: String, preferredCurrencyCode: String) -> Double? {
         convert(amount: amount, from: currencyCode, to: preferredCurrencyCode)
+    }
+
+    private func sortedByNextCharge(_ groups: [SharedGroup]) -> [SharedGroup] {
+        groups.sorted { lhs, rhs in
+            let lhsDate = lhs.chargeNextBillingDate ?? lhs.subscriptionNextBillingDate ?? Date.distantFuture
+            let rhsDate = rhs.chargeNextBillingDate ?? rhs.subscriptionNextBillingDate ?? Date.distantFuture
+            return lhsDate < rhsDate
+        }
     }
 
     private func convert(amount: Double, from: String, to: String) -> Double? {

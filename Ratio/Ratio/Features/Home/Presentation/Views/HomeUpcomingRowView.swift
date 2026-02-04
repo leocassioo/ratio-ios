@@ -27,9 +27,18 @@ struct HomeUpcomingRowView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.name)
                     .font(.subheadline.weight(.semibold))
-                Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if let chip = UpcomingPaymentChipView.model(for: item.dueDate) {
+                    HStack(spacing: 6) {
+                        UpcomingPaymentChipView(text: chip.text, color: chip.color)
+                        Text(formattedDate(item.dueDate))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Text(subtitleText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()
@@ -84,11 +93,8 @@ struct HomeUpcomingRowView: View {
         if remaining < 0 {
             return "Vencido • \(formattedDate)"
         }
-        if remaining == 0 {
-            return "Hoje • \(formattedDate)"
-        }
-        if remaining == 1 {
-            return "Amanhã • \(formattedDate)"
+        if remaining <= 7 {
+            return formattedDate
         }
         return "\(remaining) dias • \(formattedDate)"
     }

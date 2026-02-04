@@ -64,7 +64,10 @@ final class SubscriptionsViewModel: ObservableObject {
                 self?.isLoading = false
                 switch result {
                 case .success(let items):
-                    self?.subscriptions = items
+                    let sorted = items.sorted { lhs, rhs in
+                        lhs.nextBillingDate < rhs.nextBillingDate
+                    }
+                    self?.subscriptions = sorted
                 case .failure(let error):
                     self?.errorMessage = error.localizedDescription
                 }

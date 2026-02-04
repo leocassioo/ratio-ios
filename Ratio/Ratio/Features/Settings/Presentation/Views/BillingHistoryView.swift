@@ -107,8 +107,9 @@ struct BillingHistoryView: View {
             Text(formattedCurrency(item.amount, currencyCode: item.currencyCode))
                 .font(.subheadline.weight(.semibold))
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .contentShape(Rectangle())
         .onTapGesture {
             analytics.track(.history_item_view, parameters: ["source": item.type.rawValue])
         }
