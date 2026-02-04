@@ -29,6 +29,23 @@ struct CreateSubscriptionView: View {
 
     var body: some View {
         Form {
+            Section("Populares") {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 12) {
+                        ForEach(PopularSubscriptionPreset.defaultPresets) { preset in
+                            Button {
+                                applyPreset(preset)
+                            } label: {
+                                PopularSubscriptionPresetView(preset: preset)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            }
+
             Section("Assinatura") {
                 TextField("Nome", text: $name)
 
@@ -118,6 +135,20 @@ struct CreateSubscriptionView: View {
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && amountValue > 0
+    }
+
+    private func applyPreset(_ preset: PopularSubscriptionPreset) {
+        name = preset.name
+        category = preset.category
+        period = preset.period
+        currencyCode = preset.currencyCode
+
+        if let suggestedAmount = preset.suggestedAmount,
+           amountValue == 0,
+           amountText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            amountValue = suggestedAmount
+            amountText = formatAmount(suggestedAmount)
+        }
     }
 
     private func parseAmount(_ text: String) -> Double? {

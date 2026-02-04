@@ -9,6 +9,7 @@ import Foundation
 
 enum SubscriptionCategory: String, CaseIterable, Identifiable {
     case streaming
+    case music
     case software
     case housing
     case utilities
@@ -21,6 +22,7 @@ enum SubscriptionCategory: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .streaming: return "Streaming"
+        case .music: return "Música"
         case .software: return "Software"
         case .housing: return "Moradia"
         case .utilities: return "Serviços"

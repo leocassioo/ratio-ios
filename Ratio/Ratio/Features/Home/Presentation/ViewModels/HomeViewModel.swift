@@ -569,6 +569,52 @@ final class HomeViewModel: ObservableObject {
             return
         }
 
+        let sortedTotals = mergedTotals.sorted { $0.value > $1.value }
+        categorySpends = sortedTotals.enumerated().map { index, entry in
+            let color = colorForCategory(label: entry.key, fallbackIndex: index)
+            return CategorySpendItem(label: entry.key, amount: entry.value, currencyCode: preferredCurrency, color: color)
+        }
+    }
+
+    private func buildMockCategorySpends(currencyCode: String) -> [CategorySpendItem] {
+        let base: Double = currencyCode == "USD" ? 18 : currencyCode == "EUR" ? 16 : 90
+        let values: [(String, Double)] = [
+            ("Streaming", base * 1.4),
+            ("Software", base * 1.1),
+            ("Música", base * 0.95),
+            ("Fitness", base * 0.85),
+            ("Outros", base * 0.6)
+        ]
+        return values.enumerated().map { index, entry in
+            let color = colorForCategory(label: entry.0, fallbackIndex: index)
+            return CategorySpendItem(label: entry.0, amount: entry.1, currencyCode: currencyCode, color: color)
+        }
+    }
+
+    private func colorForCategory(label: String, fallbackIndex: Int) -> Color {
+        let normalized = label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalized.contains("stream") {
+            return Color(.systemIndigo)
+        }
+        if normalized.contains("mús") || normalized.contains("mus") {
+            return Color(.systemPink)
+        }
+        if normalized.contains("software") {
+            return Color(.systemTeal)
+        }
+        if normalized.contains("fit") {
+            return Color(.systemGreen)
+        }
+        if normalized.contains("moradia") || normalized.contains("casa") {
+            return Color(.systemOrange)
+        }
+        if normalized.contains("servi") {
+            return Color(.systemPurple)
+        }
+        if normalized.contains("educ") {
+            return Color(.systemBlue)
+        }
+
         let palette: [Color] = [
             Color(.systemIndigo),
             Color(.systemTeal),
@@ -577,25 +623,7 @@ final class HomeViewModel: ObservableObject {
             Color(.systemPurple),
             Color(.systemGreen)
         ]
-
-        let sortedTotals = mergedTotals.sorted { $0.value > $1.value }
-        categorySpends = sortedTotals.enumerated().map { index, entry in
-            let color = palette[index % palette.count]
-            return CategorySpendItem(label: entry.key, amount: entry.value, currencyCode: preferredCurrency, color: color)
-        }
-    }
-
-    private func buildMockCategorySpends(currencyCode: String) -> [CategorySpendItem] {
-        let base: Double = currencyCode == "USD" ? 18 : currencyCode == "EUR" ? 16 : 90
-        let values: [(String, Double, Color)] = [
-            ("Streaming", base * 1.4, Color(.systemIndigo)),
-            ("Software", base * 1.1, Color(.systemTeal)),
-            ("Fitness", base * 0.9, Color(.systemPink)),
-            ("Outros", base * 0.6, Color(.systemOrange))
-        ]
-        return values.map { label, amount, color in
-            CategorySpendItem(label: label, amount: amount, currencyCode: currencyCode, color: color)
-        }
+        return palette[fallbackIndex % palette.count]
     }
 
     private func updateMonthlySpends() {
