@@ -32,9 +32,15 @@ struct GroupCardView: View {
                             .foregroundStyle(.secondary)
                     }
                     if let nextChargeDate = nextChargeDate {
-                        Text("Próxima cobrança: \(formattedDate(nextChargeDate))")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        HStack(alignment: .center, spacing: 8) {
+                            Text("Próxima cobrança: \(formattedDate(nextChargeDate))")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            Spacer(minLength: 0)
+                            if let chip = GroupRenewalChipView.model(for: group) {
+                                GroupRenewalChipView(text: chip.text, color: chip.color)
+                            }
+                        }
                     }
                     Text(group.category.label)
                         .font(.caption)

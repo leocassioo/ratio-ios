@@ -33,12 +33,12 @@ final class SubscriptionsViewModel: ObservableObject {
         store: SubscriptionsStore? = nil,
         groupsStore: GroupsStore? = nil,
         exchangeRateStore: ExchangeRateStore? = nil,
-        analytics: AnalyticsService = .shared
+        analytics: AnalyticsService? = nil
     ) {
         self.store = store ?? SubscriptionsStore()
         self.groupsStore = groupsStore ?? GroupsStore()
         self.exchangeRateStore = exchangeRateStore ?? ExchangeRateStore()
-        self.analytics = analytics
+        self.analytics = analytics ?? .shared
     }
 
     deinit {

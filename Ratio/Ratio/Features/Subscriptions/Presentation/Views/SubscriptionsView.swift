@@ -60,9 +60,15 @@ struct SubscriptionsView: View {
                             Text(subscription.category.label)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            Text("Próxima cobrança: \(formattedDate(subscription.nextBillingDate))")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
+                            HStack(alignment: .center, spacing: 8) {
+                                Text("Próxima cobrança: \(formattedDate(subscription.nextBillingDate))")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                                Spacer(minLength: 0)
+                                if let chip = SubscriptionRenewalChipView.model(for: subscription) {
+                                    SubscriptionRenewalChipView(text: chip.text, color: chip.color)
+                                }
+                            }
                             if let estimated = viewModel.estimatedAmount(
                                 for: subscription,
                                 preferredCurrencyCode: preferredCurrencyCode
