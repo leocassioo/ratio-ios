@@ -445,28 +445,44 @@ final class GroupsViewModel: ObservableObject {
     }
 
     private func computedChargeNextBillingDate(for subscription: SubscriptionItem, billingDay: Int?) -> Date {
-        guard let billingDay, billingDay > 0 else {
-            return subscription.nextBillingDate
-        }
-
         let calendar = Calendar.current
-        let now = Date()
-        let startOfToday = calendar.startOfDay(for: now)
+        let period = subscription.period
+        let startOfToday = calendar.startOfDay(for: Date())
+        let baseDate = calendar.startOfDay(for: subscription.nextBillingDate)
 
-        func dateForDay(reference: Date) -> Date? {
+        func adjustedDate(from reference: Date) -> Date {
+            guard let billingDay, billingDay > 0 else {
+                return calendar.startOfDay(for: reference)
+            }
             var components = calendar.dateComponents([.year, .month], from: reference)
             let dayRange = calendar.range(of: .day, in: .month, for: reference)
             components.day = min(billingDay, dayRange?.count ?? billingDay)
-            return calendar.date(from: components)
+            return calendar.date(from: components) ?? calendar.startOfDay(for: reference)
         }
 
-        guard var candidate = dateForDay(reference: now) else {
-            return subscription.nextBillingDate
+        var candidate: Date
+        if period == .weekly {
+            candidate = baseDate
+        } else {
+            candidate = adjustedDate(from: baseDate)
         }
 
-        if candidate < startOfToday {
-            let nextMonth = calendar.date(byAdding: .month, value: 1, to: now) ?? now
-            candidate = dateForDay(reference: nextMonth) ?? candidate
+        while candidate < startOfToday {
+            switch period {
+            case .weekly:
+                candidate = calendar.date(byAdding: .day, value: 7, to: candidate) ?? candidate
+            case .monthly:
+                candidate = calendar.date(byAdding: .month, value: 1, to: candidate) ?? candidate
+                candidate = adjustedDate(from: candidate)
+            case .quarterly:
+                candidate = calendar.date(byAdding: .month, value: 3, to: candidate) ?? candidate
+                candidate = adjustedDate(from: candidate)
+            case .yearly:
+                candidate = calendar.date(byAdding: .year, value: 1, to: candidate) ?? candidate
+                candidate = adjustedDate(from: candidate)
+            case .oneTime:
+                return candidate
+            }
         }
 
         return candidate

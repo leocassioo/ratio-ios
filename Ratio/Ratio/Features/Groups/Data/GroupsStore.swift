@@ -264,11 +264,29 @@ final class GroupsStore {
         for document in snapshot.documents {
             let data = document.data()
             guard let chargeTimestamp = data["chargeNextBillingDate"] as? Timestamp else { continue }
-            let periodRaw = data["subscriptionPeriod"] as? String ?? SubscriptionPeriod.monthly.rawValue
-            guard let period = SubscriptionPeriod(rawValue: periodRaw) else { continue }
+            let periodRaw = data["subscriptionPeriod"] as? String
+            let billingPeriodLabel = data["billingPeriod"] as? String
+            let period = SubscriptionPeriod(rawValue: periodRaw ?? "")
+                ?? (billingPeriodLabel.flatMap { SubscriptionPeriod.from(label: $0) })
+                ?? .monthly
+            let chargeDay = data["chargeDay"] as? Int
+            let billingDay = data["billingDay"] as? Int
+            let dayValue = chargeDay ?? billingDay
+            let subscriptionNextTimestamp = data["subscriptionNextBillingDate"] as? Timestamp
 
             let currentDate = chargeTimestamp.dateValue()
-            let nextDate = nextBillingDate(from: currentDate, period: period, today: today, calendar: calendar)
+            let nextDate: Date
+            if let subscriptionNextTimestamp {
+                nextDate = alignedChargeDate(
+                    subscriptionNext: subscriptionNextTimestamp.dateValue(),
+                    period: period,
+                    billingDay: dayValue,
+                    today: today,
+                    calendar: calendar
+                )
+            } else {
+                nextDate = nextBillingDate(from: currentDate, period: period, today: today, calendar: calendar)
+            }
             if nextDate == currentDate {
                 continue
             }
@@ -280,6 +298,54 @@ final class GroupsStore {
         }
 
         try await batch.commit()
+    }
+
+    private func alignedChargeDate(
+        subscriptionNext: Date,
+        period: SubscriptionPeriod,
+        billingDay: Int?,
+        today: Date,
+        calendar: Calendar
+    ) -> Date {
+        let startOfToday = calendar.startOfDay(for: today)
+        let baseDate = calendar.startOfDay(for: subscriptionNext)
+
+        func adjustedDate(from reference: Date) -> Date {
+            guard let billingDay, billingDay > 0 else {
+                return calendar.startOfDay(for: reference)
+            }
+            var components = calendar.dateComponents([.year, .month], from: reference)
+            let dayRange = calendar.range(of: .day, in: .month, for: reference)
+            components.day = min(billingDay, dayRange?.count ?? billingDay)
+            return calendar.date(from: components) ?? calendar.startOfDay(for: reference)
+        }
+
+        var candidate: Date
+        if period == .weekly {
+            candidate = baseDate
+        } else {
+            candidate = adjustedDate(from: baseDate)
+        }
+
+        while candidate < startOfToday {
+            switch period {
+            case .weekly:
+                candidate = calendar.date(byAdding: .day, value: 7, to: candidate) ?? candidate
+            case .monthly:
+                candidate = calendar.date(byAdding: .month, value: 1, to: candidate) ?? candidate
+                candidate = adjustedDate(from: candidate)
+            case .quarterly:
+                candidate = calendar.date(byAdding: .month, value: 3, to: candidate) ?? candidate
+                candidate = adjustedDate(from: candidate)
+            case .yearly:
+                candidate = calendar.date(byAdding: .year, value: 1, to: candidate) ?? candidate
+                candidate = adjustedDate(from: candidate)
+            case .oneTime:
+                return candidate
+            }
+        }
+
+        return candidate
     }
 
     private func nextBillingDate(

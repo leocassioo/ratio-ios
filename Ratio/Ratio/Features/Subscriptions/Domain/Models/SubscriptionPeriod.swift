@@ -25,4 +25,15 @@ enum SubscriptionPeriod: String, CaseIterable, Identifiable {
         case .oneTime: return "Única"
         }
     }
+
+    static func from(label: String) -> SubscriptionPeriod? {
+        switch label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "semanal": return .weekly
+        case "mensal": return .monthly
+        case "trimestral": return .quarterly
+        case "anual": return .yearly
+        case "única", "unica": return .oneTime
+        default: return nil
+        }
+    }
 }
