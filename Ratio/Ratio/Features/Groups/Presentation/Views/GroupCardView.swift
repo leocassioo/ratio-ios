@@ -21,8 +21,21 @@ struct GroupCardView: View {
         VStack(spacing: 12) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(group.name)
-                        .font(.headline)
+                    HStack(spacing: 6) {
+                        if let subscriptionId = group.subscriptionId {
+                            let color = categoryColor()
+                            SubscriptionLogoView(
+                                subscriptionId: subscriptionId,
+                                initials: firstLetter(for: group.name),
+                                backgroundColor: color.opacity(colorScheme == .dark ? 0.25 : 0.16),
+                                foregroundColor: color,
+                                size: 20,
+                                cornerRadius: 6
+                            )
+                        }
+                        Text(group.name)
+                            .font(.headline)
+                    }
                     Text("Total: \(formattedCurrency(group.totalAmount)) / \(group.billingPeriod)")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -201,6 +214,32 @@ struct GroupCardView: View {
             return .blue
         case .overdue:
             return .red
+        }
+    }
+
+    private func firstLetter(for name: String) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.first.map { String($0).uppercased() } ?? "?"
+    }
+
+    private func categoryColor() -> Color {
+        switch group.category {
+        case .streaming:
+            return Color(.systemIndigo)
+        case .music:
+            return Color(.systemPink)
+        case .software:
+            return Color(.systemTeal)
+        case .housing:
+            return Color(.systemOrange)
+        case .utilities:
+            return Color(.systemPurple)
+        case .education:
+            return Color(.systemBlue)
+        case .fitness:
+            return Color(.systemGreen)
+        case .other:
+            return Color(.systemGray)
         }
     }
 

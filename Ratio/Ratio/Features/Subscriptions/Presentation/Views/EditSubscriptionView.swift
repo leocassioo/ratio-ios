@@ -58,30 +58,11 @@ struct EditSubscriptionView: View {
 
     var body: some View {
         Form {
-            Section("Logo") {
-                PhotosPicker(selection: $selectedLogoItem, matching: .images) {
-                    HStack(spacing: 12) {
-                        logoPreview
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Atualizar logo")
-                                .font(.subheadline.weight(.semibold))
-                            Text("Opcional")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: "photo")
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-
             Section("Assinatura") {
-                TextField("Nome", text: $name)
+                HStack(spacing: 10) {
+                    TextField("Nome", text: $name)
+                    logoPickerButton
+                }
 
                 HStack {
                     Text(currencySymbol)
@@ -228,48 +209,37 @@ struct EditSubscriptionView: View {
         return formatter.currencySymbol
     }
 
-    private var logoPreview: some View {
-        let initials = InitialsBadgeView.initials(for: name.isEmpty ? "?" : name)
-        let baseColor = categoryColor()
-        let background = baseColor.opacity(0.16)
+    private var logoPreviewSmall: some View {
         return Group {
             if let selectedLogoImage {
                 Image(uiImage: selectedLogoImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 48, height: 48)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .frame(width: 28, height: 28)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             } else {
-                InitialsBadgeView(
-                    initials: initials,
-                    backgroundColor: background,
-                    foregroundColor: baseColor,
-                    size: 48,
-                    cornerRadius: 14
-                )
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color(.secondarySystemBackground))
+                    .frame(width: 28, height: 28)
+                    .overlay(
+                        Image(systemName: "photo")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    )
             }
         }
     }
 
-    private func categoryColor() -> Color {
-        switch category {
-        case .streaming:
-            return Color(.systemIndigo)
-        case .music:
-            return Color(.systemPink)
-        case .software:
-            return Color(.systemTeal)
-        case .housing:
-            return Color(.systemOrange)
-        case .utilities:
-            return Color(.systemPurple)
-        case .education:
-            return Color(.systemBlue)
-        case .fitness:
-            return Color(.systemGreen)
-        case .other:
-            return Color(.systemGray)
+    private var logoPickerButton: some View {
+        PhotosPicker(selection: $selectedLogoItem, matching: .images) {
+            logoPreviewSmall
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color(.separator).opacity(0.6), lineWidth: 1)
+                )
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Selecionar logo")
     }
 }
 

@@ -13,6 +13,7 @@ struct GroupDetailView: View {
     let currentUserId: String?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.colorScheme) private var colorScheme
     @State private var currentGroup: SharedGroup
     @StateObject private var paymentsViewModel = GroupPaymentsViewModel()
     private let groupsStore = GroupsStore()
@@ -39,275 +40,12 @@ struct GroupDetailView: View {
 
     var body: some View {
         List {
-            Section("Grupo") {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(currentGroup.name)
-                        .font(.title2.bold())
-                    if let subscriptionName = currentGroup.subscriptionName {
-                        Text(subscriptionName)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                HStack {
-                    Text("Total")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(formattedCurrency(currentGroup.totalAmount))
-                        .font(.headline)
-                }
-                if let estimated = estimatedAmount(for: currentGroup.totalAmount) {
-                    HStack {
-                        Text("Estimado em \(preferredCurrencyCode)")
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text(formattedCurrency(estimated, currencyCode: preferredCurrencyCode))
-                            .font(.subheadline.weight(.semibold))
-                    }
-                }
-
-                HStack {
-                    Text("Periodicidade")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(currentGroup.billingPeriod)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let billingDay = currentGroup.chargeDay ?? currentGroup.billingDay {
-                    HStack {
-                        Text("Dia de cobrança do grupo")
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("\(billingDay)")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                HStack {
-                    Text("Categoria")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(currentGroup.category.label)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            if let currentMember = currentMember {
-                Section("Seu pagamento") {
-                    HStack {
-                        Text("Status")
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text(currentMember.status.label)
-                            .foregroundStyle(statusColor(for: currentMember.status))
-                    }
-                    if let estimated = estimatedAmount(for: currentMember.amount) {
-                        HStack {
-                            Text("Estimado em \(preferredCurrencyCode)")
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text(formattedCurrency(estimated, currencyCode: preferredCurrencyCode))
-                                .font(.subheadline.weight(.semibold))
-                        }
-                    }
-
-                    if hasReceipts(currentMember) {
-                        Button("Ver comprovantes") {
-                            selectedMemberForReceipts = currentMember
-                        }
-                    }
-
-                    if currentMember.status == .pending || currentMember.status == .overdue {
-                        if let paymentKey = (currentGroup.pixKey?.isEmpty == false) ? currentGroup.pixKey : ownerPixKey, !paymentKey.isEmpty {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Chave Pix para pagamento")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                HStack {
-                                    Text(paymentKey)
-                                        .font(.subheadline)
-                                        .monospaced()
-                                    Spacer()
-                                    CopyButton(textToCopy: paymentKey)
-                                }
-                                .padding(8)
-                                .background(Color(.secondarySystemBackground))
-                                .cornerRadius(8)
-                            }
-                        }
-
-                        Button("Marcar como pago") {
-                            showPaymentSheet = true
-                        }
-                    } else if currentMember.status == .submitted {
-                        Text("Aguardando confirmação do organizador.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
-            if let notes = currentGroup.notes, !notes.isEmpty {
-                Section("Observações") {
-                    Text(notes)
-                }
-            }
-
-            if let ownerPhone = currentGroup.ownerPhoneNumber,
-               !ownerPhone.isEmpty {
-                Section("Contato do organizador") {
-                    HStack {
-                        Text(ownerPhone)
-                            .font(.body)
-                        Spacer()
-                        CopyButton(textToCopy: ownerPhone)
-                    }
-
-                    let cleanedPhone = sanitizedPhoneNumber(ownerPhone)
-                    if !cleanedPhone.isEmpty {
-                        HStack {
-                            Button {
-                                if let url = URL(string: "tel://\(cleanedPhone)") {
-                                    openURL(url)
-                                }
-                            } label: {
-                                Label("Ligar", systemImage: "phone.fill")
-                            }
-
-                            Spacer()
-
-                            Button {
-                                if let url = URL(string: "https://wa.me/\(cleanedPhone)") {
-                                    openURL(url)
-                                }
-                            } label: {
-                                Label("WhatsApp", systemImage: "message.fill")
-                            }
-                        }
-                    }
-                }
-            }
-            
-            if (currentGroup.serviceLogin?.isEmpty == false) || (currentGroup.servicePassword?.isEmpty == false) {
-                Section("Credenciais de Acesso") {
-                    if let login = currentGroup.serviceLogin, !login.isEmpty {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text("Login")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text(login)
-                                    .font(.body)
-                            }
-                            Spacer()
-                            CopyButton(textToCopy: login)
-                        }
-                    }
-                    
-                    if let password = currentGroup.servicePassword, !password.isEmpty {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text("Senha")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                SecureField("Senha", text: .constant(password))
-                                    .disabled(true)
-                            }
-                            Spacer()
-                            CopyButton(textToCopy: password)
-                        }
-                    }
-                }
-            }
-
-            Section("Membros") {
-                ForEach(orderedMembers) { member in
-                    HStack(spacing: 12) {
-                        MemberAvatarView(name: member.name, photoURL: member.photoURL)
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 6) {
-                                Text(memberDisplayName(for: member))
-                                    .font(.subheadline.weight(.semibold))
-                                if let roleLabel = memberRoleLabel(for: member) {
-                                    Text(roleLabel)
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            Text(member.status.label)
-                                .font(.footnote)
-                                .foregroundStyle(statusColor(for: member.status))
-                        }
-                        Spacer()
-
-                        if hasReceipts(member) {
-                            Button {
-                                selectedMemberForReceipts = member
-                            } label: {
-                                Image(systemName: "doc.text.magnifyingglass")
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(.secondary)
-                        }
-
-                        if canApprove(member: member) {
-                            Button("Aprovar") {
-                                Task {
-                                    await paymentsViewModel.approvePayment(groupId: currentGroup.id, memberId: member.id)
-                                    if paymentsViewModel.errorMessage == nil {
-                                        updateMemberStatus(member.id, status: .paid)
-                                    }
-                                }
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(.green)
-                        } else if isOwner, member.status != .paid, member.userId != currentUserId {
-                            Button {
-                                Task {
-                                    let usersStore = UsersStore()
-                                    var phoneNumber: String?
-                                    if let userId = member.userId {
-                                        if let profile = try? await usersStore.fetchUserProfile(userId: userId) {
-                                            phoneNumber = profile.phoneNumber
-                                        }
-                                    }
-                                    
-                                    if let url = WhatsAppMessageBuilder.buildPaymentRequest(
-                                        memberName: member.name,
-                                        groupName: currentGroup.name,
-                                        amount: member.amount,
-                                        currencyCode: currentGroup.currencyCode,
-                                        pixKey: (currentGroup.pixKey?.isEmpty == false) ? currentGroup.pixKey : paymentsViewModel.userPixKey,
-                                        phoneNumber: phoneNumber
-                                    ) {
-                                        await MainActor.run {
-                                            UIApplication.shared.open(url)
-                                        }
-                                    }
-                                }
-                            } label: {
-                                Image(systemName: "bell.fill")
-                                    .foregroundStyle(.white)
-                                    .padding(8)
-                                    .background(Circle().fill(Color.orange))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(formattedCurrency(member.amount))
-                            .font(.subheadline.weight(.semibold))
-                        if let estimated = estimatedAmount(for: member.amount) {
-                            Text("≈ \(formattedCurrency(estimated, currencyCode: preferredCurrencyCode))")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
+            groupSection
+            paymentSection
+            notesSection
+            ownerContactSection
+            credentialsSection
+            membersSection
 
             if !isOwner, currentUserId != nil {
                 Section("Ações") {
@@ -448,6 +186,309 @@ struct GroupDetailView: View {
         }
     }
 
+    private var groupSection: some View {
+        Section("Grupo") {
+            groupHeaderView
+
+            HStack {
+                Text("Total")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(formattedCurrency(currentGroup.totalAmount))
+                    .font(.headline)
+            }
+            if let estimated = estimatedAmount(for: currentGroup.totalAmount) {
+                HStack {
+                    Text("Estimado em \(preferredCurrencyCode)")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(formattedCurrency(estimated, currencyCode: preferredCurrencyCode))
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+
+            HStack {
+                Text("Periodicidade")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(currentGroup.billingPeriod)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let billingDay = currentGroup.chargeDay ?? currentGroup.billingDay {
+                HStack {
+                    Text("Dia de cobrança do grupo")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("\(billingDay)")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            HStack {
+                Text("Categoria")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(currentGroup.category.label)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var groupHeaderView: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                if let subscriptionId = currentGroup.subscriptionId {
+                    let color = categoryColor()
+                    SubscriptionLogoView(
+                        subscriptionId: subscriptionId,
+                        initials: firstLetter(for: currentGroup.name),
+                        backgroundColor: color.opacity(colorScheme == .dark ? 0.25 : 0.16),
+                        foregroundColor: color,
+                        size: 22,
+                        cornerRadius: 7
+                    )
+                }
+                Text(currentGroup.name)
+                    .font(.title2.bold())
+            }
+            if let subscriptionName = currentGroup.subscriptionName {
+                Text(subscriptionName)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var paymentSection: some View {
+        if let currentMember = currentMember {
+            Section("Seu pagamento") {
+                HStack {
+                    Text("Status")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(currentMember.status.label)
+                        .foregroundStyle(statusColor(for: currentMember.status))
+                }
+                if let estimated = estimatedAmount(for: currentMember.amount) {
+                    HStack {
+                        Text("Estimado em \(preferredCurrencyCode)")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(formattedCurrency(estimated, currencyCode: preferredCurrencyCode))
+                            .font(.subheadline.weight(.semibold))
+                    }
+                }
+
+                if hasReceipts(currentMember) {
+                    Button("Ver comprovantes") {
+                        selectedMemberForReceipts = currentMember
+                    }
+                }
+
+                if currentMember.status == .pending || currentMember.status == .overdue {
+                    if let paymentKey = (currentGroup.pixKey?.isEmpty == false) ? currentGroup.pixKey : ownerPixKey, !paymentKey.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Chave Pix para pagamento")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            HStack {
+                                Text(paymentKey)
+                                    .font(.subheadline)
+                                    .monospaced()
+                                Spacer()
+                                CopyButton(textToCopy: paymentKey)
+                            }
+                            .padding(8)
+                            .background(Color(.secondarySystemBackground))
+                            .cornerRadius(8)
+                        }
+                    }
+
+                    Button("Marcar como pago") {
+                        showPaymentSheet = true
+                    }
+                } else if currentMember.status == .submitted {
+                    Text("Aguardando confirmação do organizador.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var notesSection: some View {
+        if let notes = currentGroup.notes, !notes.isEmpty {
+            Section("Observações") {
+                Text(notes)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var ownerContactSection: some View {
+        if let ownerPhone = currentGroup.ownerPhoneNumber,
+           !ownerPhone.isEmpty {
+            Section("Contato do organizador") {
+                HStack {
+                    Text(ownerPhone)
+                        .font(.body)
+                    Spacer()
+                    CopyButton(textToCopy: ownerPhone)
+                }
+
+                let cleanedPhone = sanitizedPhoneNumber(ownerPhone)
+                if !cleanedPhone.isEmpty {
+                    HStack {
+                        Button {
+                            if let url = URL(string: "tel://\(cleanedPhone)") {
+                                openURL(url)
+                            }
+                        } label: {
+                            Label("Ligar", systemImage: "phone.fill")
+                        }
+
+                        Spacer()
+
+                        Button {
+                            if let url = URL(string: "https://wa.me/\(cleanedPhone)") {
+                                openURL(url)
+                            }
+                        } label: {
+                            Label("WhatsApp", systemImage: "message.fill")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var credentialsSection: some View {
+        if (currentGroup.serviceLogin?.isEmpty == false) || (currentGroup.servicePassword?.isEmpty == false) {
+            Section("Credenciais de Acesso") {
+                if let login = currentGroup.serviceLogin, !login.isEmpty {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text("Login")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(login)
+                                .font(.body)
+                        }
+                        Spacer()
+                        CopyButton(textToCopy: login)
+                    }
+                }
+
+                if let password = currentGroup.servicePassword, !password.isEmpty {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text("Senha")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            SecureField("Senha", text: .constant(password))
+                                .disabled(true)
+                        }
+                        Spacer()
+                        CopyButton(textToCopy: password)
+                    }
+                }
+            }
+        }
+    }
+
+    private var membersSection: some View {
+        Section("Membros") {
+            ForEach(orderedMembers) { member in
+                HStack(spacing: 12) {
+                    MemberAvatarView(name: member.name, photoURL: member.photoURL)
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text(memberDisplayName(for: member))
+                                .font(.subheadline.weight(.semibold))
+                            if let roleLabel = memberRoleLabel(for: member) {
+                                Text(roleLabel)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Text(member.status.label)
+                            .font(.footnote)
+                            .foregroundStyle(statusColor(for: member.status))
+                    }
+                    Spacer()
+
+                    if hasReceipts(member) {
+                        Button {
+                            selectedMemberForReceipts = member
+                        } label: {
+                            Image(systemName: "doc.text.magnifyingglass")
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                    }
+
+                    if canApprove(member: member) {
+                        Button("Aprovar") {
+                            Task {
+                                await paymentsViewModel.approvePayment(groupId: currentGroup.id, memberId: member.id)
+                                if paymentsViewModel.errorMessage == nil {
+                                    updateMemberStatus(member.id, status: .paid)
+                                }
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.green)
+                    } else if isOwner, member.status != .paid, member.userId != currentUserId {
+                        Button {
+                            Task {
+                                let usersStore = UsersStore()
+                                var phoneNumber: String?
+                                if let userId = member.userId {
+                                    if let profile = try? await usersStore.fetchUserProfile(userId: userId) {
+                                        phoneNumber = profile.phoneNumber
+                                    }
+                                }
+
+                                if let url = WhatsAppMessageBuilder.buildPaymentRequest(
+                                    memberName: member.name,
+                                    groupName: currentGroup.name,
+                                    amount: member.amount,
+                                    currencyCode: currentGroup.currencyCode,
+                                    pixKey: (currentGroup.pixKey?.isEmpty == false) ? currentGroup.pixKey : paymentsViewModel.userPixKey,
+                                    phoneNumber: phoneNumber
+                                ) {
+                                    await MainActor.run {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "bell.fill")
+                                .foregroundStyle(.white)
+                                .padding(8)
+                                .background(Circle().fill(Color.orange))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(formattedCurrency(member.amount))
+                        .font(.subheadline.weight(.semibold))
+                    if let estimated = estimatedAmount(for: member.amount) {
+                        Text("≈ \(formattedCurrency(estimated, currencyCode: preferredCurrencyCode))")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+
     private func memberDisplayName(for member: GroupMember) -> String {
         let trimmed = member.name.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.split(separator: " ").first.map(String.init) ?? trimmed
@@ -475,6 +516,32 @@ struct GroupDetailView: View {
         formatter.currencyCode = currencyCode ?? currentGroup.currencyCode
         formatter.locale = Locale(identifier: "pt_BR")
         return formatter.string(from: NSNumber(value: value)) ?? "R$ 0,00"
+    }
+
+    private func firstLetter(for name: String) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.first.map { String($0).uppercased() } ?? "?"
+    }
+
+    private func categoryColor() -> Color {
+        switch currentGroup.category {
+        case .streaming:
+            return Color(.systemIndigo)
+        case .music:
+            return Color(.systemPink)
+        case .software:
+            return Color(.systemTeal)
+        case .housing:
+            return Color(.systemOrange)
+        case .utilities:
+            return Color(.systemPurple)
+        case .education:
+            return Color(.systemBlue)
+        case .fitness:
+            return Color(.systemGreen)
+        case .other:
+            return Color(.systemGray)
+        }
     }
 
     private func receipts(for member: GroupMember) -> [ReceiptHistoryItem] {
