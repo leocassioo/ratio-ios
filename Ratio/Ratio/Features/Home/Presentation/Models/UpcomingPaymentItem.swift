@@ -13,6 +13,7 @@ struct UpcomingPaymentItem: Identifiable {
     let groupId: String?
     let name: String
     let initials: String
+    let category: SubscriptionCategory?
     let amount: Double
     let currencyCode: String
     let dueDate: Date

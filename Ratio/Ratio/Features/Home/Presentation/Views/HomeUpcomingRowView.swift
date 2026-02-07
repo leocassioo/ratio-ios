@@ -15,14 +15,14 @@ struct HomeUpcomingRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Text(item.initials)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(iconForeground)
-                .frame(width: 38, height: 38)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(iconBackground)
-                )
+            SubscriptionLogoView(
+                subscriptionId: item.subscriptionId,
+                initials: InitialsBadgeView.initials(for: item.name),
+                backgroundColor: iconBackground,
+                foregroundColor: iconForeground,
+                size: 42,
+                cornerRadius: 12
+            )
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.name)
@@ -73,11 +73,36 @@ struct HomeUpcomingRowView: View {
     }
 
     private var iconBackground: Color {
-        colorScheme == .dark ? Color(.tertiarySystemBackground) : Color(.secondarySystemBackground)
+        let base = colorForCategory()
+        return base.opacity(colorScheme == .dark ? 0.25 : 0.16)
     }
 
     private var iconForeground: Color {
-        colorScheme == .dark ? .white : .primary
+        colorForCategory()
+    }
+
+    private func colorForCategory() -> Color {
+        guard let category = item.category else {
+            return Color(.systemPurple)
+        }
+        switch category {
+        case .streaming:
+            return Color(.systemIndigo)
+        case .music:
+            return Color(.systemPink)
+        case .software:
+            return Color(.systemTeal)
+        case .housing:
+            return Color(.systemOrange)
+        case .utilities:
+            return Color(.systemPurple)
+        case .education:
+            return Color(.systemBlue)
+        case .fitness:
+            return Color(.systemGreen)
+        case .other:
+            return Color(.systemGray)
+        }
     }
 
     private var borderOpacity: Double {

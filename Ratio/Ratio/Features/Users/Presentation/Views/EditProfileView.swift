@@ -98,12 +98,20 @@ struct EditProfileView: View {
             }
 
             Section {
-                Button(role: .destructive) {
+                Button {
                     router.push(.deleteAccount, in: .settings)
                 } label: {
-                    Text("Excluir conta")
-                        .frame(maxWidth: .infinity, alignment: .center)
+                    HStack {
+                        Text("Excluir conta")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
+                .buttonStyle(.plain)
             } footer: {
                 Text("Essa ação remove permanentemente sua conta e seus dados.")
                     .font(.footnote)

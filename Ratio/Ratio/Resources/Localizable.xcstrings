@@ -44,6 +44,9 @@
     "Adicionar foto (opcional)" : {
 
     },
+    "Adicionar logo" : {
+
+    },
     "Adicione assinaturas para ver os gastos por categoria." : {
 
     },
@@ -120,6 +123,9 @@
 
     },
     "Atualizar email" : {
+
+    },
+    "Atualizar logo" : {
 
     },
     "Bem-vindo de volta! Sentimos sua falta." : {
@@ -443,6 +449,9 @@
         }
       }
     },
+    "Logo" : {
+
+    },
     "Marcar como pago" : {
 
     },
@@ -552,6 +561,9 @@
 
     },
     "Ok, entendi" : {
+
+    },
+    "Opcional" : {
 
     },
     "Ou continue com" : {

@@ -34,11 +34,12 @@ final class SubscriptionsStore {
         return snapshot.documents.compactMap(SubscriptionMapper.item(from:))
     }
 
-    func createSubscription(userId: String, data: [String: Any]) async throws {
-        _ = try await db.collection("users")
+    func createSubscription(userId: String, id: String, data: [String: Any]) async throws {
+        try await db.collection("users")
             .document(userId)
             .collection("subscriptions")
-            .addDocument(data: data)
+            .document(id)
+            .setData(data, merge: false)
     }
 
     func updateSubscription(userId: String, id: String, data: [String: Any]) async throws {

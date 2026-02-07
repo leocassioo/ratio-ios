@@ -5,7 +5,9 @@
 //  Created by Codex on 21/12/25.
 //
 
+import PhotosUI
 import SwiftUI
+import UIKit
 
 struct EditSubscriptionView: View {
     @Environment(\.dismiss) private var dismiss
@@ -20,6 +22,8 @@ struct EditSubscriptionView: View {
     @State private var period: SubscriptionPeriod
     @State private var nextBillingDate: Date
     @State private var notes: String
+    @State private var selectedLogoItem: PhotosPickerItem?
+    @State private var selectedLogoImage: UIImage?
 
     let subscriptionId: String
     let canDelete: Bool
@@ -53,6 +57,28 @@ struct EditSubscriptionView: View {
 
     var body: some View {
         Form {
+            Section("Logo") {
+                PhotosPicker(selection: $selectedLogoItem, matching: .images) {
+                    HStack(spacing: 12) {
+                        logoPreview
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Atualizar logo")
+                                .font(.subheadline.weight(.semibold))
+                            Text("Opcional")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "photo")
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+
             Section("Assinatura") {
                 TextField("Nome", text: $name)
 
@@ -140,6 +166,9 @@ struct EditSubscriptionView: View {
                         nextBillingDate: nextBillingDate,
                         notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)
                     )
+                    if let selectedLogoImage {
+                        SubscriptionLogoStore.shared.saveLogo(image: selectedLogoImage, for: subscriptionId)
+                    }
                     onSave(updated)
                     dismiss()
                 }
@@ -157,6 +186,18 @@ struct EditSubscriptionView: View {
         }
         .onAppear {
             analytics.screenView(.screen_edit_subscription)
+            if let existing = SubscriptionLogoStore.shared.loadLogo(for: subscriptionId) {
+                selectedLogoImage = existing
+            }
+        }
+        .onChange(of: selectedLogoItem) { _, newItem in
+            guard let newItem else { return }
+            Task {
+                if let data = try? await newItem.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    selectedLogoImage = image
+                }
+            }
         }
     }
 
@@ -178,6 +219,50 @@ struct EditSubscriptionView: View {
         formatter.currencyCode = currencyCode
         formatter.locale = Locale(identifier: "pt_BR")
         return formatter.currencySymbol
+    }
+
+    private var logoPreview: some View {
+        let initials = InitialsBadgeView.initials(for: name.isEmpty ? "?" : name)
+        let baseColor = categoryColor()
+        let background = baseColor.opacity(0.16)
+        return Group {
+            if let selectedLogoImage {
+                Image(uiImage: selectedLogoImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            } else {
+                InitialsBadgeView(
+                    initials: initials,
+                    backgroundColor: background,
+                    foregroundColor: baseColor,
+                    size: 48,
+                    cornerRadius: 14
+                )
+            }
+        }
+    }
+
+    private func categoryColor() -> Color {
+        switch category {
+        case .streaming:
+            return Color(.systemIndigo)
+        case .music:
+            return Color(.systemPink)
+        case .software:
+            return Color(.systemTeal)
+        case .housing:
+            return Color(.systemOrange)
+        case .utilities:
+            return Color(.systemPurple)
+        case .education:
+            return Color(.systemBlue)
+        case .fitness:
+            return Color(.systemGreen)
+        case .other:
+            return Color(.systemGray)
+        }
     }
 }
 

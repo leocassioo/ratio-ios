@@ -46,39 +46,14 @@ struct SubscriptionsView: View {
             } else {
                 List {
                         ForEach(viewModel.subscriptions) { subscription in
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack {
-                                    Text(subscription.name)
-                                    .font(.headline)
-                                Spacer()
-                                Text(formattedCurrency(subscription.amount, currencyCode: subscription.currencyCode))
-                                    .font(.subheadline.weight(.semibold))
-                            }
-                            Text(subscription.period.label)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(subscription.category.label)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            HStack(alignment: .center, spacing: 8) {
-                                Text("Próxima cobrança: \(formattedDate(subscription.nextBillingDate))")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                                Spacer(minLength: 0)
-                                if let chip = SubscriptionRenewalChipView.model(for: subscription) {
-                                    SubscriptionRenewalChipView(text: chip.text, color: chip.color)
-                                }
-                            }
-                            if let estimated = viewModel.estimatedAmount(
-                                for: subscription,
+                            SubscriptionRowView(
+                                subscription: subscription,
+                                estimatedAmount: viewModel.estimatedAmount(
+                                    for: subscription,
+                                    preferredCurrencyCode: preferredCurrencyCode
+                                ),
                                 preferredCurrencyCode: preferredCurrencyCode
-                            ) {
-                                Text("Estimado em \(preferredCurrencyCode): \(formattedCurrency(estimated, currencyCode: preferredCurrencyCode))")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            }
-                            }
-                            .padding(.vertical, 6)
+                            )
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 openEdit(subscription)
@@ -198,6 +173,7 @@ struct SubscriptionsView: View {
         router.present(.createSubscription(ownerId: userId) { newSubscription in
             Task {
                 await viewModel.createSubscription(
+                    id: newSubscription.id,
                     name: newSubscription.name,
                     amount: newSubscription.amount,
                     currencyCode: newSubscription.currencyCode,
@@ -244,21 +220,6 @@ struct SubscriptionsView: View {
         guard let subscription = viewModel.subscriptions.first(where: { $0.id == subscriptionId }) else { return }
         openEdit(subscription)
         router.pendingSubscriptionId = nil
-    }
-
-    private func formattedCurrency(_ value: Double, currencyCode: String) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = currencyCode
-        formatter.locale = Locale(identifier: "pt_BR")
-        return formatter.string(from: NSNumber(value: value)) ?? "R$ 0,00"
-    }
-
-    private func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.locale = Locale(identifier: "pt_BR")
-        return formatter.string(from: date)
     }
 
     private func logScreenIfNeeded() {

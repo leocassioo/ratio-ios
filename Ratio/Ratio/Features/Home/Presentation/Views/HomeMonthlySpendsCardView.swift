@@ -135,22 +135,22 @@ struct HomeMonthlySpendsCardView: View {
 
     private var monthlyLegend: some View {
         VStack(spacing: 8) {
-            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+            ForEach(legendItems, id: \.item.id) { entry in
                 Button {
-                    onMonthTap?(index)
+                    onMonthTap?(entry.index)
                 } label: {
                     HStack(spacing: 8) {
                         Circle()
                             .fill(Color(.systemGray4))
                             .frame(width: 6, height: 6)
 
-                        Text(item.label)
+                        Text(entry.item.label)
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
                         Spacer()
 
-                        Text(formattedCurrency(item.amount))
+                        Text(formattedCurrency(entry.item.amount))
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.primary)
                     }
@@ -162,6 +162,14 @@ struct HomeMonthlySpendsCardView: View {
 
     private var hasData: Bool {
         items.contains { $0.amount > 0 }
+    }
+
+    private var legendItems: [(index: Int, item: MonthlySpendItem)] {
+        let indexed = items.enumerated().map { (index: $0.offset, item: $0.element) }
+        guard let firstNonZero = indexed.firstIndex(where: { $0.item.amount > 0 }) else {
+            return indexed
+        }
+        return Array(indexed[firstNonZero...])
     }
 
     private var cardBackground: Color {

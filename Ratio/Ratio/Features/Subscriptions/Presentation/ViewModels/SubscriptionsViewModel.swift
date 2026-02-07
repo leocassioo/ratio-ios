@@ -130,6 +130,7 @@ final class SubscriptionsViewModel: ObservableObject {
     }
 
     func createSubscription(
+        id: String,
         name: String,
         amount: Double,
         currencyCode: String,
@@ -152,8 +153,9 @@ final class SubscriptionsViewModel: ObservableObject {
         ]
 
         do {
-            try await store.createSubscription(userId: ownerId, data: data)
+            try await store.createSubscription(userId: ownerId, id: id, data: data)
             analytics.track(.subscription_create, parameters: [
+                "subscription_id": id,
                 "category": category.rawValue,
                 "period": period.rawValue,
                 "currency": currencyCode,

@@ -703,7 +703,11 @@ struct CreateGroupView: View {
                     "ownerId": ownerId,
                     "createdAt": FieldValue.serverTimestamp()
                 ]
-                try? await subscriptionsStore.createSubscription(userId: ownerId, data: data)
+                try? await subscriptionsStore.createSubscription(
+                    userId: ownerId,
+                    id: newSubscription.id,
+                    data: data
+                )
             }
         })
     }
