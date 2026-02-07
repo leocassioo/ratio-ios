@@ -240,14 +240,14 @@ struct GroupDetailView: View {
             HStack(spacing: 8) {
                 if let subscriptionId = currentGroup.subscriptionId {
                     let color = categoryColor()
-                    SubscriptionLogoView(
-                        subscriptionId: subscriptionId,
-                        initials: firstLetter(for: currentGroup.name),
-                        backgroundColor: color.opacity(colorScheme == .dark ? 0.25 : 0.16),
-                        foregroundColor: color,
-                        size: 22,
-                        cornerRadius: 7
-                    )
+                            SubscriptionLogoView(
+                                subscriptionId: subscriptionId,
+                                initials: firstLetter(for: currentGroup.name),
+                                backgroundColor: color.opacity(colorScheme == .dark ? 0.25 : 0.16),
+                                foregroundColor: color,
+                                size: 26,
+                                cornerRadius: 8
+                            )
                 }
                 Text(currentGroup.name)
                     .font(.title2.bold())

@@ -29,8 +29,8 @@ struct GroupCardView: View {
                                 initials: firstLetter(for: group.name),
                                 backgroundColor: color.opacity(colorScheme == .dark ? 0.25 : 0.16),
                                 foregroundColor: color,
-                                size: 20,
-                                cornerRadius: 6
+                                size: 26,
+                                cornerRadius: 8
                             )
                         }
                         Text(group.name)
