@@ -52,8 +52,10 @@ struct CreateSubscriptionView: View {
             }
 
             Section("Assinatura") {
-                compactLogoRow
-                TextField("Nome", text: $name)
+                HStack(spacing: 10) {
+                    TextField("Nome", text: $name)
+                    logoPickerButton
+                }
 
                 HStack {
                     Text(currencySymbol)
@@ -152,7 +154,9 @@ struct CreateSubscriptionView: View {
             Task {
                 if let data = try? await newItem.loadTransferable(type: Data.self),
                    let image = UIImage(data: data) {
-                    selectedLogoImage = image
+                    await MainActor.run {
+                        selectedLogoImage = image
+                    }
                 }
             }
         }
@@ -169,6 +173,7 @@ struct CreateSubscriptionView: View {
         currencyCode = preset.currencyCode
         if let assetName = preset.assetName, let image = UIImage(named: assetName) {
             selectedLogoImage = image
+            selectedLogoItem = nil
         }
 
         if let suggestedAmount = preset.suggestedAmount,
@@ -219,43 +224,36 @@ struct CreateSubscriptionView: View {
     }
 
     private var logoPreviewSmall: some View {
-        let initials = InitialsBadgeView.initials(for: name.isEmpty ? "?" : name)
-        let baseColor = categoryColor()
-        let background = baseColor.opacity(0.16)
         return Group {
             if let selectedLogoImage {
                 Image(uiImage: selectedLogoImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 32, height: 32)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .frame(width: 28, height: 28)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             } else {
-                InitialsBadgeView(
-                    initials: initials,
-                    backgroundColor: background,
-                    foregroundColor: baseColor,
-                    size: 32,
-                    cornerRadius: 10
-                )
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color(.secondarySystemBackground))
+                    .frame(width: 28, height: 28)
+                    .overlay(
+                        Image(systemName: "photo")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    )
             }
         }
     }
 
-    private var compactLogoRow: some View {
+    private var logoPickerButton: some View {
         PhotosPicker(selection: $selectedLogoItem, matching: .images) {
-            HStack(spacing: 10) {
-                logoPreviewSmall
-                Text("Logo (opcional)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text("Selecionar")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.accentColor)
-            }
-            .padding(.vertical, 2)
+            logoPreviewSmall
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color(.separator).opacity(0.6), lineWidth: 1)
+                )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Selecionar logo")
     }
 
     private func categoryColor() -> Color {
