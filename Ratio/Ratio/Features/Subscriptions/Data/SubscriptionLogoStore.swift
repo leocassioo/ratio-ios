@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import FirebaseStorage
 import UIKit
 
 final class SubscriptionLogoStore {
@@ -14,6 +15,7 @@ final class SubscriptionLogoStore {
 
     private let fileManager = FileManager.default
     private let cache = NSCache<NSString, UIImage>()
+    private let storage = Storage.storage()
     private let directoryName = "SubscriptionLogos"
 
     private init() {}
@@ -31,7 +33,7 @@ final class SubscriptionLogoStore {
         return image
     }
 
-    func saveLogo(image: UIImage, for subscriptionId: String) {
+    func saveLogo(image: UIImage, for subscriptionId: String, userId: String?) async {
         guard let url = logoURL(for: subscriptionId) else { return }
         let resized = image.resized(maxDimension: 96)
         guard let data = resized.jpegData(compressionQuality: 0.5) else { return }
@@ -48,6 +50,28 @@ final class SubscriptionLogoStore {
             #if DEBUG
             print("Failed to save subscription logo:", error)
             #endif
+        }
+
+        guard let userId else { return }
+        let ref = storage.reference().child("users/\(userId)/subscriptions/\(subscriptionId).jpg")
+        do {
+            _ = try await ref.putDataAsync(data)
+        } catch {
+            #if DEBUG
+            print("Failed to upload subscription logo:", error)
+            #endif
+        }
+    }
+
+    func fetchRemoteLogo(for subscriptionId: String, userId: String) async -> UIImage? {
+        let ref = storage.reference().child("users/\(userId)/subscriptions/\(subscriptionId).jpg")
+        do {
+            let data = try await ref.data(maxSize: 512 * 1024)
+            guard let image = UIImage(data: data) else { return nil }
+            saveLogoLocally(data: data, image: image, subscriptionId: subscriptionId)
+            return image
+        } catch {
+            return nil
         }
     }
 
@@ -79,6 +103,24 @@ final class SubscriptionLogoStore {
             return nil
         }
         return base.appendingPathComponent(directoryName, isDirectory: true)
+    }
+
+    private func saveLogoLocally(data: Data, image: UIImage, subscriptionId: String) {
+        guard let url = logoURL(for: subscriptionId) else { return }
+        do {
+            try ensureDirectoryExists()
+            try data.write(to: url, options: [.atomic])
+            cache.setObject(image, forKey: subscriptionId as NSString)
+            NotificationCenter.default.post(
+                name: SubscriptionLogoStore.logoUpdatedNotification,
+                object: nil,
+                userInfo: ["id": subscriptionId]
+            )
+        } catch {
+            #if DEBUG
+            print("Failed to save subscription logo locally:", error)
+            #endif
+        }
     }
 }
 

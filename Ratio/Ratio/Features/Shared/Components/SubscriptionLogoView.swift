@@ -5,6 +5,7 @@
 //  Created by Codex on 31/01/26.
 //
 
+import FirebaseAuth
 import SwiftUI
 
 struct SubscriptionLogoView: View {
@@ -16,6 +17,7 @@ struct SubscriptionLogoView: View {
     let cornerRadius: CGFloat
 
     @State private var logoImage: Image?
+    @State private var hasAttemptedRemoteFetch = false
 
     var body: some View {
         Group {
@@ -48,12 +50,30 @@ struct SubscriptionLogoView: View {
     }
 
     private func loadLogo() {
+        hasAttemptedRemoteFetch = false
         guard let subscriptionId,
               let uiImage = SubscriptionLogoStore.shared.loadLogo(for: subscriptionId) else {
             logoImage = nil
+            fetchRemoteIfNeeded()
             return
         }
         logoImage = Image(uiImage: uiImage)
+    }
+
+    private func fetchRemoteIfNeeded() {
+        guard !hasAttemptedRemoteFetch,
+              let subscriptionId,
+              let userId = Auth.auth().currentUser?.uid else {
+            return
+        }
+        hasAttemptedRemoteFetch = true
+        Task {
+            if let image = await SubscriptionLogoStore.shared.fetchRemoteLogo(for: subscriptionId, userId: userId) {
+                await MainActor.run {
+                    logoImage = Image(uiImage: image)
+                }
+            }
+        }
     }
 }
 

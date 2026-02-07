@@ -178,7 +178,7 @@ struct MainTabView: View {
             )
         case .createSubscription(let ownerId, let onSave):
             NavigationStack {
-                CreateSubscriptionView { newSubscription in
+                CreateSubscriptionView(ownerId: ownerId) { newSubscription in
                     onSave(newSubscription)
                 }
             }

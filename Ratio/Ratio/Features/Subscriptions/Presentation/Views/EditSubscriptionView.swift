@@ -5,6 +5,7 @@
 //  Created by Codex on 21/12/25.
 //
 
+import FirebaseAuth
 import PhotosUI
 import SwiftUI
 import UIKit
@@ -166,8 +167,14 @@ struct EditSubscriptionView: View {
                         nextBillingDate: nextBillingDate,
                         notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)
                     )
-                    if let selectedLogoImage {
-                        SubscriptionLogoStore.shared.saveLogo(image: selectedLogoImage, for: subscriptionId)
+                    if let selectedLogoImage, let userId = Auth.auth().currentUser?.uid {
+                        Task {
+                            await SubscriptionLogoStore.shared.saveLogo(
+                                image: selectedLogoImage,
+                                for: subscriptionId,
+                                userId: userId
+                            )
+                        }
                     }
                     onSave(updated)
                     dismiss()

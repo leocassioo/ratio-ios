@@ -37,6 +37,10 @@ service firebase.storage {
       allow write: if isSelf(userId);
     }
 
+    match /users/{userId}/subscriptions/{fileName} {
+      allow read, write, delete: if isSelf(userId);
+    }
+
     match /groups/{groupId}/receipts/{memberId}/{fileName} {
       allow read: if isGroupOwner(groupId) || isGroupMember(groupId);
       allow write: if isGroupMember(groupId) &&

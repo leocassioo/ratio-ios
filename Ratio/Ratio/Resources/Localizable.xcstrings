@@ -44,9 +44,6 @@
     "Adicionar foto (opcional)" : {
 
     },
-    "Adicionar logo" : {
-
-    },
     "Adicione assinaturas para ver os gastos por categoria." : {
 
     },
@@ -452,6 +449,9 @@
     "Logo" : {
 
     },
+    "Logo (opcional)" : {
+
+    },
     "Marcar como pago" : {
 
     },
@@ -675,6 +675,9 @@
 
     },
     "Se preenchido, esta chave será usada em vez da chave do seu perfil." : {
+
+    },
+    "Selecionar" : {
 
     },
     "Selecionar %@" : {

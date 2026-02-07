@@ -13,6 +13,7 @@ struct CreateSubscriptionView: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
     private let analytics = AnalyticsService.shared
+    let ownerId: String
 
     @State private var name = ""
     @State private var amountText = ""
@@ -50,29 +51,8 @@ struct CreateSubscriptionView: View {
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
             }
 
-            Section("Logo") {
-                PhotosPicker(selection: $selectedLogoItem, matching: .images) {
-                    HStack(spacing: 12) {
-                        logoPreview
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Adicionar logo")
-                                .font(.subheadline.weight(.semibold))
-                            Text("Opcional")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: "photo")
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-
             Section("Assinatura") {
+                compactLogoRow
                 TextField("Nome", text: $name)
 
                 HStack {
@@ -137,7 +117,13 @@ struct CreateSubscriptionView: View {
                 Button("Salvar") {
                     let subscriptionId = UUID().uuidString
                     if let selectedLogoImage {
-                        SubscriptionLogoStore.shared.saveLogo(image: selectedLogoImage, for: subscriptionId)
+                        Task {
+                            await SubscriptionLogoStore.shared.saveLogo(
+                                image: selectedLogoImage,
+                                for: subscriptionId,
+                                userId: ownerId
+                            )
+                        }
                     }
                     let subscription = SubscriptionItem(
                         id: subscriptionId,
@@ -232,6 +218,46 @@ struct CreateSubscriptionView: View {
         }
     }
 
+    private var logoPreviewSmall: some View {
+        let initials = InitialsBadgeView.initials(for: name.isEmpty ? "?" : name)
+        let baseColor = categoryColor()
+        let background = baseColor.opacity(0.16)
+        return Group {
+            if let selectedLogoImage {
+                Image(uiImage: selectedLogoImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 32, height: 32)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            } else {
+                InitialsBadgeView(
+                    initials: initials,
+                    backgroundColor: background,
+                    foregroundColor: baseColor,
+                    size: 32,
+                    cornerRadius: 10
+                )
+            }
+        }
+    }
+
+    private var compactLogoRow: some View {
+        PhotosPicker(selection: $selectedLogoItem, matching: .images) {
+            HStack(spacing: 10) {
+                logoPreviewSmall
+                Text("Logo (opcional)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("Selecionar")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+            }
+            .padding(.vertical, 2)
+        }
+        .buttonStyle(.plain)
+    }
+
     private func categoryColor() -> Color {
         switch category {
         case .streaming:
@@ -256,6 +282,6 @@ struct CreateSubscriptionView: View {
 
 #Preview {
     NavigationStack {
-        CreateSubscriptionView { _ in }
+        CreateSubscriptionView(ownerId: "preview") { _ in }
     }
 }
