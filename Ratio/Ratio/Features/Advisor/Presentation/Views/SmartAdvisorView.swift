@@ -34,7 +34,7 @@ struct SmartAdvisorView: View {
             .padding(.bottom, 24)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Smart Advisor")
+        .navigationTitle("Consultor Financeiro")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -214,8 +214,8 @@ struct SmartAdvisorView: View {
         guard subscriptionManager.hasProAccess else {
             analytics.track(.pro_feature_blocked, parameters: ["feature": "advisor"])
             router.present(.upgradePrompt(
-                title: "Desbloqueie o Advisor inteligente",
-                subtitle: "O Advisor com IA está disponível apenas no Ratio Pro.",
+                title: "Desbloqueie o Consultor Financeiro",
+                subtitle: "O Consultor Financeiro com IA está disponível apenas no Ratio Pro.",
                 benefits: [
                     "Insights personalizados sobre seus gastos",
                     "Sugestões de economia com IA",

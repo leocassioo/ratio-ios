@@ -62,7 +62,7 @@ struct MainTabView: View {
                     }
             }
             .tabItem {
-                Label("Advisor", systemImage: "sparkles")
+                Label("Consultor", systemImage: "sparkles")
             }
             .tag(MainTab.advisor)
 
