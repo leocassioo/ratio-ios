@@ -211,6 +211,7 @@ final class SubscriptionsViewModel: ObservableObject {
                 "subscriptionNextBillingDate": Timestamp(date: nextBillingDate),
                 "totalAmount": amount,
                 "currencyCode": currencyCode,
+                "category": category.rawValue,
                 "billingPeriod": period.label,
                 "updatedAt": FieldValue.serverTimestamp()
             ]
