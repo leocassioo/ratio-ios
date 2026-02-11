@@ -31,7 +31,8 @@ struct HomeView: View {
             amount: 119.90,
             currencyCode: "BRL",
             dueDate: Date().addingTimeInterval(2 * 24 * 60 * 60),
-            period: "Mensal"
+            period: "Mensal",
+            logoURL: nil
         ),
         UpcomingPaymentItem(
             subscriptionId: nil,
@@ -42,7 +43,8 @@ struct HomeView: View {
             amount: 55.90,
             currencyCode: "BRL",
             dueDate: Date().addingTimeInterval(5 * 24 * 60 * 60),
-            period: "Mensal"
+            period: "Mensal",
+            logoURL: nil
         ),
         UpcomingPaymentItem(
             subscriptionId: nil,
@@ -53,7 +55,8 @@ struct HomeView: View {
             amount: 27.90,
             currencyCode: "BRL",
             dueDate: Date().addingTimeInterval(12 * 24 * 60 * 60),
-            period: "Mensal"
+            period: "Mensal",
+            logoURL: nil
         )
     ]
     private let categorySpends: [CategorySpendItem] = [

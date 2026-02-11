@@ -17,6 +17,7 @@ struct SubscriptionRowView: View {
         HStack(spacing: 12) {
             SubscriptionLogoView(
                 subscriptionId: subscription.id,
+                logoURL: subscription.logoURL.flatMap(URL.init),
                 initials: InitialsBadgeView.initials(for: subscription.name),
                 backgroundColor: iconBackground,
                 foregroundColor: iconForeground,
@@ -56,7 +57,16 @@ struct SubscriptionRowView: View {
                 }
             }
         }
-        .padding(.vertical, 6)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(cardBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color(.separator).opacity(borderOpacity), lineWidth: 1)
+        )
     }
 
     private var iconBackground: Color {
@@ -66,6 +76,14 @@ struct SubscriptionRowView: View {
 
     private var iconForeground: Color {
         colorForCategory()
+    }
+
+    private var cardBackground: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground)
+    }
+
+    private var borderOpacity: Double {
+        colorScheme == .dark ? 0.4 : 0.25
     }
 
     private func colorForCategory() -> Color {
@@ -115,7 +133,8 @@ struct SubscriptionRowView: View {
             category: .streaming,
             period: .monthly,
             nextBillingDate: Date(),
-            notes: ""
+            notes: "",
+            logoURL: nil
         ),
         estimatedAmount: nil,
         preferredCurrencyCode: "BRL"

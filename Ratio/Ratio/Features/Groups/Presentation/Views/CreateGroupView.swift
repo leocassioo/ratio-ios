@@ -700,6 +700,7 @@ struct CreateGroupView: View {
                     "period": newSubscription.period.rawValue,
                     "nextBillingDate": Timestamp(date: newSubscription.nextBillingDate),
                     "notes": newSubscription.notes.isEmpty ? nil : newSubscription.notes,
+                    "logoURL": newSubscription.logoURL as Any,
                     "ownerId": ownerId,
                     "createdAt": FieldValue.serverTimestamp()
                 ]

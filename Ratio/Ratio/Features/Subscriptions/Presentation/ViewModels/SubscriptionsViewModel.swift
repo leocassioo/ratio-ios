@@ -138,6 +138,7 @@ final class SubscriptionsViewModel: ObservableObject {
         period: SubscriptionPeriod,
         nextBillingDate: Date,
         notes: String?,
+        logoURL: String?,
         ownerId: String
     ) async {
         let data: [String: Any] = [
@@ -148,6 +149,7 @@ final class SubscriptionsViewModel: ObservableObject {
             "period": period.rawValue,
             "nextBillingDate": Timestamp(date: nextBillingDate),
             "notes": notes as Any,
+            "logoURL": logoURL as Any,
             "ownerId": ownerId,
             "createdAt": FieldValue.serverTimestamp()
         ]
@@ -183,6 +185,7 @@ final class SubscriptionsViewModel: ObservableObject {
         period: SubscriptionPeriod,
         nextBillingDate: Date,
         notes: String?,
+        logoURL: String?,
         ownerId: String
     ) async {
         analytics.track(.subscription_edit, parameters: [
@@ -199,6 +202,7 @@ final class SubscriptionsViewModel: ObservableObject {
             "period": period.rawValue,
             "nextBillingDate": Timestamp(date: nextBillingDate),
             "notes": notes as Any,
+            "logoURL": logoURL as Any,
             "updatedAt": FieldValue.serverTimestamp()
         ]
 
@@ -209,6 +213,7 @@ final class SubscriptionsViewModel: ObservableObject {
                 "subscriptionCategory": category.rawValue,
                 "subscriptionPeriod": period.rawValue,
                 "subscriptionNextBillingDate": Timestamp(date: nextBillingDate),
+                "subscriptionLogoURL": logoURL as Any,
                 "totalAmount": amount,
                 "currencyCode": currencyCode,
                 "category": category.rawValue,

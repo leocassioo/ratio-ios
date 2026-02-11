@@ -16,4 +16,5 @@ struct SubscriptionItem: Identifiable, Equatable {
     let period: SubscriptionPeriod
     let nextBillingDate: Date
     let notes: String
+    let logoURL: String?
 }

@@ -63,6 +63,39 @@ final class SubscriptionLogoStore {
         }
     }
 
+    func saveLogoAndUpload(image: UIImage, for subscriptionId: String, userId: String?) async -> String? {
+        guard let url = logoURL(for: subscriptionId) else { return nil }
+        let resized = image.resized(maxDimension: 96)
+        guard let data = resized.jpegData(compressionQuality: 0.5) else { return nil }
+        do {
+            try ensureDirectoryExists()
+            try data.write(to: url, options: [.atomic])
+            cache.setObject(resized, forKey: subscriptionId as NSString)
+            NotificationCenter.default.post(
+                name: SubscriptionLogoStore.logoUpdatedNotification,
+                object: nil,
+                userInfo: ["id": subscriptionId]
+            )
+        } catch {
+            #if DEBUG
+            print("Failed to save subscription logo:", error)
+            #endif
+        }
+
+        guard let userId else { return nil }
+        let ref = storage.reference().child("users/\(userId)/subscriptions/\(subscriptionId).jpg")
+        do {
+            _ = try await ref.putDataAsync(data)
+            let remoteURL = try await ref.downloadURL()
+            return remoteURL.absoluteString
+        } catch {
+            #if DEBUG
+            print("Failed to upload subscription logo:", error)
+            #endif
+            return nil
+        }
+    }
+
     func fetchRemoteLogo(for subscriptionId: String, userId: String) async -> UIImage? {
         let ref = storage.reference().child("users/\(userId)/subscriptions/\(subscriptionId).jpg")
         do {

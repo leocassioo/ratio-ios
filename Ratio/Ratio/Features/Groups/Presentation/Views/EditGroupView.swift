@@ -659,7 +659,8 @@ struct EditGroupView: View {
             category: category,
             period: period,
             nextBillingDate: group.subscriptionNextBillingDate ?? Date(),
-            notes: group.notes ?? ""
+            notes: group.notes ?? "",
+            logoURL: group.subscriptionLogoURL
         )
     }
 
@@ -705,6 +706,7 @@ struct EditGroupView: View {
                 subscriptionCategory: "streaming",
                 subscriptionPeriod: "monthly",
                 subscriptionNextBillingDate: Date(),
+                subscriptionLogoURL: nil,
                 chargeDay: 9,
                 chargeNextBillingDate: Date(),
                 serviceLogin: nil,

@@ -165,7 +165,9 @@ struct HomeMonthlySpendsCardView: View {
     }
 
     private var legendItems: [(index: Int, item: MonthlySpendItem)] {
-        let indexed = items.enumerated().map { (index: $0.offset, item: $0.element) }
+        let indexed: [(index: Int, item: MonthlySpendItem)] = items.enumerated().map {
+            (index: $0.offset, item: $0.element)
+        }
         guard let firstNonZero = indexed.firstIndex(where: { $0.item.amount > 0 }) else {
             return indexed
         }

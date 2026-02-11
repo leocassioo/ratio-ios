@@ -17,6 +17,7 @@ struct HomeUpcomingRowView: View {
         HStack(spacing: 12) {
             SubscriptionLogoView(
                 subscriptionId: item.subscriptionId,
+                logoURL: item.logoURL.flatMap(URL.init),
                 initials: InitialsBadgeView.initials(for: item.name),
                 backgroundColor: iconBackground,
                 foregroundColor: iconForeground,

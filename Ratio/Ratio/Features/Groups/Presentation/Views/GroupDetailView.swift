@@ -238,17 +238,16 @@ struct GroupDetailView: View {
     private var groupHeaderView: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                if let subscriptionId = currentGroup.subscriptionId {
-                    let color = categoryColor()
-                            SubscriptionLogoView(
-                                subscriptionId: subscriptionId,
-                                initials: firstLetter(for: currentGroup.name),
-                                backgroundColor: color.opacity(colorScheme == .dark ? 0.25 : 0.16),
-                                foregroundColor: color,
-                                size: 26,
-                                cornerRadius: 8
-                            )
-                }
+                let color = categoryColor()
+                SubscriptionLogoView(
+                    subscriptionId: currentGroup.subscriptionId,
+                    logoURL: currentGroup.subscriptionLogoURL.flatMap(URL.init),
+                    initials: firstLetter(for: currentGroup.name),
+                    backgroundColor: color.opacity(colorScheme == .dark ? 0.25 : 0.16),
+                    foregroundColor: color,
+                    size: 26,
+                    cornerRadius: 8
+                )
                 Text(currentGroup.name)
                     .font(.title2.bold())
             }
@@ -674,6 +673,7 @@ struct GroupDetailView: View {
             subscriptionCategory: currentGroup.subscriptionCategory,
             subscriptionPeriod: currentGroup.subscriptionPeriod,
             subscriptionNextBillingDate: currentGroup.subscriptionNextBillingDate,
+            subscriptionLogoURL: currentGroup.subscriptionLogoURL,
             chargeDay: currentGroup.chargeDay,
             chargeNextBillingDate: currentGroup.chargeNextBillingDate,
             serviceLogin: currentGroup.serviceLogin,
@@ -717,6 +717,7 @@ struct GroupDetailView: View {
                 subscriptionCategory: "streaming",
                 subscriptionPeriod: "monthly",
                 subscriptionNextBillingDate: Date(),
+                subscriptionLogoURL: nil,
                 chargeDay: 9,
                 chargeNextBillingDate: Date(),
                 serviceLogin: nil,

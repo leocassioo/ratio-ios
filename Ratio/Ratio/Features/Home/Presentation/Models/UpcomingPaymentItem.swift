@@ -18,4 +18,5 @@ struct UpcomingPaymentItem: Identifiable {
     let currencyCode: String
     let dueDate: Date
     let period: String
+    let logoURL: String?
 }

@@ -101,15 +101,10 @@ struct EditProfileView: View {
                 Button {
                     router.push(.deleteAccount, in: .settings)
                 } label: {
-                    HStack {
-                        Text("Excluir conta")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
+                    Text("Excluir conta")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
             } footer: {

@@ -10,6 +10,7 @@ import SwiftUI
 
 struct SubscriptionLogoView: View {
     let subscriptionId: String?
+    let logoURL: URL?
     let initials: String
     let backgroundColor: Color
     let foregroundColor: Color
@@ -27,6 +28,25 @@ struct SubscriptionLogoView: View {
                     .scaledToFill()
                     .frame(width: size, height: size)
                     .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            } else if let logoURL {
+                AsyncImage(url: logoURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        InitialsBadgeView(
+                            initials: initials,
+                            backgroundColor: backgroundColor,
+                            foregroundColor: foregroundColor,
+                            size: size,
+                            cornerRadius: cornerRadius
+                        )
+                    }
+                }
+                .frame(width: size, height: size)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             } else {
                 InitialsBadgeView(
                     initials: initials,
@@ -41,6 +61,9 @@ struct SubscriptionLogoView: View {
         .onChange(of: subscriptionId) { _, _ in
             loadLogo()
         }
+        .onChange(of: logoURL?.absoluteString) { _, _ in
+            loadLogo()
+        }
         .onReceive(NotificationCenter.default.publisher(for: SubscriptionLogoStore.logoUpdatedNotification)) { notification in
             guard let id = notification.userInfo?["id"] as? String else { return }
             if id == subscriptionId {
@@ -53,11 +76,29 @@ struct SubscriptionLogoView: View {
         hasAttemptedRemoteFetch = false
         guard let subscriptionId,
               let uiImage = SubscriptionLogoStore.shared.loadLogo(for: subscriptionId) else {
+            if let logoURL, let cached = RemoteImageStore.shared.loadImage(for: logoURL) {
+                logoImage = Image(uiImage: cached)
+                return
+            }
             logoImage = nil
-            fetchRemoteIfNeeded()
+            if let logoURL {
+                fetchRemoteFromURL(logoURL)
+            } else {
+                fetchRemoteIfNeeded()
+            }
             return
         }
         logoImage = Image(uiImage: uiImage)
+    }
+
+    private func fetchRemoteFromURL(_ url: URL) {
+        Task {
+            if let image = await RemoteImageStore.shared.fetchImage(for: url) {
+                await MainActor.run {
+                    logoImage = Image(uiImage: image)
+                }
+            }
+        }
     }
 
     private func fetchRemoteIfNeeded() {
@@ -80,6 +121,7 @@ struct SubscriptionLogoView: View {
 #Preview {
     SubscriptionLogoView(
         subscriptionId: nil,
+        logoURL: nil,
         initials: "NF",
         backgroundColor: Color(.systemIndigo).opacity(0.16),
         foregroundColor: Color(.systemIndigo),

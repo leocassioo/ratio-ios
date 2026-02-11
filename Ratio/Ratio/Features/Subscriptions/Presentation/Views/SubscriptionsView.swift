@@ -55,6 +55,8 @@ struct SubscriptionsView: View {
                                 preferredCurrencyCode: preferredCurrencyCode
                             )
                             .contentShape(Rectangle())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                             .onTapGesture {
                                 openEdit(subscription)
                             }
@@ -75,6 +77,7 @@ struct SubscriptionsView: View {
                     }
                     .onDelete(perform: deleteSubscription)
                 }
+                .listStyle(.plain)
             }
         }
         .navigationTitle("Assinaturas")
@@ -181,6 +184,7 @@ struct SubscriptionsView: View {
                     period: newSubscription.period,
                     nextBillingDate: newSubscription.nextBillingDate,
                     notes: newSubscription.notes.isEmpty ? nil : newSubscription.notes,
+                    logoURL: newSubscription.logoURL,
                     ownerId: userId
                 )
             }
@@ -208,6 +212,7 @@ struct SubscriptionsView: View {
                         period: updated.period,
                         nextBillingDate: updated.nextBillingDate,
                         notes: updated.notes.isEmpty ? nil : updated.notes,
+                        logoURL: updated.logoURL,
                         ownerId: userId
                     )
                 }

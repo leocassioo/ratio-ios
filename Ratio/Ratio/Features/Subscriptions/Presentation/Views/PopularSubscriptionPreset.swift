@@ -16,6 +16,7 @@ struct PopularSubscriptionPreset: Identifiable {
     let suggestedAmount: Double?
     let tint: Color
     let assetName: String?
+    let imageURL: URL?
     let initials: String
 
     init(
@@ -25,7 +26,8 @@ struct PopularSubscriptionPreset: Identifiable {
         currencyCode: String = "BRL",
         suggestedAmount: Double? = nil,
         tint: Color,
-        assetName: String? = nil
+        assetName: String? = nil,
+        imageURL: URL? = nil
     ) {
         self.id = name.lowercased()
         self.name = name
@@ -35,6 +37,7 @@ struct PopularSubscriptionPreset: Identifiable {
         self.suggestedAmount = suggestedAmount
         self.tint = tint
         self.assetName = assetName
+        self.imageURL = imageURL
         self.initials = PopularSubscriptionPreset.makeInitials(from: name)
     }
 
@@ -59,6 +62,51 @@ struct PopularSubscriptionPreset: Identifiable {
         PopularSubscriptionPreset(name: "Adobe CC", category: .software, tint: .red, assetName: "adobe cc"),
         PopularSubscriptionPreset(name: "Canva Pro", category: .software, tint: .purple, assetName: "canva pro")
     ]
+
+    static func presets(from payload: PopularSubscriptionPayload?) -> [PopularSubscriptionPreset] {
+        guard let payload else { return defaultPresets }
+        var mapped: [PopularSubscriptionPreset] = []
+        mapped.reserveCapacity(payload.items.count)
+        for item in payload.items {
+            guard let category = SubscriptionCategory(rawValue: item.category),
+                  let period = SubscriptionPeriod(rawValue: item.period) else {
+                continue
+            }
+            mapped.append(
+                PopularSubscriptionPreset(
+                    name: item.name,
+                    category: category,
+                    period: period,
+                    currencyCode: item.currencyCode,
+                    suggestedAmount: item.suggestedAmount,
+                    tint: defaultTint(for: category),
+                    imageURL: item.imageUrl.flatMap { URL(string: $0) }
+                )
+            )
+        }
+        return mapped.isEmpty ? defaultPresets : mapped
+    }
+
+    static func defaultTint(for category: SubscriptionCategory) -> Color {
+        switch category {
+        case .streaming:
+            return .indigo
+        case .music:
+            return .pink
+        case .software:
+            return .teal
+        case .housing:
+            return .orange
+        case .utilities:
+            return .purple
+        case .education:
+            return .blue
+        case .fitness:
+            return .green
+        case .other:
+            return .gray
+        }
+    }
 
     private static func makeInitials(from name: String) -> String {
         let parts = name

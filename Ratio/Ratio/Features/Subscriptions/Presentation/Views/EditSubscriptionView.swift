@@ -25,6 +25,7 @@ struct EditSubscriptionView: View {
     @State private var notes: String
     @State private var selectedLogoItem: PhotosPickerItem?
     @State private var selectedLogoImage: UIImage?
+    @State private var selectedLogoURL: String?
 
     let subscriptionId: String
     let canDelete: Bool
@@ -51,6 +52,7 @@ struct EditSubscriptionView: View {
         _period = State(initialValue: subscription.period)
         _nextBillingDate = State(initialValue: subscription.nextBillingDate)
         _notes = State(initialValue: subscription.notes)
+        _selectedLogoURL = State(initialValue: subscription.logoURL)
         self.canDelete = canDelete
         self.onDelete = onDelete
         self.onSave = onSave
@@ -138,27 +140,34 @@ struct EditSubscriptionView: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Salvar") {
-                    let updated = SubscriptionItem(
-                        id: subscriptionId,
-                        name: name,
-                        amount: amountValue,
-                        currencyCode: currencyCode,
-                        category: category,
-                        period: period,
-                        nextBillingDate: nextBillingDate,
-                        notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)
-                    )
-                    if let selectedLogoImage, let userId = Auth.auth().currentUser?.uid {
-                        Task {
-                            await SubscriptionLogoStore.shared.saveLogo(
+                    Task {
+                        var logoURL = selectedLogoURL
+                        if let selectedLogoImage, let userId = Auth.auth().currentUser?.uid {
+                            let uploadedURL = await SubscriptionLogoStore.shared.saveLogoAndUpload(
                                 image: selectedLogoImage,
                                 for: subscriptionId,
                                 userId: userId
                             )
+                            if let uploadedURL {
+                                logoURL = uploadedURL
+                            }
+                        }
+                        let updated = SubscriptionItem(
+                            id: subscriptionId,
+                            name: name,
+                            amount: amountValue,
+                            currencyCode: currencyCode,
+                            category: category,
+                            period: period,
+                            nextBillingDate: nextBillingDate,
+                            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
+                            logoURL: logoURL
+                        )
+                        await MainActor.run {
+                            onSave(updated)
+                            dismiss()
                         }
                     }
-                    onSave(updated)
-                    dismiss()
                 }
                 .disabled(!canSubmit)
             }
@@ -184,6 +193,7 @@ struct EditSubscriptionView: View {
                 if let data = try? await newItem.loadTransferable(type: Data.self),
                    let image = UIImage(data: data) {
                     selectedLogoImage = image
+                    selectedLogoURL = nil
                 }
             }
         }
@@ -217,6 +227,25 @@ struct EditSubscriptionView: View {
                     .scaledToFill()
                     .frame(width: 28, height: 28)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            } else if let selectedLogoURL, let url = URL(string: selectedLogoURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color(.secondarySystemBackground))
+                            .overlay(
+                                Image(systemName: "photo")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            )
+                    }
+                }
+                .frame(width: 28, height: 28)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             } else {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color(.secondarySystemBackground))
@@ -254,7 +283,8 @@ struct EditSubscriptionView: View {
                 category: .streaming,
                 period: .monthly,
                 nextBillingDate: Date(),
-                notes: ""
+                notes: "",
+                logoURL: nil
             ),
             canDelete: true,
             onDelete: {},

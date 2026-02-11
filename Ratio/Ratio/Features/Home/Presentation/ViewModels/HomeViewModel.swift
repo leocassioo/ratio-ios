@@ -487,7 +487,8 @@ final class HomeViewModel: ObservableObject {
                 amount: item.amount,
                 currencyCode: item.currencyCode,
                 dueDate: effectiveDate,
-                period: item.period.label
+                period: item.period.label,
+                logoURL: item.logoURL
             )
         }
 
@@ -510,7 +511,8 @@ final class HomeViewModel: ObservableObject {
                 amount: member.amount,
                 currencyCode: group.currencyCode,
                 dueDate: effectiveDate,
-                period: group.billingPeriod
+                period: group.billingPeriod,
+                logoURL: group.subscriptionLogoURL
             )
         }
 

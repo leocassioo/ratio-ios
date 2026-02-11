@@ -25,6 +25,7 @@ struct CreateSubscriptionView: View {
     @State private var notes = ""
     @State private var selectedLogoItem: PhotosPickerItem?
     @State private var selectedLogoImage: UIImage?
+    @State private var selectedLogoURL: String?
 
     let onSave: (SubscriptionItem) -> Void
 
@@ -37,7 +38,7 @@ struct CreateSubscriptionView: View {
             Section("Populares") {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 12) {
-                        ForEach(PopularSubscriptionPreset.defaultPresets) { preset in
+                        ForEach(popularPresets) { preset in
                             Button {
                                 applyPreset(preset)
                             } label: {
@@ -118,27 +119,34 @@ struct CreateSubscriptionView: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Salvar") {
                     let subscriptionId = UUID().uuidString
-                    if let selectedLogoImage {
-                        Task {
-                            await SubscriptionLogoStore.shared.saveLogo(
+                    Task {
+                        var logoURL = selectedLogoURL
+                        if let selectedLogoImage {
+                            let uploadedURL = await SubscriptionLogoStore.shared.saveLogoAndUpload(
                                 image: selectedLogoImage,
                                 for: subscriptionId,
                                 userId: ownerId
                             )
+                            if let uploadedURL {
+                                logoURL = uploadedURL
+                            }
+                        }
+                        let subscription = SubscriptionItem(
+                            id: subscriptionId,
+                            name: name,
+                            amount: amountValue,
+                            currencyCode: currencyCode,
+                            category: category,
+                            period: period,
+                            nextBillingDate: nextBillingDate,
+                            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
+                            logoURL: logoURL
+                        )
+                        await MainActor.run {
+                            onSave(subscription)
+                            dismiss()
                         }
                     }
-                    let subscription = SubscriptionItem(
-                        id: subscriptionId,
-                        name: name,
-                        amount: amountValue,
-                        currencyCode: currencyCode,
-                        category: category,
-                        period: period,
-                        nextBillingDate: nextBillingDate,
-                        notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)
-                    )
-                    onSave(subscription)
-                    dismiss()
                 }
                 .disabled(!canSubmit)
             }
@@ -156,6 +164,7 @@ struct CreateSubscriptionView: View {
                    let image = UIImage(data: data) {
                     await MainActor.run {
                         selectedLogoImage = image
+                        selectedLogoURL = nil
                     }
                 }
             }
@@ -173,6 +182,11 @@ struct CreateSubscriptionView: View {
         currencyCode = preset.currencyCode
         if let assetName = preset.assetName, let image = UIImage(named: assetName) {
             selectedLogoImage = image
+            selectedLogoItem = nil
+            selectedLogoURL = nil
+        } else if let imageURL = preset.imageURL {
+            selectedLogoImage = nil
+            selectedLogoURL = imageURL.absoluteString
             selectedLogoItem = nil
         }
 
@@ -211,6 +225,25 @@ struct CreateSubscriptionView: View {
                     .scaledToFill()
                     .frame(width: 48, height: 48)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            } else if let selectedLogoURL, let url = URL(string: selectedLogoURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        InitialsBadgeView(
+                            initials: initials,
+                            backgroundColor: background,
+                            foregroundColor: baseColor,
+                            size: 48,
+                            cornerRadius: 14
+                        )
+                    }
+                }
+                .frame(width: 48, height: 48)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             } else {
                 InitialsBadgeView(
                     initials: initials,
@@ -231,6 +264,25 @@ struct CreateSubscriptionView: View {
                     .scaledToFill()
                     .frame(width: 28, height: 28)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            } else if let selectedLogoURL, let url = URL(string: selectedLogoURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color(.secondarySystemBackground))
+                            .overlay(
+                                Image(systemName: "photo")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            )
+                    }
+                }
+                .frame(width: 28, height: 28)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             } else {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color(.secondarySystemBackground))
@@ -275,6 +327,10 @@ struct CreateSubscriptionView: View {
         case .other:
             return Color(.systemGray)
         }
+    }
+
+    private var popularPresets: [PopularSubscriptionPreset] {
+        PopularSubscriptionPreset.presets(from: RemoteConfigService.shared.popularSubscriptionsPayload)
     }
 }
 

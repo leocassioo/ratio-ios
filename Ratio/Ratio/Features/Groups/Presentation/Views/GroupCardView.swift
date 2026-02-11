@@ -22,17 +22,16 @@ struct GroupCardView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
-                        if let subscriptionId = group.subscriptionId {
-                            let color = categoryColor()
-                            SubscriptionLogoView(
-                                subscriptionId: subscriptionId,
-                                initials: firstLetter(for: group.name),
-                                backgroundColor: color.opacity(colorScheme == .dark ? 0.25 : 0.16),
-                                foregroundColor: color,
-                                size: 26,
-                                cornerRadius: 8
-                            )
-                        }
+                        let color = categoryColor()
+                        SubscriptionLogoView(
+                            subscriptionId: group.subscriptionId,
+                            logoURL: group.subscriptionLogoURL.flatMap(URL.init),
+                            initials: firstLetter(for: group.name),
+                            backgroundColor: color.opacity(colorScheme == .dark ? 0.25 : 0.16),
+                            foregroundColor: color,
+                            size: 26,
+                            cornerRadius: 8
+                        )
                         Text(group.name)
                             .font(.headline)
                     }

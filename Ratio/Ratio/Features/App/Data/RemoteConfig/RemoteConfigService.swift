@@ -16,6 +16,7 @@ enum FeatureFlagKey: String {
     case premiumBypass
     case premiumBypassEmails
     case whatsNewPayload = "whatsnew_payload"
+    case popularSubscriptionsPayload = "popular_subscriptions_payload"
 }
 
 /// Wrapper para leitura de flags do Firebase Remote Config.
@@ -99,6 +100,16 @@ final class RemoteConfigService {
             return nil
         }
     }
+
+    var popularSubscriptionsPayload: PopularSubscriptionPayload? {
+        guard let data = data(for: .popularSubscriptionsPayload) else { return nil }
+        do {
+            return try JSONDecoder().decode(PopularSubscriptionPayload.self, from: data)
+        } catch {
+            print("RemoteConfig: failed to decode popularSubscriptionsPayload: \(error)")
+            return nil
+        }
+    }
 }
 
 private extension RemoteConfigService {
@@ -110,12 +121,22 @@ private extension RemoteConfigService {
             FeatureFlagKey.openAiApiKey.rawValue: "" as NSString,
             FeatureFlagKey.premiumBypass.rawValue: false as NSNumber,
             FeatureFlagKey.premiumBypassEmails.rawValue: "" as NSString,
-            FeatureFlagKey.whatsNewPayload.rawValue: defaultWhatsNewPayloadString
+            FeatureFlagKey.whatsNewPayload.rawValue: defaultWhatsNewPayloadString,
+            FeatureFlagKey.popularSubscriptionsPayload.rawValue: defaultPopularSubscriptionsPayloadString
         ]
     }
 
     var defaultWhatsNewPayloadString: NSString {
         guard let url = Bundle.main.url(forResource: "whatsnew_payload", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let raw = String(data: data, encoding: .utf8) else {
+            return "" as NSString
+        }
+        return raw as NSString
+    }
+
+    var defaultPopularSubscriptionsPayloadString: NSString {
+        guard let url = Bundle.main.url(forResource: "popular_subscriptions", withExtension: "json"),
               let data = try? Data(contentsOf: url),
               let raw = String(data: data, encoding: .utf8) else {
             return "" as NSString
