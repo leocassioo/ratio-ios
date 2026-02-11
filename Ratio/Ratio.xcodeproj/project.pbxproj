@@ -24,7 +24,7 @@
 		47332EA42F1EBAE4003F1AB4 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 47332EA32F1EBAE4003F1AB4 /* GoogleSignIn */; };
 		47332EA62F1EBAE4003F1AB4 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 47332EA52F1EBAE4003F1AB4 /* GoogleSignInSwift */; };
 		47A9A6B82F17C42E00BEC507 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 47A9A6B72F17C42E00BEC507 /* FirebaseRemoteConfig */; };
-		47F099662F2CF0D80022276D /* RatioShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 47F0995C2F2CF0D80022276D /* RatioShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		47F099662F2CF0D80022276D /* RatioShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 47F0995C2F2CF0D80022276D /* RatioShareExtension.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -172,8 +172,8 @@
 				470F573E2EF894B0006D57A9 /* Sources */,
 				470F573F2EF894B0006D57A9 /* Frameworks */,
 				470F57402EF894B0006D57A9 /* Resources */,
-				471B9C612F245DAA00E913C8 /* Run Script Crashlytics */,
 				47F099672F2CF0D80022276D /* Embed Foundation Extensions */,
+				471B9C612F245DAA00E913C8 /* Run Script Crashlytics */,
 			);
 			buildRules = (
 			);
@@ -334,6 +334,7 @@
 /* Begin PBXTargetDependency section */
 		47F099652F2CF0D80022276D /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
+			platformFilter = ios;
 			target = 47F0995B2F2CF0D80022276D /* RatioShareExtension */;
 			targetProxy = 47F099642F2CF0D80022276D /* PBXContainerItemProxy */;
 		};
@@ -467,7 +468,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Ratio/Ratio.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 5;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = GH7SLB4C75;
 				ENABLE_APP_SANDBOX = YES;
@@ -501,7 +502,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.redpixel.Ratio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -526,7 +527,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Ratio/Ratio.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 5;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = GH7SLB4C75;
 				ENABLE_APP_SANDBOX = YES;
@@ -560,7 +561,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.redpixel.Ratio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -583,7 +584,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = RatioShareExtension/RatioShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = GH7SLB4C75;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = RatioShareExtension/Info.plist;
@@ -595,7 +596,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.redpixel.Ratio.RatioShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -614,7 +615,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = RatioShareExtension/RatioShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = GH7SLB4C75;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = RatioShareExtension/Info.plist;
@@ -626,7 +627,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.redpixel.Ratio.RatioShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
