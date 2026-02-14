@@ -52,6 +52,7 @@ struct CreateGroupView: View {
     @State private var didEditBillingDay = false
     @State private var isSettingBillingDay = false
     @State private var createdGroupId: String?
+    @State private var showShareSheet = false
 
     init(viewModel: GroupsViewModel, ownerId: String, ownerName: String) {
         self.viewModel = viewModel
@@ -590,14 +591,17 @@ struct CreateGroupView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
 
-                    ShareLink(item: message) {
+                    Button {
+                        analytics.track(.invite_share, parameters: ["group_id": groupId, "channel": "system_share"])
+                        showShareSheet = true
+                    } label: {
                         Label("Compartilhar convite", systemImage: "square.and.arrow.up")
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .contentShape(Rectangle())
-                    .simultaneousGesture(TapGesture().onEnded {
-                        analytics.track(.invite_share, parameters: ["group_id": groupId, "channel": "system_share"])
-                    })
+                    .sheet(isPresented: $showShareSheet) {
+                        ShareSheet(items: [message])
+                    }
 
                     Button {
                         UIPasteboard.general.string = message

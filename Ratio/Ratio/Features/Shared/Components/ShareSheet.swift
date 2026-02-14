@@ -1,0 +1,24 @@
+//
+//  ShareSheet.swift
+//  Ratio
+//
+//  Created by Codex on 14/02/26.
+//
+
+import SwiftUI
+import UIKit
+
+struct ShareSheet: UIViewControllerRepresentable {
+    var items: [Any]
+    var applicationActivities: [UIActivity]? = nil
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(
+            activityItems: items,
+            applicationActivities: applicationActivities
+        )
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}

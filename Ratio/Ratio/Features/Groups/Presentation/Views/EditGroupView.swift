@@ -41,6 +41,7 @@ struct EditGroupView: View {
     @State private var subscriptionInUseName = ""
     @State private var clearedSubscription = false
     @State private var removedMemberIds: Set<String> = []
+    @State private var showShareSheet = false
     @StateObject private var creationViewModel: GroupCreationViewModel
     @StateObject private var inviteViewModel: GroupInviteViewModel
     private let isOwner: Bool
@@ -413,13 +414,19 @@ struct EditGroupView: View {
             if let url = inviteViewModel.inviteURL {
                 let message = inviteMessage(for: url)
                 let token = inviteToken(from: url)
-                ShareLink(item: message) {
-                    Label("Compartilhar convite", systemImage: "square.and.arrow.up")
-                }
-                .simultaneousGesture(TapGesture().onEnded {
+                
+                Button {
                     analytics.track(.invite_share, parameters: ["group_id": group.id, "channel": "system_share"])
-                })
+                    showShareSheet = true
+                } label: {
+                    Label("Compartilhar convite", systemImage: "square.and.arrow.up")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
                 .disabled(!isOwner)
+                .sheet(isPresented: $showShareSheet) {
+                    ShareSheet(items: [message])
+                }
 
                 Button {
                     UIPasteboard.general.string = message
