@@ -592,7 +592,9 @@ struct CreateGroupView: View {
 
                     ShareLink(item: message) {
                         Label("Compartilhar convite", systemImage: "square.and.arrow.up")
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .contentShape(Rectangle())
                     .simultaneousGesture(TapGesture().onEnded {
                         analytics.track(.invite_share, parameters: ["group_id": groupId, "channel": "system_share"])
                     })
@@ -606,7 +608,9 @@ struct CreateGroupView: View {
                             didCopyMessage ? "Copiado" : "Copiar mensagem",
                             systemImage: didCopyMessage ? "checkmark" : "doc.on.doc"
                         )
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .contentShape(Rectangle())
 
                     Button {
                         UIPasteboard.general.string = token
@@ -617,7 +621,9 @@ struct CreateGroupView: View {
                             didCopyToken ? "Código copiado" : "Copiar código do convite",
                             systemImage: didCopyToken ? "checkmark" : "number"
                         )
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .contentShape(Rectangle())
                     .disabled(token.isEmpty)
                 } else if let inviteError {
                     Text(inviteError)

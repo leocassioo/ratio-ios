@@ -42,25 +42,25 @@ struct PopularSubscriptionPreset: Identifiable {
     }
 
     static let defaultPresets: [PopularSubscriptionPreset] = [
-        PopularSubscriptionPreset(name: "Netflix", category: .streaming, tint: .red, assetName: "netflix"),
-        PopularSubscriptionPreset(name: "Prime Video", category: .streaming, tint: .blue, assetName: "prime video"),
-        PopularSubscriptionPreset(name: "Spotify", category: .music, tint: .green, assetName: "spotify"),
-        PopularSubscriptionPreset(name: "Amazon Prime", category: .streaming, tint: .blue, assetName: "amazon prime"),
-        PopularSubscriptionPreset(name: "Disney+", category: .streaming, tint: .purple, assetName: "disney+"),
-        PopularSubscriptionPreset(name: "MAX", category: .streaming, tint: .indigo, assetName: "max"),
-        PopularSubscriptionPreset(name: "YouTube Premium", category: .music, tint: .red, assetName: "youtube premium"),
-        PopularSubscriptionPreset(name: "Apple Music", category: .music, tint: .pink, assetName: "apple music"),
-        PopularSubscriptionPreset(name: "Apple One", category: .software, tint: .gray, assetName: "apple one"),
-        PopularSubscriptionPreset(name: "iCloud+", category: .software, tint: .cyan, assetName: "icloud+"),
-        PopularSubscriptionPreset(name: "Google One", category: .software, tint: .yellow, assetName: "google one"),
-        PopularSubscriptionPreset(name: "Deezer", category: .music, tint: .pink, assetName: "deezer"),
-        PopularSubscriptionPreset(name: "Globoplay", category: .streaming, tint: .orange, assetName: "globoplay"),
-        PopularSubscriptionPreset(name: "Paramount+", category: .streaming, tint: .blue, assetName: "paramount+"),
-        PopularSubscriptionPreset(name: "Star+", category: .streaming, tint: .orange, assetName: "star+"),
-        PopularSubscriptionPreset(name: "ChatGPT", category: .software, tint: .green, assetName: "chatgpt"),
-        PopularSubscriptionPreset(name: "Microsoft 365", category: .software, tint: .blue, assetName: "microsoft 365"),
-        PopularSubscriptionPreset(name: "Adobe CC", category: .software, tint: .red, assetName: "adobe cc"),
-        PopularSubscriptionPreset(name: "Canva Pro", category: .software, tint: .purple, assetName: "canva pro")
+        PopularSubscriptionPreset(name: "Netflix", category: .streaming, tint: .red),
+        PopularSubscriptionPreset(name: "Prime Video", category: .streaming, tint: .blue),
+        PopularSubscriptionPreset(name: "Spotify", category: .music, tint: .green),
+        PopularSubscriptionPreset(name: "Amazon Prime", category: .streaming, tint: .blue),
+        PopularSubscriptionPreset(name: "Disney+", category: .streaming, tint: .purple),
+        PopularSubscriptionPreset(name: "MAX", category: .streaming, tint: .indigo),
+        PopularSubscriptionPreset(name: "YouTube Premium", category: .music, tint: .red),
+        PopularSubscriptionPreset(name: "Apple Music", category: .music, tint: .pink),
+        PopularSubscriptionPreset(name: "Apple One", category: .software, tint: .gray),
+        PopularSubscriptionPreset(name: "iCloud+", category: .software, tint: .cyan),
+        PopularSubscriptionPreset(name: "Google One", category: .software, tint: .yellow),
+        PopularSubscriptionPreset(name: "Deezer", category: .music, tint: .pink),
+        PopularSubscriptionPreset(name: "Globoplay", category: .streaming, tint: .orange),
+        PopularSubscriptionPreset(name: "Paramount+", category: .streaming, tint: .blue),
+        PopularSubscriptionPreset(name: "Star+", category: .streaming, tint: .orange),
+        PopularSubscriptionPreset(name: "ChatGPT", category: .software, tint: .green),
+        PopularSubscriptionPreset(name: "Microsoft 365", category: .software, tint: .blue),
+        PopularSubscriptionPreset(name: "Adobe CC", category: .software, tint: .red),
+        PopularSubscriptionPreset(name: "Canva Pro", category: .software, tint: .purple)
     ]
 
     static func presets(from payload: PopularSubscriptionPayload?) -> [PopularSubscriptionPreset] {

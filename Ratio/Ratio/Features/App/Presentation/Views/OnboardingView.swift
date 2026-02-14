@@ -29,96 +29,21 @@ struct OnboardingView: View {
         let totalPages = pages.count
         let lastPageIndex = totalPages - 1
         let indicatorPages = showsFinishButton ? totalPages - 1 : totalPages
+        let isMacCatalyst = ProcessInfo.processInfo.isMacCatalystApp
 
-        ZStack {
-            TabView(selection: $currentPage) {
-                ForEach(Array(pages.enumerated()), id: \.offset) { index, page in
-                    if index == 1 {
-                        OnboardingAIPageView(
-                            systemImage: page.0,
-                            title: page.1,
-                            description: page.2
-                        )
-                        .tag(index)
-                    } else if index == totalPages - 1 {
-                        VStack(spacing: 24) {
-                            OnboardingPageView(
-                                systemImage: page.0,
-                                title: page.1,
-                                description: page.2
-                            )
-                            if showsFinishButton {
-                                Button(action: handleFinish) {
-                                    Text("Começar a usar")
-                                        .font(.headline)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 12)
-                                        .background(Color.accentColor, in: Capsule())
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 32)
-                                }
-                                .padding(.bottom, 32)
-                            }
-                        }
-                        .tag(index)
-                    } else {
-                        OnboardingPageView(
-                            systemImage: page.0,
-                            title: page.1,
-                            description: page.2
-                        )
-                        .tag(index)
-                    }
+        Group {
+            if isMacCatalyst {
+                VStack(spacing: 0) {
+                    onboardingPages(pages: pages, totalPages: totalPages)
+                    controlsView(lastPageIndex: lastPageIndex, indicatorPages: indicatorPages)
                 }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-
-            VStack(spacing: 12) {
-                Spacer()
-                if !(showsFinishButton && currentPage == lastPageIndex) {
-                    HStack {
-                        Button {
-                            withAnimation {
-                                currentPage = max(0, currentPage - 1)
-                            }
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.title2.weight(.semibold))
-                        }
-                        .buttonStyle(.plain)
-                        .contentShape(Rectangle())
-                        .frame(width: 44, height: 44)
-                        .foregroundStyle(currentPage == 0 ? .secondary : Color.accentColor)
-                        .disabled(currentPage == 0)
-
-                        Spacer()
-
-                        Button {
-                            withAnimation {
-                                currentPage = min(lastPageIndex, currentPage + 1)
-                            }
-                        } label: {
-                            Image(systemName: "chevron.right")
-                                .font(.title2.weight(.semibold))
-                        }
-                        .buttonStyle(.plain)
-                        .contentShape(Rectangle())
-                        .frame(width: 44, height: 44)
-                        .foregroundStyle(currentPage == lastPageIndex ? .secondary : Color.accentColor)
-                        .disabled(currentPage == lastPageIndex)
-                    }
-                    .padding(.horizontal, 32)
-                }
-                if currentPage < indicatorPages {
-                    HStack(spacing: 8) {
-                        ForEach(0..<indicatorPages, id: \.self) { index in
-                            Circle()
-                                .frame(width: 8, height: 8)
-                                .foregroundColor(index == currentPage ? .accentColor : .gray.opacity(0.3))
-                        }
-                    }
-                    .padding(.bottom, 24)
-                    .animation(.easeInOut, value: currentPage)
+            } else {
+                ZStack {
+                    onboardingPages(pages: pages, totalPages: totalPages)
+                        .zIndex(0)
+                    controlsView(lastPageIndex: lastPageIndex, indicatorPages: indicatorPages)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                        .zIndex(1)
                 }
             }
         }
@@ -134,6 +59,111 @@ struct OnboardingView: View {
             viewModel.trackOnboardingView(stepIndex: newValue)
             if newValue == 1 {
                 analytics.screenView(.screen_onboarding_ai)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func onboardingPages(
+        pages: [(String, String, String)],
+        totalPages: Int
+    ) -> some View {
+        TabView(selection: $currentPage) {
+            ForEach(Array(pages.enumerated()), id: \.offset) { index, page in
+                if index == 1 {
+                    OnboardingAIPageView(
+                        systemImage: page.0,
+                        title: page.1,
+                        description: page.2
+                    )
+                    .tag(index)
+                } else if index == totalPages - 1 {
+                    VStack(spacing: 24) {
+                        OnboardingPageView(
+                            systemImage: page.0,
+                            title: page.1,
+                            description: page.2
+                        )
+                        if showsFinishButton {
+                            Button(action: handleFinish) {
+                                Text("Começar a usar")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(Color.accentColor, in: Capsule())
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 32)
+                            }
+                            .padding(.bottom, 32)
+                        }
+                    }
+                    .tag(index)
+                } else {
+                    OnboardingPageView(
+                        systemImage: page.0,
+                        title: page.1,
+                        description: page.2
+                    )
+                    .tag(index)
+                }
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+    }
+
+    @ViewBuilder
+    private func controlsView(
+        lastPageIndex: Int,
+        indicatorPages: Int
+    ) -> some View {
+        VStack(spacing: 12) {
+            Spacer(minLength: 0)
+            if !(showsFinishButton && currentPage == lastPageIndex) {
+                HStack {
+                    Button {
+                        withAnimation {
+                            currentPage = max(0, currentPage - 1)
+                        }
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.title2.weight(.semibold))
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                            .background(Color.clear)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(currentPage == 0 ? .secondary : Color.accentColor)
+                    .disabled(currentPage == 0)
+
+                    Spacer()
+
+                    Button {
+                        withAnimation {
+                            currentPage = min(lastPageIndex, currentPage + 1)
+                        }
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.title2.weight(.semibold))
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                            .background(Color.clear)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(currentPage == lastPageIndex ? .secondary : Color.accentColor)
+                    .disabled(currentPage == lastPageIndex)
+                }
+                .padding(.horizontal, 32)
+            }
+            if currentPage < indicatorPages {
+                HStack(spacing: 8) {
+                    ForEach(0..<indicatorPages, id: \.self) { index in
+                        Circle()
+                            .frame(width: 8, height: 8)
+                            .foregroundColor(index == currentPage ? .accentColor : .gray.opacity(0.3))
+                    }
+                }
+                .padding(.bottom, 24)
+                .animation(.easeInOut, value: currentPage)
             }
         }
     }

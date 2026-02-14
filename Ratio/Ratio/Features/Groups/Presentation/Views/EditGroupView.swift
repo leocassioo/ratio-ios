@@ -430,7 +430,9 @@ struct EditGroupView: View {
                         didCopyMessage ? "Copiado" : "Copiar mensagem",
                         systemImage: didCopyMessage ? "checkmark" : "doc.on.doc"
                     )
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .contentShape(Rectangle())
                 .disabled(!isOwner)
 
                 Button {
@@ -442,7 +444,9 @@ struct EditGroupView: View {
                         didCopyToken ? "Código copiado" : "Copiar código do convite",
                         systemImage: didCopyToken ? "checkmark" : "number"
                     )
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .contentShape(Rectangle())
                 .disabled(!isOwner || token.isEmpty)
             }
 
