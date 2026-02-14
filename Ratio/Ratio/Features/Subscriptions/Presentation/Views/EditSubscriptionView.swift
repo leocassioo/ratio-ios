@@ -26,6 +26,7 @@ struct EditSubscriptionView: View {
     @State private var selectedLogoItem: PhotosPickerItem?
     @State private var selectedLogoImage: UIImage?
     @State private var selectedLogoURL: String?
+    @State private var isSaving = false
 
     let subscriptionId: String
     let canDelete: Bool
@@ -132,15 +133,20 @@ struct EditSubscriptionView: View {
             }
         }
         .navigationTitle("Editar assinatura")
+        .disabled(isSaving)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancelar") {
                     dismiss()
                 }
+                .disabled(isSaving)
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Salvar") {
+                Button {
+                    guard !isSaving else { return }
+                    isSaving = true
                     Task {
+                        defer { Task { await MainActor.run { isSaving = false } } }
                         var logoURL = selectedLogoURL
                         if let selectedLogoImage, let userId = Auth.auth().currentUser?.uid {
                             let uploadedURL = await SubscriptionLogoStore.shared.saveLogoAndUpload(
@@ -168,8 +174,17 @@ struct EditSubscriptionView: View {
                             dismiss()
                         }
                     }
+                } label: {
+                    if isSaving {
+                        HStack(spacing: 6) {
+                            ProgressView()
+                            Text("Salvando")
+                        }
+                    } else {
+                        Text("Salvar")
+                    }
                 }
-                .disabled(!canSubmit)
+                .disabled(!canSubmit || isSaving)
             }
         }
         .alert("Excluir assinatura", isPresented: $showDeleteConfirm) {

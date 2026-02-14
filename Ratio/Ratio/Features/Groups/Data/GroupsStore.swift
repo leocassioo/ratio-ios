@@ -111,12 +111,41 @@ final class GroupsStore {
             mergedMemberIds = mergedMemberIds.filter { !removedSet.contains($0) }
         }
 
-        var mergedData = data
-        mergedData["membersPreview"] = mergedPreview
-        mergedData["memberIds"] = mergedMemberIds
+        func normalizedName(_ name: String) -> String {
+            name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        }
 
+        var mergedData = data
         let existingMembers = try await groupRef.collection("members").getDocuments()
         let existingMemberIdsSet = Set(existingMembers.documents.map { $0.documentID })
+        var existingManualIdsByName: [String: String] = [:]
+        for doc in existingMembers.documents {
+            let data = doc.data()
+            guard data["userId"] == nil, let name = data["name"] as? String, !name.isEmpty else { continue }
+            let key = normalizedName(name)
+            if existingManualIdsByName[key] == nil {
+                existingManualIdsByName[key] = doc.documentID
+            }
+        }
+
+        var normalizedPreview: [[String: Any]] = []
+        var seenPreviewKeys = Set<String>()
+        for preview in mergedPreview {
+            var updated = preview
+            let userId = preview["userId"] as? String
+            let name = preview["name"] as? String ?? ""
+            let nameKey = normalizedName(name)
+            if userId == nil, let existingId = existingManualIdsByName[nameKey] {
+                updated["id"] = existingId
+            }
+            let key = userId ?? (updated["id"] as? String) ?? nameKey
+            guard !key.isEmpty, !seenPreviewKeys.contains(key) else { continue }
+            seenPreviewKeys.insert(key)
+            normalizedPreview.append(updated)
+        }
+
+        mergedData["membersPreview"] = normalizedPreview
+        mergedData["memberIds"] = mergedMemberIds
 
         let batch = db.batch()
         batch.setData(mergedData, forDocument: groupRef, merge: true)
@@ -129,7 +158,8 @@ final class GroupsStore {
         }
 
         for member in members {
-            let memberDocId = member.userId ?? member.id
+            let normalized = normalizedName(member.name)
+            let memberDocId = member.userId ?? existingManualIdsByName[normalized] ?? member.id
             let memberRef = groupRef.collection("members").document(memberDocId)
             let role = member.userId == ownerId ? "owner" : "member"
             let memberData: [String: Any] = [

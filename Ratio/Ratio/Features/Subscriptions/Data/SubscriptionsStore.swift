@@ -101,15 +101,16 @@ final class SubscriptionsStore {
                 .collection("members")
                 .getDocuments()
 
-            let memberCount = max(membersSnapshot.documents.count, 1)
+            let uniqueMembers = deduplicatedMembers(from: membersSnapshot.documents)
+            let memberCount = max(uniqueMembers.count, 1)
             let perMember = totalAmount / Double(memberCount)
 
             let batch = db.batch()
-            membersSnapshot.documents.forEach { member in
+            uniqueMembers.forEach { member in
                 batch.updateData(["amount": perMember], forDocument: member.reference)
             }
 
-            let membersPreview = membersSnapshot.documents
+            let membersPreview = uniqueMembers
                 .sorted { lhs, rhs in
                     let lhsRole = lhs.data()["role"] as? String ?? ""
                     let rhsRole = rhs.data()["role"] as? String ?? ""
@@ -138,6 +139,32 @@ final class SubscriptionsStore {
 
             try await batch.commit()
         }
+    }
+
+    private func deduplicatedMembers(from documents: [QueryDocumentSnapshot]) -> [QueryDocumentSnapshot] {
+        var unique: [String: QueryDocumentSnapshot] = [:]
+        for doc in documents {
+            let data = doc.data()
+            let userId = data["userId"] as? String
+            let name = (data["name"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let key = userId ?? (name.isEmpty ? doc.documentID : name)
+            if let existing = unique[key] {
+                let existingRole = existing.data()["role"] as? String ?? ""
+                let role = data["role"] as? String ?? ""
+                if existingRole != "owner", role == "owner" {
+                    unique[key] = doc
+                    continue
+                }
+                if let existingUpdated = (existing.data()["updatedAt"] as? Timestamp)?.dateValue(),
+                   let updated = (data["updatedAt"] as? Timestamp)?.dateValue(),
+                   updated > existingUpdated {
+                    unique[key] = doc
+                }
+            } else {
+                unique[key] = doc
+            }
+        }
+        return Array(unique.values)
     }
 
     func deleteSubscription(userId: String, id: String) async throws {

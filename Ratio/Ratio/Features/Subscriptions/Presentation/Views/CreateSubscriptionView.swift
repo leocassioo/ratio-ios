@@ -26,6 +26,7 @@ struct CreateSubscriptionView: View {
     @State private var selectedLogoItem: PhotosPickerItem?
     @State private var selectedLogoImage: UIImage?
     @State private var selectedLogoURL: String?
+    @State private var isSaving = false
 
     let onSave: (SubscriptionItem) -> Void
 
@@ -110,16 +111,21 @@ struct CreateSubscriptionView: View {
             }
         }
         .navigationTitle("Nova assinatura")
+        .disabled(isSaving)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancelar") {
                     dismiss()
                 }
+                .disabled(isSaving)
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Salvar") {
+                Button {
+                    guard !isSaving else { return }
                     let subscriptionId = UUID().uuidString
+                    isSaving = true
                     Task {
+                        defer { Task { await MainActor.run { isSaving = false } } }
                         var logoURL = selectedLogoURL
                         if let selectedLogoImage {
                             let uploadedURL = await SubscriptionLogoStore.shared.saveLogoAndUpload(
@@ -147,8 +153,17 @@ struct CreateSubscriptionView: View {
                             dismiss()
                         }
                     }
+                } label: {
+                    if isSaving {
+                        HStack(spacing: 6) {
+                            ProgressView()
+                            Text("Salvando")
+                        }
+                    } else {
+                        Text("Salvar")
+                    }
                 }
-                .disabled(!canSubmit)
+                .disabled(!canSubmit || isSaving)
             }
         }
         .onAppear {

@@ -39,13 +39,17 @@ enum GroupMapper {
         let membersData = (data["membersPreview"] as? [[String: Any]])
             ?? (data["members"] as? [[String: Any]] ?? [])
 
+        var seenMemberKeys = Set<String>()
         let members = membersData.compactMap { memberData -> GroupMember? in
-            let id = memberData["id"] as? String ?? UUID().uuidString
+            let userId = memberData["userId"] as? String
             let name = memberData["name"] as? String ?? "Membro"
+            let id = memberData["id"] as? String ?? userId ?? UUID().uuidString
             let amount = memberData["amount"] as? Double ?? 0
             let statusRaw = memberData["status"] as? String ?? GroupMemberStatus.pending.rawValue
             let status = GroupMemberStatus(rawValue: statusRaw) ?? .pending
-            let userId = memberData["userId"] as? String
+            let dedupeKey = userId ?? id
+            guard !seenMemberKeys.contains(dedupeKey) else { return nil }
+            seenMemberKeys.insert(dedupeKey)
             let photoURL = memberData["photoURL"] as? String
             let receiptURL = memberData["receiptURL"] as? String
             let receiptHistoryData = memberData["receiptHistory"] as? [[String: Any]] ?? []

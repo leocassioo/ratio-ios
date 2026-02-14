@@ -34,13 +34,23 @@ struct GroupRenewalChipView: View {
         calendar: Calendar = .current,
         today: Date = Date()
     ) -> Model? {
+        let hasOverdue = group.members.contains { $0.status == .overdue }
         guard let nextDate = group.chargeNextBillingDate ?? group.subscriptionNextBillingDate else {
-            return nil
+            return hasOverdue ? Model(text: "Em atraso", color: .red) : nil
         }
 
         let startOfToday = calendar.startOfDay(for: today)
         let targetDate = calendar.startOfDay(for: nextDate)
         let daysRemaining = calendar.dateComponents([.day], from: startOfToday, to: targetDate).day ?? 0
+
+        if hasOverdue {
+            if daysRemaining < 0 {
+                let overdueDays = abs(daysRemaining)
+                let text = overdueDays == 1 ? "Atraso 1 dia" : "Atraso \(overdueDays) dias"
+                return Model(text: text, color: .red)
+            }
+            return Model(text: "Em atraso", color: .red)
+        }
 
         guard daysRemaining <= 7 else { return nil }
 

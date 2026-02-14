@@ -119,10 +119,31 @@ final class GroupsViewModel: ObservableObject {
     }
 
     private func sortedByNextCharge(_ groups: [SharedGroup]) -> [SharedGroup] {
-        groups.sorted { lhs, rhs in
-            let lhsDate = lhs.chargeNextBillingDate ?? lhs.subscriptionNextBillingDate ?? Date.distantFuture
-            let rhsDate = rhs.chargeNextBillingDate ?? rhs.subscriptionNextBillingDate ?? Date.distantFuture
-            return lhsDate < rhsDate
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        func nextDate(for group: SharedGroup) -> Date {
+            group.chargeNextBillingDate ?? group.subscriptionNextBillingDate ?? Date.distantFuture
+        }
+
+        func hasOverdueMember(_ group: SharedGroup) -> Bool {
+            group.members.contains { $0.status == .overdue }
+        }
+
+        return groups.sorted { lhs, rhs in
+            let lhsOverdue = hasOverdueMember(lhs)
+            let rhsOverdue = hasOverdueMember(rhs)
+            if lhsOverdue != rhsOverdue {
+                return lhsOverdue
+            }
+
+            let lhsDate = nextDate(for: lhs)
+            let rhsDate = nextDate(for: rhs)
+            if lhsDate != rhsDate {
+                return lhsDate < rhsDate
+            }
+
+            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
         }
     }
 
@@ -326,8 +347,9 @@ final class GroupsViewModel: ObservableObject {
     ) async {
         let memberIds = members.compactMap { $0.userId }.unique() + [ownerId]
         let membersPreview: [[String: Any]] = members.map { member in
-            [
-                "id": member.id,
+            let previewId = member.userId ?? member.id
+            return [
+                "id": previewId,
                 "name": member.name,
                 "amount": member.amountValue,
                 "status": member.status.rawValue,
@@ -395,8 +417,9 @@ final class GroupsViewModel: ObservableObject {
     ) async {
         let memberIds = members.compactMap { $0.userId }.unique() + [ownerId]
         let membersPreview: [[String: Any]] = members.map { member in
-            [
-                "id": member.id,
+            let previewId = member.userId ?? member.id
+            return [
+                "id": previewId,
                 "name": member.name,
                 "amount": member.amountValue,
                 "status": member.status.rawValue,
