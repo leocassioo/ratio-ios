@@ -452,11 +452,20 @@ struct GroupDetailView: View {
                                     }
                                 }
 
+                                let convertedAmount = estimatedAmount(for: member.amount)
+                                let shouldConvert = currentGroup.currencyCode != preferredCurrencyCode
+                                let messageAmount = shouldConvert ? (convertedAmount ?? member.amount) : member.amount
+                                let messageCurrency = shouldConvert && convertedAmount != nil ? preferredCurrencyCode : currentGroup.currencyCode
+                                let originalAmount = (shouldConvert && convertedAmount != nil) ? member.amount : nil
+                                let originalCurrency = (shouldConvert && convertedAmount != nil) ? currentGroup.currencyCode : nil
+
                                 if let url = WhatsAppMessageBuilder.buildPaymentRequest(
                                     memberName: member.name,
                                     groupName: currentGroup.name,
-                                    amount: member.amount,
-                                    currencyCode: currentGroup.currencyCode,
+                                    amount: messageAmount,
+                                    currencyCode: messageCurrency,
+                                    originalAmount: originalAmount,
+                                    originalCurrencyCode: originalCurrency,
                                     pixKey: (currentGroup.pixKey?.isEmpty == false) ? currentGroup.pixKey : paymentsViewModel.userPixKey,
                                     phoneNumber: phoneNumber
                                 ) {
