@@ -26,6 +26,7 @@ struct GroupDetailView: View {
     @State private var leaveErrorMessage: String = "Não foi possível sair do grupo."
     @State private var isLeavingGroup = false
     @State private var ownerPixKey: String?
+    @State private var markingPaidMemberIds: Set<String> = []
     @State private var usdRate: ExchangeRate?
     @State private var eurRate: ExchangeRate?
     @State private var exchangeRateListener: ListenerRegistration?
@@ -442,45 +443,74 @@ struct GroupDetailView: View {
                         .buttonStyle(.bordered)
                         .tint(.green)
                     } else if isOwner, member.status != .paid, member.userId != currentUserId {
-                        Button {
-                            Task {
-                                let usersStore = UsersStore()
-                                var phoneNumber: String?
-                                if let userId = member.userId {
-                                    if let profile = try? await usersStore.fetchUserProfile(userId: userId) {
-                                        phoneNumber = profile.phoneNumber
+                        HStack(spacing: 6) {
+                            Button {
+                                Task {
+                                    let usersStore = UsersStore()
+                                    var phoneNumber: String?
+                                    if let userId = member.userId {
+                                        if let profile = try? await usersStore.fetchUserProfile(userId: userId) {
+                                            phoneNumber = profile.phoneNumber
+                                        }
+                                    }
+
+                                    let convertedAmount = estimatedAmount(for: member.amount)
+                                    let shouldConvert = currentGroup.currencyCode != preferredCurrencyCode
+                                    let messageAmount = shouldConvert ? (convertedAmount ?? member.amount) : member.amount
+                                    let messageCurrency = shouldConvert && convertedAmount != nil ? preferredCurrencyCode : currentGroup.currencyCode
+                                    let originalAmount = (shouldConvert && convertedAmount != nil) ? member.amount : nil
+                                    let originalCurrency = (shouldConvert && convertedAmount != nil) ? currentGroup.currencyCode : nil
+
+                                    if let url = WhatsAppMessageBuilder.buildPaymentRequest(
+                                        memberName: member.name,
+                                        groupName: currentGroup.name,
+                                        amount: messageAmount,
+                                        currencyCode: messageCurrency,
+                                        originalAmount: originalAmount,
+                                        originalCurrencyCode: originalCurrency,
+                                        pixKey: (currentGroup.pixKey?.isEmpty == false) ? currentGroup.pixKey : paymentsViewModel.userPixKey,
+                                        phoneNumber: phoneNumber
+                                    ) {
+                                        await MainActor.run {
+                                            UIApplication.shared.open(url)
+                                        }
                                     }
                                 }
-
-                                let convertedAmount = estimatedAmount(for: member.amount)
-                                let shouldConvert = currentGroup.currencyCode != preferredCurrencyCode
-                                let messageAmount = shouldConvert ? (convertedAmount ?? member.amount) : member.amount
-                                let messageCurrency = shouldConvert && convertedAmount != nil ? preferredCurrencyCode : currentGroup.currencyCode
-                                let originalAmount = (shouldConvert && convertedAmount != nil) ? member.amount : nil
-                                let originalCurrency = (shouldConvert && convertedAmount != nil) ? currentGroup.currencyCode : nil
-
-                                if let url = WhatsAppMessageBuilder.buildPaymentRequest(
-                                    memberName: member.name,
-                                    groupName: currentGroup.name,
-                                    amount: messageAmount,
-                                    currencyCode: messageCurrency,
-                                    originalAmount: originalAmount,
-                                    originalCurrencyCode: originalCurrency,
-                                    pixKey: (currentGroup.pixKey?.isEmpty == false) ? currentGroup.pixKey : paymentsViewModel.userPixKey,
-                                    phoneNumber: phoneNumber
-                                ) {
-                                    await MainActor.run {
-                                        UIApplication.shared.open(url)
-                                    }
-                                }
+                            } label: {
+                                Image(systemName: "bell.fill")
+                                    .foregroundStyle(.white)
+                                    .padding(8)
+                                    .background(Circle().fill(Color.orange))
                             }
-                        } label: {
-                            Image(systemName: "bell.fill")
-                                .foregroundStyle(.white)
-                                .padding(8)
-                                .background(Circle().fill(Color.orange))
+                            .buttonStyle(.plain)
+
+                            let markingPaid = markingPaidMemberIds.contains(member.id)
+                            Button {
+                                guard !markingPaid else { return }
+                                Task {
+                                    await MainActor.run { markingPaidMemberIds.insert(member.id) }
+                                    defer { Task { await MainActor.run { markingPaidMemberIds.remove(member.id) } } }
+                                    await paymentsViewModel.approvePayment(groupId: currentGroup.id, memberId: member.id)
+                                    if paymentsViewModel.errorMessage == nil {
+                                        updateMemberStatus(member.id, status: .paid)
+                                    }
+                                }
+                            } label: {
+                                ZStack {
+                                    if markingPaid {
+                                        ProgressView()
+                                            .tint(.white)
+                                    } else {
+                                        Image(systemName: "dollarsign")
+                                            .foregroundStyle(.white)
+                                    }
+                                }
+                                .frame(width: 28, height: 28)
+                                .background(Circle().fill(Color.green))
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(markingPaid)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
 

@@ -15,6 +15,8 @@ struct GroupCardView: View {
     let estimatedTotal: Double?
     let estimatedMember: (Double) -> Double?
     let onEdit: () -> Void
+    let onMarkPaid: (_ groupId: String, _ memberId: String) -> Void
+    let isMarkingPaid: (_ groupId: String, _ memberId: String) -> Bool
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -103,46 +105,69 @@ struct GroupCardView: View {
                         Spacer()
 
                         if canEdit, member.status != .paid, member.userId != currentUserId {
-                            Button {
-                                Task {
-                                    let usersStore = UsersStore()
-                                    var phoneNumber: String?
-                                    if let userId = member.userId {
-                                        if let profile = try? await usersStore.fetchUserProfile(userId: userId) {
-                                            phoneNumber = profile.phoneNumber
+                            HStack(spacing: 6) {
+                                Button {
+                                    Task {
+                                        let usersStore = UsersStore()
+                                        var phoneNumber: String?
+                                        if let userId = member.userId {
+                                            if let profile = try? await usersStore.fetchUserProfile(userId: userId) {
+                                                phoneNumber = profile.phoneNumber
+                                            }
                                         }
-                                    }
-                                    
-                                    let convertedAmount = estimatedMember(member.amount)
-                                    let shouldConvert = group.currencyCode != preferredCurrencyCode
-                                    let messageAmount = shouldConvert ? (convertedAmount ?? member.amount) : member.amount
-                                    let messageCurrency = shouldConvert && convertedAmount != nil ? preferredCurrencyCode : group.currencyCode
-                                    let originalAmount = (shouldConvert && convertedAmount != nil) ? member.amount : nil
-                                    let originalCurrency = (shouldConvert && convertedAmount != nil) ? group.currencyCode : nil
 
-                                    if let url = WhatsAppMessageBuilder.buildPaymentRequest(
-                                        memberName: member.name,
-                                        groupName: group.name,
-                                        amount: messageAmount,
-                                        currencyCode: messageCurrency,
-                                        originalAmount: originalAmount,
-                                        originalCurrencyCode: originalCurrency,
-                                        pixKey: (group.pixKey?.isEmpty == false) ? group.pixKey : currentUserPixKey,
-                                        phoneNumber: phoneNumber
-                                    ) {
-                                        await MainActor.run {
-                                            UIApplication.shared.open(url)
+                                        let convertedAmount = estimatedMember(member.amount)
+                                        let shouldConvert = group.currencyCode != preferredCurrencyCode
+                                        let messageAmount = shouldConvert ? (convertedAmount ?? member.amount) : member.amount
+                                        let messageCurrency = shouldConvert && convertedAmount != nil ? preferredCurrencyCode : group.currencyCode
+                                        let originalAmount = (shouldConvert && convertedAmount != nil) ? member.amount : nil
+                                        let originalCurrency = (shouldConvert && convertedAmount != nil) ? group.currencyCode : nil
+
+                                        if let url = WhatsAppMessageBuilder.buildPaymentRequest(
+                                            memberName: member.name,
+                                            groupName: group.name,
+                                            amount: messageAmount,
+                                            currencyCode: messageCurrency,
+                                            originalAmount: originalAmount,
+                                            originalCurrencyCode: originalCurrency,
+                                            pixKey: (group.pixKey?.isEmpty == false) ? group.pixKey : currentUserPixKey,
+                                            phoneNumber: phoneNumber
+                                        ) {
+                                            await MainActor.run {
+                                                UIApplication.shared.open(url)
+                                            }
                                         }
                                     }
+                                } label: {
+                                    Image(systemName: "bell.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.white)
+                                        .padding(6)
+                                        .background(Circle().fill(Color.orange))
                                 }
-                            } label: {
-                                Image(systemName: "bell.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(.white)
-                                    .padding(6)
-                                    .background(Circle().fill(Color.orange))
+                                .buttonStyle(.plain)
+
+                                let markingPaid = isMarkingPaid(group.id, member.id)
+                                Button {
+                                    guard !markingPaid else { return }
+                                    onMarkPaid(group.id, member.id)
+                                } label: {
+                                    ZStack {
+                                        if markingPaid {
+                                            ProgressView()
+                                                .tint(.white)
+                                        } else {
+                                            Image(systemName: "dollarsign")
+                                                .font(.caption)
+                                                .foregroundStyle(.white)
+                                        }
+                                    }
+                                    .frame(width: 24, height: 24)
+                                    .background(Circle().fill(Color.green))
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(markingPaid)
                             }
-                            .buttonStyle(.plain)
                         }
 
                         VStack(alignment: .trailing, spacing: 2) {

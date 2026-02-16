@@ -13,8 +13,10 @@ struct GroupsView: View {
     @EnvironmentObject private var router: AppRouter
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @StateObject private var viewModel = GroupsViewModel()
+    @StateObject private var paymentsViewModel = GroupPaymentsViewModel()
     @State private var preferredCurrencyCode = PreferencesStore.shared.primaryCurrencyCode()
     @State private var didLogScreen = false
+    @State private var markingPaidKeys: Set<String> = []
     private let freeGroupLimit = 2
     private let analytics = AnalyticsService.shared
 
@@ -63,6 +65,18 @@ struct GroupsView: View {
                                 },
                                 onEdit: {
                                     openEdit(group)
+                                },
+                                onMarkPaid: { groupId, memberId in
+                                    Task {
+                                        let key = "\(groupId)|\(memberId)"
+                                        guard !markingPaidKeys.contains(key) else { return }
+                                        await MainActor.run { markingPaidKeys.insert(key) }
+                                        defer { Task { await MainActor.run { markingPaidKeys.remove(key) } } }
+                                        await paymentsViewModel.approvePayment(groupId: groupId, memberId: memberId)
+                                    }
+                                },
+                                isMarkingPaid: { groupId, memberId in
+                                    markingPaidKeys.contains("\(groupId)|\(memberId)")
                                 }
                             )
                             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
