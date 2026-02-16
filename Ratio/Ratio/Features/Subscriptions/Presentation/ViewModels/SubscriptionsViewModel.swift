@@ -164,6 +164,7 @@ final class SubscriptionsViewModel: ObservableObject {
                 "source": "manual",
                 "result": "success"
             ])
+            ReviewPromptService.shared.requestIfAppropriate(trigger: .subscriptionCreated)
         } catch {
             errorMessage = error.localizedDescription
             analytics.track(.subscription_create, parameters: [

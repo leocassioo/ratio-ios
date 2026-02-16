@@ -7,6 +7,8 @@
 
 import SwiftUI
 import FirebaseAuth
+import StoreKit
+import UIKit
 
 struct SettingsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
@@ -176,6 +178,11 @@ struct SettingsView: View {
                     Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
                         .foregroundStyle(.secondary)
                 }
+                Button {
+                    openStoreReview()
+                } label: {
+                    Label("Avaliar o app", systemImage: "star.bubble")
+                }
                 Link("Termos de uso", destination: URL(string: "https://uaipixel.com/legal/ratio/terms")!)
                 Link("Política de privacidade", destination: URL(string: "https://uaipixel.com/legal/ratio/privacy")!)
             } header: {
@@ -276,6 +283,13 @@ struct SettingsView: View {
             router.present(.whatsNew(state: state))
             isLoadingWhatsNew = false
         }
+    }
+
+    private func openStoreReview() {
+        guard let url = URL(string: "itms-apps://apps.apple.com/us/app/ratio-dividir-contas-e-gastos/id6757924426?action=write-review") else {
+            return
+        }
+        UIApplication.shared.open(url)
     }
 }
 

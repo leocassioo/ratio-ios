@@ -259,6 +259,7 @@ final class GroupsViewModel: ObservableObject {
                 "currency": subscription.currencyCode,
                 "source": "from_subscription"
             ])
+            ReviewPromptService.shared.requestIfAppropriate(trigger: .groupCreated)
             return groupId
         } catch {
             errorMessage = error.localizedDescription
@@ -324,6 +325,7 @@ final class GroupsViewModel: ObservableObject {
                 "currency": currencyCode,
                 "source": "manual"
             ])
+            ReviewPromptService.shared.requestIfAppropriate(trigger: .groupCreated)
             return groupId
         } catch {
             errorMessage = error.localizedDescription

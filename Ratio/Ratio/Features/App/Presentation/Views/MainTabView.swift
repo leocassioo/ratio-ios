@@ -85,6 +85,7 @@ struct MainTabView: View {
         }
         .onAppear {
             setBaseUserProperties()
+            ReviewPromptService.shared.recordAppSession()
             Task { await refreshWhatsNewIfNeeded() }
         }
         .onChange(of: appThemeRaw) { _, newValue in
@@ -104,6 +105,7 @@ struct MainTabView: View {
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
+                ReviewPromptService.shared.recordAppSession()
                 Task { await refreshWhatsNewIfNeeded() }
             }
         }

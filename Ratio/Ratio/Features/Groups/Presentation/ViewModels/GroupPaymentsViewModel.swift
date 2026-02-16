@@ -63,6 +63,7 @@ final class GroupPaymentsViewModel: ObservableObject {
                 "member_id": memberId,
                 "has_receipt": receiptData != nil
             ])
+            ReviewPromptService.shared.requestIfAppropriate(trigger: .receiptSubmitted)
             isLoading = false
         } catch {
             errorMessage = error.localizedDescription
@@ -85,6 +86,7 @@ final class GroupPaymentsViewModel: ObservableObject {
                 "group_id": groupId,
                 "member_id": memberId
             ])
+            ReviewPromptService.shared.requestIfAppropriate(trigger: .paymentApproved)
             isLoading = false
         } catch {
             errorMessage = error.localizedDescription

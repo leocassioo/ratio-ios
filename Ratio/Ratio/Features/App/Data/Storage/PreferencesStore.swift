@@ -22,6 +22,11 @@ final class PreferencesStore {
         static let lastAuthUserId = "lastAuthUserId"
         static let lastFcmToken = "lastFcmToken"
         static let lastSeenWhatsNewVersion = "lastSeenWhatsNewVersion"
+        static let reviewPromptLastDate = "reviewPromptLastDate"
+        static let reviewPromptCount = "reviewPromptCount"
+        static let reviewFirstSessionDate = "reviewFirstSessionDate"
+        static let reviewSessionCount = "reviewSessionCount"
+        static let reviewLastSessionDate = "reviewLastSessionDate"
     }
 
     private let defaults: UserDefaults
@@ -95,5 +100,48 @@ final class PreferencesStore {
 
     func setLastSeenWhatsNewVersion(_ value: String) {
         defaults.setValue(value, forKey: PrefKey.lastSeenWhatsNewVersion)
+    }
+
+    func reviewPromptLastDate() -> Date? {
+        let interval = defaults.object(forKey: PrefKey.reviewPromptLastDate) as? TimeInterval
+        return interval.map { Date(timeIntervalSince1970: $0) }
+    }
+
+    func setReviewPromptLastDate(_ value: Date?) {
+        defaults.setValue(value?.timeIntervalSince1970, forKey: PrefKey.reviewPromptLastDate)
+    }
+
+    func reviewPromptCount() -> Int {
+        defaults.integer(forKey: PrefKey.reviewPromptCount)
+    }
+
+    func setReviewPromptCount(_ value: Int) {
+        defaults.setValue(value, forKey: PrefKey.reviewPromptCount)
+    }
+
+    func reviewFirstSessionDate() -> Date? {
+        let interval = defaults.object(forKey: PrefKey.reviewFirstSessionDate) as? TimeInterval
+        return interval.map { Date(timeIntervalSince1970: $0) }
+    }
+
+    func setReviewFirstSessionDate(_ value: Date?) {
+        defaults.setValue(value?.timeIntervalSince1970, forKey: PrefKey.reviewFirstSessionDate)
+    }
+
+    func reviewSessionCount() -> Int {
+        defaults.integer(forKey: PrefKey.reviewSessionCount)
+    }
+
+    func setReviewSessionCount(_ value: Int) {
+        defaults.setValue(value, forKey: PrefKey.reviewSessionCount)
+    }
+
+    func reviewLastSessionDate() -> Date? {
+        let interval = defaults.object(forKey: PrefKey.reviewLastSessionDate) as? TimeInterval
+        return interval.map { Date(timeIntervalSince1970: $0) }
+    }
+
+    func setReviewLastSessionDate(_ value: Date?) {
+        defaults.setValue(value?.timeIntervalSince1970, forKey: PrefKey.reviewLastSessionDate)
     }
 }
