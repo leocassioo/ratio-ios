@@ -27,6 +27,7 @@ final class PreferencesStore {
         static let reviewFirstSessionDate = "reviewFirstSessionDate"
         static let reviewSessionCount = "reviewSessionCount"
         static let reviewLastSessionDate = "reviewLastSessionDate"
+        static let hasCompletedFirstLaunch = "hasCompletedFirstLaunch"
     }
 
     private let defaults: UserDefaults
@@ -143,5 +144,13 @@ final class PreferencesStore {
 
     func setReviewLastSessionDate(_ value: Date?) {
         defaults.setValue(value?.timeIntervalSince1970, forKey: PrefKey.reviewLastSessionDate)
+    }
+
+    func hasCompletedFirstLaunch() -> Bool {
+        defaults.bool(forKey: PrefKey.hasCompletedFirstLaunch)
+    }
+
+    func setHasCompletedFirstLaunch(_ value: Bool) {
+        defaults.setValue(value, forKey: PrefKey.hasCompletedFirstLaunch)
     }
 }

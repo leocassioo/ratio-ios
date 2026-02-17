@@ -86,7 +86,11 @@ struct MainTabView: View {
         .onAppear {
             setBaseUserProperties()
             ReviewPromptService.shared.recordAppSession()
-            Task { await refreshWhatsNewIfNeeded() }
+            if PreferencesStore.shared.hasCompletedFirstLaunch() {
+                Task { await refreshWhatsNewIfNeeded() }
+            } else {
+                PreferencesStore.shared.setHasCompletedFirstLaunch(true)
+            }
         }
         .onChange(of: appThemeRaw) { _, newValue in
             analytics.setUserProperty(.theme, value: newValue)
