@@ -121,7 +121,10 @@ export const recordGroupPaymentHistory = onDocumentUpdated(
 
     const occurredAt = (after.approvedAt as Timestamp | undefined) ?? Timestamp.fromDate(new Date());
     const docId = `grp_${groupId}_${memberUserId}_${dateKey(occurredAt.toDate())}`;
-    const title = (groupData.name as string) || "Grupo";
+    const baseTitle = (groupData.name as string) || "Grupo";
+    const paymentMode = (groupData.paymentMode as string | undefined) ?? "split";
+    const memberName = (after.name as string | undefined) ?? "Membro";
+    const title = paymentMode === "rotation" ? `${baseTitle} • ${memberName}` : baseTitle;
     const amount = (after.amount as number) || 0;
     const currencyCode = (groupData.currencyCode as string) || "BRL";
 

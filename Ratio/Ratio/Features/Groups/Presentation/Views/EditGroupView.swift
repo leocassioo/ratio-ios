@@ -30,6 +30,9 @@ struct EditGroupView: View {
     @State private var ownerPhoneNumber: String
     @State private var splitEqually: Bool = true
     @State private var ownerParticipates: Bool
+    @State private var paymentMode: GroupPaymentMode
+    @State private var rotationOrderIds: [String]
+    @State private var rotationCurrentPayerId: String?
     @State private var members: [GroupMemberDraft]
     @State private var memberValues: [String: Double] = [:]
     @State private var newMemberName = ""
@@ -67,6 +70,9 @@ struct EditGroupView: View {
         _pixKey = State(initialValue: group.pixKey ?? "")
         _ownerPhoneNumber = State(initialValue: group.ownerPhoneNumber ?? "")
         _ownerParticipates = State(initialValue: (ownerAmount ?? 1) > 0)
+        _paymentMode = State(initialValue: group.paymentMode)
+        _rotationOrderIds = State(initialValue: group.rotationOrder)
+        _rotationCurrentPayerId = State(initialValue: group.currentPayerId)
         _members = State(initialValue: group.members.map {
             GroupMemberDraft(
                 id: $0.id,
@@ -94,6 +100,9 @@ struct EditGroupView: View {
             contactSection
             notesSection
             membersSection
+            if paymentMode == .rotation {
+                rotationSection
+            }
             if perPersonAmount > 0 {
                 summarySection
             }
@@ -128,6 +137,10 @@ struct EditGroupView: View {
                                 pixKey: pixKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : pixKey,
                                 ownerPhoneNumber: ownerPhoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : ownerPhoneNumber,
                                 members: normalizedMembers,
+                                paymentMode: paymentMode,
+                                rotationOrder: rotationOrderForSave(),
+                                rotationIndex: rotationIndexForSave(),
+                                currentPayerId: currentPayerIdForSave(),
                                 ownerId: ownerId,
                                 removedMemberIds: Array(removedMemberIds)
                             )
@@ -147,6 +160,10 @@ struct EditGroupView: View {
                                 pixKey: pixKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : pixKey,
                                 ownerPhoneNumber: ownerPhoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : ownerPhoneNumber,
                                 members: normalizedMembers,
+                                paymentMode: paymentMode,
+                                rotationOrder: rotationOrderForSave(),
+                                rotationIndex: rotationIndexForSave(),
+                                currentPayerId: currentPayerIdForSave(),
                                 ownerId: ownerId,
                                 removedMemberIds: Array(removedMemberIds)
                             )
@@ -182,6 +199,7 @@ struct EditGroupView: View {
             analytics.screenView(.screen_edit_group)
             creationViewModel.startListening()
             updateSelectedSubscription()
+            syncRotationOrder()
         }
         .onDisappear {
             creationViewModel.stopListening()
@@ -200,23 +218,37 @@ struct EditGroupView: View {
             }
         }
         .onChange(of: splitEqually) { _, newValue in
-            if newValue {
+            if paymentMode == .split, newValue {
                 applyEqualSplit()
             }
         }
         .onChange(of: ownerParticipates) { _, _ in
-            if splitEqually {
+            if paymentMode == .split, splitEqually {
                 applyEqualSplit()
             }
         }
         .onChange(of: totalAmountValue) { _, _ in
-            if splitEqually {
+            if paymentMode == .rotation {
+                applyRotationAmounts()
+            } else if splitEqually {
                 applyEqualSplit()
             }
         }
         .onChange(of: members.count) { _, _ in
-            if splitEqually {
+            if paymentMode == .split, splitEqually {
                 applyEqualSplit()
+            }
+            syncRotationOrder()
+        }
+        .onChange(of: paymentMode) { _, _ in
+            syncRotationOrder()
+            if paymentMode == .rotation {
+                applyRotationAmounts()
+            } else if splitEqually {
+                applyEqualSplit()
+                resetExemptStatusesForSplit()
+            } else {
+                resetExemptStatusesForSplit()
             }
         }
     }
@@ -290,8 +322,20 @@ struct EditGroupView: View {
                 Text("Dia de cobrança do grupo: \(billingDay)")
             }
 
-            Toggle("Dividir igualmente", isOn: $splitEqually)
-            Toggle("Eu participo do rateio", isOn: $ownerParticipates)
+            Picker("Modo de cobrança", selection: $paymentMode) {
+                ForEach(GroupPaymentMode.allCases) { mode in
+                    Text(mode.label).tag(mode)
+                }
+            }
+
+            if paymentMode == .split {
+                Toggle("Dividir igualmente", isOn: $splitEqually)
+                Toggle("Eu participo do rateio", isOn: $ownerParticipates)
+            } else {
+                Text("Todos entram no rodízio, incluindo o organizador.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -359,6 +403,8 @@ struct EditGroupView: View {
                 member: $member,
                 currencySymbol: currencySymbol,
                 splitEqually: splitEqually,
+                isAmountEditable: paymentMode == .split && !splitEqually,
+                isStatusEditable: paymentMode == .split,
                 memberValues: $memberValues,
                 parseAmount: parseAmount,
                 formatAmount: formatAmount,
@@ -367,6 +413,34 @@ struct EditGroupView: View {
         }
             .onDelete(perform: deleteMember)
         }
+    }
+
+    private var rotationSection: some View {
+        Section("Rodízio") {
+            Text("Arraste os membros para definir a ordem de pagamento.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if rotationOrderIds.isEmpty {
+                Text("Adicione membros para montar o rodízio.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                Picker("Pagador deste ciclo", selection: rotationPayerBinding) {
+                    ForEach(rotationOrderIds, id: \.self) { memberId in
+                        Text(rotationMemberName(for: memberId))
+                            .tag(memberId)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                ForEach(rotationOrderIds, id: \.self) { memberId in
+                    Text(rotationMemberName(for: memberId))
+                }
+                .onMove(perform: moveRotationOrder)
+            }
+        }
+        .environment(\.editMode, .constant(.active))
     }
 
     private var summarySection: some View {
@@ -486,6 +560,21 @@ struct EditGroupView: View {
                 if !ownerParticipates, copy.userId == ownerId {
                     copy.amountText = formatAmount(0)
                 }
+                if paymentMode == .rotation {
+                    let memberKey = copy.userId ?? copy.id
+                    let payerId = rotationCurrentPayerId ?? rotationOrderIds.first
+                    if payerId != nil, memberKey == payerId {
+                        copy.amountText = formatAmount(totalAmountValue)
+                        if copy.userId == ownerId {
+                            copy.status = .paid
+                        } else {
+                            copy.status = .pending
+                        }
+                    } else {
+                        copy.amountText = formatAmount(0)
+                        copy.status = .exempt
+                    }
+                }
                 return copy
             }
     }
@@ -533,6 +622,111 @@ struct EditGroupView: View {
             }
             return copy
         }
+    }
+
+    private func applyRotationAmounts() {
+        guard paymentMode == .rotation else { return }
+        let payerId = rotationCurrentPayerId ?? rotationOrderIds.first
+        members = members.map { member in
+            var copy = member
+            let memberKey = member.userId ?? member.id
+            if let payerId, memberKey == payerId {
+                copy.amountText = formatAmount(totalAmountValue)
+                memberValues[copy.id] = totalAmountValue
+            } else {
+                copy.amountText = formatAmount(0)
+                memberValues[copy.id] = 0
+            }
+            return copy
+        }
+    }
+
+    private func resetExemptStatusesForSplit() {
+        guard paymentMode == .split else { return }
+        members = members.map { member in
+            var copy = member
+            if copy.status == .exempt {
+                copy.status = .pending
+            }
+            return copy
+        }
+    }
+
+    private func rotationEligibleIds() -> [String] {
+        members.map { $0.userId ?? $0.id }
+    }
+
+    private func rotationMemberName(for memberId: String) -> String {
+        if let member = members.first(where: { ($0.userId ?? $0.id) == memberId }) {
+            let name = member.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            return name.isEmpty ? "Membro" : name
+        }
+        return "Membro"
+    }
+
+    private var rotationPayerBinding: Binding<String> {
+        Binding(
+            get: {
+                rotationCurrentPayerId ?? rotationOrderIds.first ?? ""
+            },
+            set: { newValue in
+                rotationCurrentPayerId = newValue
+                if paymentMode == .rotation {
+                    applyRotationAmounts()
+                }
+            }
+        )
+    }
+
+    private func syncRotationOrder() {
+        let eligible = rotationEligibleIds()
+        if rotationOrderIds.isEmpty {
+            rotationOrderIds = eligible
+        } else {
+            rotationOrderIds = rotationOrderIds.filter { eligible.contains($0) }
+            for id in eligible where !rotationOrderIds.contains(id) {
+                rotationOrderIds.append(id)
+            }
+        }
+        if let current = rotationCurrentPayerId, !rotationOrderIds.contains(current) {
+            rotationCurrentPayerId = rotationOrderIds.first
+        } else if rotationCurrentPayerId == nil {
+            rotationCurrentPayerId = rotationOrderIds.first
+        }
+        if paymentMode == .rotation {
+            applyRotationAmounts()
+        }
+    }
+
+    private func moveRotationOrder(from source: IndexSet, to destination: Int) {
+        rotationOrderIds.move(fromOffsets: source, toOffset: destination)
+        if let current = rotationCurrentPayerId, !rotationOrderIds.contains(current) {
+            rotationCurrentPayerId = rotationOrderIds.first
+        }
+        if paymentMode == .rotation {
+            applyRotationAmounts()
+        }
+    }
+
+    private func rotationOrderForSave() -> [String] {
+        paymentMode == .rotation ? rotationOrderIds : []
+    }
+
+    private func currentPayerIdForSave() -> String? {
+        guard paymentMode == .rotation else { return nil }
+        if let current = rotationCurrentPayerId, rotationOrderIds.contains(current) {
+            return current
+        }
+        return rotationOrderIds.first
+    }
+
+    private func rotationIndexForSave() -> Int? {
+        guard paymentMode == .rotation else { return nil }
+        guard let current = currentPayerIdForSave(),
+              let index = rotationOrderIds.firstIndex(of: current) else {
+            return rotationOrderIds.isEmpty ? nil : 0
+        }
+        return index
     }
 
     private func updateSelectedSubscription() {
@@ -720,6 +914,11 @@ struct EditGroupView: View {
                 subscriptionLogoURL: nil,
                 chargeDay: 9,
                 chargeNextBillingDate: Date(),
+                paymentMode: .split,
+                rotationOrder: [],
+                rotationIndex: nil,
+                rotationCycleStartDate: nil,
+                currentPayerId: nil,
                 serviceLogin: nil,
                 servicePassword: nil,
                 pixKey: nil,

@@ -36,6 +36,8 @@ struct CreateGroupView: View {
     @State private var pixKey = ""
     @State private var splitEqually = true
     @State private var ownerParticipates = true
+    @State private var paymentMode: GroupPaymentMode = .split
+    @State private var rotationOrderIds: [String] = []
     @State private var members: [GroupMemberDraft] = []
     @State private var memberValues: [String: Double] = [:]
     @State private var newMemberName = ""
@@ -70,6 +72,9 @@ struct CreateGroupView: View {
                 contactSection
                 notesSection
                 membersSection
+                if paymentMode == .rotation {
+                    rotationSection
+                }
                 if perPersonAmount > 0 {
                     summarySection
                 }
@@ -118,6 +123,8 @@ struct CreateGroupView: View {
                                 pixKey: pixKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : pixKey,
                                 ownerPhoneNumber: ownerPhoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : ownerPhoneNumber,
                                 members: normalizedMembers,
+                                paymentMode: paymentMode,
+                                rotationOrder: rotationOrderForSave(),
                                 ownerId: ownerId
                             ) {
                                 createdGroupId = groupId
@@ -139,6 +146,8 @@ struct CreateGroupView: View {
                                 pixKey: pixKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : pixKey,
                                 ownerPhoneNumber: ownerPhoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : ownerPhoneNumber,
                                 members: normalizedMembers,
+                                paymentMode: paymentMode,
+                                rotationOrder: rotationOrderForSave(),
                                 ownerId: ownerId
                             ) {
                                 createdGroupId = groupId
@@ -173,6 +182,7 @@ struct CreateGroupView: View {
             if totalAmountText.isEmpty, totalAmountValue > 0 {
                 totalAmountText = formatAmount(totalAmountValue)
             }
+            syncRotationOrder()
             creationViewModel.startListening()
             Task {
                 if let profile = try? await UsersStore().fetchUserProfile(userId: ownerId) {
@@ -195,17 +205,19 @@ struct CreateGroupView: View {
             creationViewModel.stopListening()
         }
         .onChange(of: splitEqually) { _, newValue in
-            if newValue {
+            if paymentMode == .split, newValue {
                 applyEqualSplit()
             }
         }
         .onChange(of: ownerParticipates) { _, _ in
-            if splitEqually {
+            if paymentMode == .split, splitEqually {
                 applyEqualSplit()
             }
         }
         .onChange(of: totalAmountValue) { _, _ in
-            if splitEqually {
+            if paymentMode == .rotation {
+                applyRotationAmounts()
+            } else if splitEqually {
                 applyEqualSplit()
             }
         }
@@ -215,8 +227,20 @@ struct CreateGroupView: View {
             }
         }
         .onChange(of: members.count) { _, _ in
-            if splitEqually {
+            if paymentMode == .split, splitEqually {
                 applyEqualSplit()
+            }
+            syncRotationOrder()
+        }
+        .onChange(of: paymentMode) { _, _ in
+            syncRotationOrder()
+            if paymentMode == .rotation {
+                applyRotationAmounts()
+            } else if splitEqually {
+                applyEqualSplit()
+                resetExemptStatusesForSplit()
+            } else {
+                resetExemptStatusesForSplit()
             }
         }
         .onChange(of: selectedSubscriptionId) { _, _ in
@@ -327,8 +351,20 @@ struct CreateGroupView: View {
                 Text("Dia de cobrança do grupo: \(billingDay)")
             }
 
-            Toggle("Dividir igualmente", isOn: $splitEqually)
-            Toggle("Eu participo do rateio", isOn: $ownerParticipates)
+            Picker("Modo de cobrança", selection: $paymentMode) {
+                ForEach(GroupPaymentMode.allCases) { mode in
+                    Text(mode.label).tag(mode)
+                }
+            }
+
+            if paymentMode == .split {
+                Toggle("Dividir igualmente", isOn: $splitEqually)
+                Toggle("Eu participo do rateio", isOn: $ownerParticipates)
+            } else {
+                Text("Todos entram no rodízio, incluindo o organizador.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         } header: {
             Text("Grupo")
         } footer: {
@@ -404,6 +440,8 @@ struct CreateGroupView: View {
                 member: $member,
                 currencySymbol: currencySymbol,
                 splitEqually: splitEqually,
+                isAmountEditable: paymentMode == .split && !splitEqually,
+                isStatusEditable: paymentMode == .split,
                 memberValues: $memberValues,
                 parseAmount: parseAmount,
                 formatAmount: formatAmount,
@@ -412,6 +450,26 @@ struct CreateGroupView: View {
         }
             .onDelete(perform: deleteMember)
         }
+    }
+
+    private var rotationSection: some View {
+        Section("Rodízio") {
+            Text("Arraste os membros para definir a ordem de pagamento.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if rotationOrderIds.isEmpty {
+                Text("Adicione membros para montar o rodízio.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(rotationOrderIds, id: \.self) { memberId in
+                    Text(rotationMemberName(for: memberId))
+                }
+                .onMove(perform: moveRotationOrder)
+            }
+        }
+        .environment(\.editMode, .constant(.active))
     }
 
     private var summarySection: some View {
@@ -435,7 +493,8 @@ struct CreateGroupView: View {
     }
 
     private func normalizedMemberList() -> [GroupMemberDraft] {
-        members
+        let rotationPayerId = rotationOrderForSave().first
+        return members
             .filter { !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             .map { member in
                 var copy = member
@@ -448,12 +507,50 @@ struct CreateGroupView: View {
                 if !ownerParticipates, copy.userId == ownerId {
                     copy.amountText = formatAmount(0)
                 }
+                if paymentMode == .rotation {
+                    let memberKey = copy.userId ?? copy.id
+                    if rotationPayerId != nil, memberKey == rotationPayerId {
+                        copy.amountText = formatAmount(totalAmountValue)
+                        copy.status = (copy.userId == ownerId) ? .paid : .pending
+                    } else {
+                        copy.amountText = formatAmount(0)
+                        copy.status = .exempt
+                    }
+                }
                 return copy
             }
     }
 
     private func deleteMember(at offsets: IndexSet) {
         members.remove(atOffsets: offsets)
+    }
+
+    private func applyRotationAmounts() {
+        guard paymentMode == .rotation else { return }
+        let payerId = rotationOrderForSave().first
+        members = members.map { member in
+            var copy = member
+            let memberKey = member.userId ?? member.id
+            if let payerId, memberKey == payerId {
+                copy.amountText = formatAmount(totalAmountValue)
+                memberValues[copy.id] = totalAmountValue
+            } else {
+                copy.amountText = formatAmount(0)
+                memberValues[copy.id] = 0
+            }
+            return copy
+        }
+    }
+
+    private func resetExemptStatusesForSplit() {
+        guard paymentMode == .split else { return }
+        members = members.map { member in
+            var copy = member
+            if copy.status == .exempt {
+                copy.status = .pending
+            }
+            return copy
+        }
     }
 
     private func applyEqualSplit() {
@@ -480,6 +577,47 @@ struct CreateGroupView: View {
             }
             return copy
         }
+    }
+
+    private func rotationEligibleIds() -> [String] {
+        members.map { $0.userId ?? $0.id }
+    }
+
+    private func rotationMemberName(for memberId: String) -> String {
+        if let member = members.first(where: { ($0.userId ?? $0.id) == memberId }) {
+            let name = member.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            return name.isEmpty ? "Membro" : name
+        }
+        return "Membro"
+    }
+
+    private func syncRotationOrder() {
+        let eligible = rotationEligibleIds()
+        if rotationOrderIds.isEmpty {
+            rotationOrderIds = eligible
+            if paymentMode == .rotation {
+                applyRotationAmounts()
+            }
+            return
+        }
+        rotationOrderIds = rotationOrderIds.filter { eligible.contains($0) }
+        for id in eligible where !rotationOrderIds.contains(id) {
+            rotationOrderIds.append(id)
+        }
+        if paymentMode == .rotation {
+            applyRotationAmounts()
+        }
+    }
+
+    private func moveRotationOrder(from source: IndexSet, to destination: Int) {
+        rotationOrderIds.move(fromOffsets: source, toOffset: destination)
+        if paymentMode == .rotation {
+            applyRotationAmounts()
+        }
+    }
+
+    private func rotationOrderForSave() -> [String] {
+        paymentMode == .rotation ? rotationOrderIds : []
     }
 
     private func updateSelectedSubscription() {

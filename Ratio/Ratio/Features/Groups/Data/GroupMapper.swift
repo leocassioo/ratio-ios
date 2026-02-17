@@ -35,6 +35,13 @@ enum GroupMapper {
         let serviceLogin = data["serviceLogin"] as? String
         let servicePassword = data["servicePassword"] as? String
         let pixKey = data["pixKey"] as? String
+        let paymentModeRaw = data["paymentMode"] as? String
+        let paymentMode = GroupPaymentMode(rawValue: paymentModeRaw ?? "") ?? .split
+        let rotationOrder = data["rotationOrder"] as? [String] ?? []
+        let rotationIndex = data["rotationIndex"] as? Int
+        let rotationCycleStart = data["rotationCycleStartDate"] as? Timestamp
+        let rotationCycleStartDate = rotationCycleStart?.dateValue()
+        let currentPayerId = data["currentPayerId"] as? String
 
         let membersData = (data["membersPreview"] as? [[String: Any]])
             ?? (data["members"] as? [[String: Any]] ?? [])
@@ -94,6 +101,11 @@ enum GroupMapper {
             subscriptionLogoURL: subscriptionLogoURL,
             chargeDay: chargeDay,
             chargeNextBillingDate: chargeNextBillingDate,
+            paymentMode: paymentMode,
+            rotationOrder: rotationOrder,
+            rotationIndex: rotationIndex,
+            rotationCycleStartDate: rotationCycleStartDate,
+            currentPayerId: currentPayerId,
             serviceLogin: serviceLogin,
             servicePassword: servicePassword,
             pixKey: pixKey,

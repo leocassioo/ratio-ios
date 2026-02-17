@@ -66,6 +66,7 @@ final class GroupPaymentsStore {
 
         try await runTransaction { transaction in
             let groupSnapshot = try transaction.getDocument(groupRef)
+            let groupData = groupSnapshot.data() ?? [:]
             let updatedPreview = self.updatedMembersPreview(
                 from: groupSnapshot,
                 memberId: memberId,
@@ -81,7 +82,33 @@ final class GroupPaymentsStore {
             ]
 
             transaction.updateData(memberData, forDocument: memberRef)
-            transaction.updateData(["membersPreview": updatedPreview], forDocument: groupRef)
+            var groupUpdate: [String: Any] = ["membersPreview": updatedPreview]
+
+            let paymentMode = (groupData["paymentMode"] as? String) ?? GroupPaymentMode.split.rawValue
+            if paymentMode == GroupPaymentMode.rotation.rawValue {
+                let rotationOrder = groupData["rotationOrder"] as? [String] ?? []
+                let currentPayerId = groupData["currentPayerId"] as? String
+                    ?? {
+                        if let index = groupData["rotationIndex"] as? Int, index >= 0, index < rotationOrder.count {
+                            return rotationOrder[index]
+                        }
+                        return rotationOrder.first
+                    }()
+
+                if let currentPayerId, currentPayerId == memberId, !rotationOrder.isEmpty {
+                    let currentIndex = rotationOrder.firstIndex(of: currentPayerId) ?? 0
+                    let nextIndex = (currentIndex + 1) % rotationOrder.count
+                    let nextPayerId = rotationOrder[nextIndex]
+                    groupUpdate["rotationIndex"] = nextIndex
+                    groupUpdate["currentPayerId"] = nextPayerId
+                    if let nextBilling = groupData["chargeNextBillingDate"] as? Timestamp
+                        ?? groupData["subscriptionNextBillingDate"] as? Timestamp {
+                        groupUpdate["rotationCycleStartDate"] = nextBilling
+                    }
+                }
+            }
+
+            transaction.updateData(groupUpdate, forDocument: groupRef)
         }
     }
 

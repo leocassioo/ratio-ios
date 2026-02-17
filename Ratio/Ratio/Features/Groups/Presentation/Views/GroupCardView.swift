@@ -56,6 +56,11 @@ struct GroupCardView: View {
                             }
                         }
                     }
+                    if let payerName = currentPayerName {
+                        Text("Pagador do mês: \(payerName)")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                     Text(group.category.label)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -104,7 +109,10 @@ struct GroupCardView: View {
 
                         Spacer()
 
-                        if canEdit, member.status != .paid, member.userId != currentUserId {
+                        if canEdit,
+                           member.status != .paid,
+                           member.status != .exempt,
+                           member.userId != currentUserId {
                             HStack(spacing: 6) {
                                 Button {
                                     Task {
@@ -247,7 +255,18 @@ struct GroupCardView: View {
             return .blue
         case .overdue:
             return .red
+        case .exempt:
+            return .secondary
         }
+    }
+
+    private var currentPayerName: String? {
+        guard group.paymentMode == .rotation else { return nil }
+        let payerId = group.currentPayerId ?? group.rotationOrder.first
+        guard let payerId else { return nil }
+        let member = group.members.first { $0.id == payerId || $0.userId == payerId }
+        let name = member?.name.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return name.isEmpty ? nil : name
     }
 
     private func firstLetter(for name: String) -> String {

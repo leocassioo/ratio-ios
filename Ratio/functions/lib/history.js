@@ -134,7 +134,10 @@ exports.recordGroupPaymentHistory = (0, firestore_2.onDocumentUpdated)("groups/{
     }
     const occurredAt = after.approvedAt ?? firestore_1.Timestamp.fromDate(new Date());
     const docId = `grp_${groupId}_${memberUserId}_${dateKey(occurredAt.toDate())}`;
-    const title = groupData.name || "Grupo";
+    const baseTitle = groupData.name || "Grupo";
+    const paymentMode = groupData.paymentMode ?? "split";
+    const memberName = after.name ?? "Membro";
+    const title = paymentMode === "rotation" ? `${baseTitle} • ${memberName}` : baseTitle;
     const amount = after.amount || 0;
     const currencyCode = groupData.currencyCode || "BRL";
     await createHistoryEntry(memberUserId, docId, {

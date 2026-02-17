@@ -286,11 +286,11 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
         let hasMissingOverdueDate = false;
         membersSnapshot.docs.forEach((memberDoc) => {
             const memberData = memberDoc.data();
-            const role = memberData.role ?? "";
             const userId = memberData.userId;
             const status = memberData.status ?? "pending";
-            const isOwner = role == "owner" || (ownerId && userId == ownerId);
-            if (!userId || isOwner || status != "overdue") {
+            const paymentMode = data.paymentMode ?? "split";
+            const isOwner = ownerId && userId == ownerId;
+            if (!userId || (paymentMode !== "rotation" && isOwner) || status != "overdue") {
                 return;
             }
             if (newlyOverdueMemberIds.has(memberDoc.id)) {
@@ -378,17 +378,71 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
         const ownerId = data.ownerId;
         const groupRef = groupDoc.ref;
         const membersSnapshot = await groupRef.collection("members").get();
+        const paymentMode = data.paymentMode ?? "split";
         const batch = db.batch();
+        if (paymentMode !== "rotation") {
+            membersSnapshot.docs.forEach((memberDoc) => {
+                const memberData = memberDoc.data();
+                const role = memberData.role ?? "";
+                const userId = memberData.userId;
+                const isOwner = role == "owner" || (ownerId && userId == ownerId);
+                if (isOwner) {
+                    return;
+                }
+                batch.update(memberDoc.ref, {
+                    status: "pending",
+                    overdueStartedAt: firestore_1.FieldValue.delete(),
+                    receiptURL: firestore_1.FieldValue.delete(),
+                    submittedAt: firestore_1.FieldValue.delete(),
+                    approvedAt: firestore_1.FieldValue.delete(),
+                    updatedAt: firestore_1.FieldValue.serverTimestamp()
+                });
+            });
+            const preview = data.membersPreview ?? [];
+            const updatedPreview = preview.map((member) => {
+                const userId = member.userId;
+                const isOwner = ownerId && userId == ownerId;
+                if (isOwner) {
+                    return member;
+                }
+                return {
+                    ...member,
+                    status: "pending",
+                    receiptURL: null
+                };
+            });
+            batch.update(groupRef, {
+                membersPreview: updatedPreview,
+                lastChargeResetDate: nextBillingDate,
+                updatedAt: firestore_1.FieldValue.serverTimestamp()
+            });
+            await batch.commit();
+            summary.groupsReset += 1;
+            return;
+        }
+        const rotationOrder = Array.isArray(data.rotationOrder) ? data.rotationOrder : [];
+        let rotationIndex = typeof data.rotationIndex === "number" ? data.rotationIndex : 0;
+        let currentPayerId = data.currentPayerId
+            ?? (rotationOrder[rotationIndex] ?? rotationOrder[0]);
+        const rotationCycleStart = data.rotationCycleStartDate;
+        const shouldAdvance = !rotationCycleStart || rotationCycleStart.toMillis() !== nextBillingDate.toMillis();
+        if (rotationOrder.length > 0 && shouldAdvance) {
+            const currentIndex = currentPayerId ? rotationOrder.indexOf(currentPayerId) : -1;
+            const baseIndex = currentIndex >= 0 ? currentIndex : rotationIndex;
+            const nextIndex = ((baseIndex >= 0 ? baseIndex : 0) + 1) % rotationOrder.length;
+            rotationIndex = nextIndex;
+            currentPayerId = rotationOrder[nextIndex];
+        }
         membersSnapshot.docs.forEach((memberDoc) => {
             const memberData = memberDoc.data();
-            const role = memberData.role ?? "";
             const userId = memberData.userId;
-            const isOwner = role == "owner" || (ownerId && userId == ownerId);
-            if (isOwner) {
-                return;
+            const isOwner = ownerId && userId == ownerId;
+            let nextStatus = currentPayerId && memberDoc.id === currentPayerId ? "pending" : "exempt";
+            if (isOwner && memberDoc.id === currentPayerId) {
+                nextStatus = "paid";
             }
             batch.update(memberDoc.ref, {
-                status: "pending",
+                status: nextStatus,
                 overdueStartedAt: firestore_1.FieldValue.delete(),
                 receiptURL: firestore_1.FieldValue.delete(),
                 submittedAt: firestore_1.FieldValue.delete(),
@@ -398,22 +452,28 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
         });
         const preview = data.membersPreview ?? [];
         const updatedPreview = preview.map((member) => {
+            const memberId = member.id;
             const userId = member.userId;
             const isOwner = ownerId && userId == ownerId;
-            if (isOwner) {
-                return member;
+            let nextStatus = currentPayerId && memberId === currentPayerId ? "pending" : "exempt";
+            if (isOwner && memberId === currentPayerId) {
+                nextStatus = "paid";
             }
             return {
                 ...member,
-                status: "pending",
+                status: nextStatus,
                 receiptURL: null
             };
         });
-        batch.update(groupRef, {
+        const groupUpdate = {
             membersPreview: updatedPreview,
             lastChargeResetDate: nextBillingDate,
-            updatedAt: firestore_1.FieldValue.serverTimestamp()
-        });
+            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            rotationIndex,
+            currentPayerId: currentPayerId ?? null,
+            rotationCycleStartDate: nextBillingDate
+        };
+        batch.update(groupRef, groupUpdate);
         await batch.commit();
         summary.groupsReset += 1;
     };
@@ -425,6 +485,7 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
         const ownerId = data.ownerId;
         const groupRef = groupDoc.ref;
         const membersSnapshot = await groupRef.collection("members").get();
+        const paymentMode = data.paymentMode ?? "split";
         let hasMemberUpdates = false;
         const overdueMemberIds = [];
         const overdueMemberUserIds = [];
@@ -432,11 +493,9 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
         const batch = db.batch();
         membersSnapshot.docs.forEach((memberDoc) => {
             const memberData = memberDoc.data();
-            const role = memberData.role ?? "";
             const userId = memberData.userId;
-            const isOwner = role == "owner" || (ownerId && userId == ownerId);
             const status = memberData.status ?? "pending";
-            if (isOwner || status !== "pending") {
+            if ((paymentMode !== "rotation" && ownerId && userId == ownerId) || status !== "pending") {
                 return;
             }
             hasMemberUpdates = true;
@@ -454,10 +513,8 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
         const preview = data.membersPreview ?? [];
         let previewChanged = false;
         const updatedPreview = preview.map((member) => {
-            const userId = member.userId;
-            const isOwner = ownerId && userId == ownerId;
             const status = member.status ?? "pending";
-            if (isOwner || status !== "pending") {
+            if ((paymentMode !== "rotation" && ownerId && member.userId == ownerId) || status !== "pending") {
                 return member;
             }
             previewChanged = true;
@@ -663,9 +720,20 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
         }
         await resetGroupStatusesIfNeeded(groupDoc, nextBillingDate, offset);
         const memberIds = data.memberIds ?? [];
-        const targetMemberIds = allowedUserIds
+        let targetMemberIds = allowedUserIds
             ? memberIds.filter((id) => allowedUserIds.has(id))
             : memberIds;
+        const paymentMode = data.paymentMode ?? "split";
+        if (paymentMode === "rotation") {
+            const currentPayerId = data.currentPayerId;
+            const preview = data.membersPreview ?? [];
+            const payerUserId = preview.find((member) => {
+                const id = member.id;
+                const userId = member.userId;
+                return id === currentPayerId || userId === currentPayerId;
+            })?.userId;
+            targetMemberIds = payerUserId ? [payerUserId] : [];
+        }
         if (targetMemberIds.length == 0) {
             continue;
         }

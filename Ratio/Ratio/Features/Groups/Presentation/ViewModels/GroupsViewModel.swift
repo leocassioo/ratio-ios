@@ -208,6 +208,8 @@ final class GroupsViewModel: ObservableObject {
         pixKey: String?,
         ownerPhoneNumber: String?,
         members: [GroupMemberDraft],
+        paymentMode: GroupPaymentMode,
+        rotationOrder: [String],
         ownerId: String
     ) async -> String? {
         let memberIds = members.compactMap { $0.userId }.unique() + [ownerId]
@@ -224,7 +226,9 @@ final class GroupsViewModel: ObservableObject {
             ]
         }
 
-        let data: [String: Any] = [
+        let sanitizedRotationOrder = rotationOrder.filter { !$0.isEmpty }
+        let chargeDate = computedChargeNextBillingDate(for: subscription, billingDay: billingDay)
+        var data: [String: Any] = [
             "name": name,
             "category": subscription.category.rawValue,
             "totalAmount": subscription.amount,
@@ -243,12 +247,19 @@ final class GroupsViewModel: ObservableObject {
             "subscriptionNextBillingDate": Timestamp(date: subscription.nextBillingDate),
             "subscriptionLogoURL": subscription.logoURL as Any,
             "chargeDay": billingDay as Any,
-            "chargeNextBillingDate": Timestamp(date: computedChargeNextBillingDate(for: subscription, billingDay: billingDay)),
+            "chargeNextBillingDate": Timestamp(date: chargeDate),
+            "paymentMode": paymentMode.rawValue,
             "serviceLogin": serviceLogin as Any,
             "servicePassword": servicePassword as Any,
             "pixKey": pixKey as Any,
             "createdAt": FieldValue.serverTimestamp()
         ]
+        if paymentMode == .rotation {
+            data["rotationOrder"] = sanitizedRotationOrder
+            data["rotationIndex"] = 0
+            data["rotationCycleStartDate"] = Timestamp(date: chargeDate)
+            data["currentPayerId"] = sanitizedRotationOrder.first as Any
+        }
 
         do {
             let groupId = try await store.createGroup(data: data, members: members, ownerId: ownerId)
@@ -280,6 +291,8 @@ final class GroupsViewModel: ObservableObject {
         pixKey: String?,
         ownerPhoneNumber: String?,
         members: [GroupMemberDraft],
+        paymentMode: GroupPaymentMode,
+        rotationOrder: [String],
         ownerId: String
     ) async -> String? {
         let memberIds = members.compactMap { $0.userId }.unique() + [ownerId]
@@ -296,7 +309,9 @@ final class GroupsViewModel: ObservableObject {
             ]
         }
 
-        let data: [String: Any] = [
+        let sanitizedRotationOrder = rotationOrder.filter { !$0.isEmpty }
+        let chargeDate = computedChargeNextBillingDate(for: period, billingDay: billingDay)
+        var data: [String: Any] = [
             "name": name,
             "category": category.rawValue,
             "totalAmount": totalAmount,
@@ -309,12 +324,19 @@ final class GroupsViewModel: ObservableObject {
             "memberIds": Array(Set(memberIds)),
             "membersPreview": membersPreview,
             "chargeDay": billingDay as Any,
-            "chargeNextBillingDate": Timestamp(date: computedChargeNextBillingDate(for: period, billingDay: billingDay)),
+            "chargeNextBillingDate": Timestamp(date: chargeDate),
+            "paymentMode": paymentMode.rawValue,
             "serviceLogin": serviceLogin as Any,
             "servicePassword": servicePassword as Any,
             "pixKey": pixKey as Any,
             "createdAt": FieldValue.serverTimestamp()
         ]
+        if paymentMode == .rotation {
+            data["rotationOrder"] = sanitizedRotationOrder
+            data["rotationIndex"] = 0
+            data["rotationCycleStartDate"] = Timestamp(date: chargeDate)
+            data["currentPayerId"] = sanitizedRotationOrder.first as Any
+        }
 
         do {
             let groupId = try await store.createGroup(data: data, members: members, ownerId: ownerId)
@@ -344,6 +366,10 @@ final class GroupsViewModel: ObservableObject {
         pixKey: String?,
         ownerPhoneNumber: String?,
         members: [GroupMemberDraft],
+        paymentMode: GroupPaymentMode,
+        rotationOrder: [String],
+        rotationIndex: Int?,
+        currentPayerId: String?,
         ownerId: String,
         removedMemberIds: [String] = []
     ) async {
@@ -361,7 +387,9 @@ final class GroupsViewModel: ObservableObject {
             ]
         }
 
-        let data: [String: Any] = [
+        let sanitizedRotationOrder = rotationOrder.filter { !$0.isEmpty }
+        let chargeDate = computedChargeNextBillingDate(for: subscription, billingDay: billingDay)
+        var data: [String: Any] = [
             "name": name,
             "category": subscription.category.rawValue,
             "totalAmount": subscription.amount,
@@ -379,12 +407,30 @@ final class GroupsViewModel: ObservableObject {
             "subscriptionNextBillingDate": Timestamp(date: subscription.nextBillingDate),
             "subscriptionLogoURL": subscription.logoURL as Any,
             "chargeDay": billingDay as Any,
-            "chargeNextBillingDate": Timestamp(date: computedChargeNextBillingDate(for: subscription, billingDay: billingDay)),
+            "chargeNextBillingDate": Timestamp(date: chargeDate),
+            "paymentMode": paymentMode.rawValue,
             "serviceLogin": serviceLogin as Any,
             "servicePassword": servicePassword as Any,
             "pixKey": pixKey as Any,
             "updatedAt": FieldValue.serverTimestamp()
         ]
+        if paymentMode == .rotation {
+            data["rotationOrder"] = sanitizedRotationOrder
+            let normalizedPayer = (currentPayerId != nil && sanitizedRotationOrder.contains(currentPayerId!))
+                ? currentPayerId
+                : sanitizedRotationOrder.first
+            let normalizedIndex = rotationIndex
+                ?? (normalizedPayer.flatMap { sanitizedRotationOrder.firstIndex(of: $0) })
+                ?? 0
+            data["rotationIndex"] = normalizedIndex
+            data["rotationCycleStartDate"] = Timestamp(date: chargeDate)
+            data["currentPayerId"] = normalizedPayer as Any
+        } else {
+            data["rotationOrder"] = []
+            data["rotationIndex"] = FieldValue.delete()
+            data["rotationCycleStartDate"] = FieldValue.delete()
+            data["currentPayerId"] = FieldValue.delete()
+        }
 
         do {
             try await store.updateGroup(
@@ -414,6 +460,10 @@ final class GroupsViewModel: ObservableObject {
         pixKey: String?,
         ownerPhoneNumber: String?,
         members: [GroupMemberDraft],
+        paymentMode: GroupPaymentMode,
+        rotationOrder: [String],
+        rotationIndex: Int?,
+        currentPayerId: String?,
         ownerId: String,
         removedMemberIds: [String] = []
     ) async {
@@ -431,7 +481,9 @@ final class GroupsViewModel: ObservableObject {
             ]
         }
 
-        let data: [String: Any] = [
+        let sanitizedRotationOrder = rotationOrder.filter { !$0.isEmpty }
+        let chargeDate = computedChargeNextBillingDate(for: period, billingDay: billingDay)
+        var data: [String: Any] = [
             "name": name,
             "category": category.rawValue,
             "totalAmount": totalAmount,
@@ -449,12 +501,30 @@ final class GroupsViewModel: ObservableObject {
             "subscriptionPeriod": FieldValue.delete(),
             "subscriptionNextBillingDate": FieldValue.delete(),
             "chargeDay": billingDay as Any,
-            "chargeNextBillingDate": Timestamp(date: computedChargeNextBillingDate(for: period, billingDay: billingDay)),
+            "chargeNextBillingDate": Timestamp(date: chargeDate),
+            "paymentMode": paymentMode.rawValue,
             "serviceLogin": serviceLogin as Any,
             "servicePassword": servicePassword as Any,
             "pixKey": pixKey as Any,
             "updatedAt": FieldValue.serverTimestamp()
         ]
+        if paymentMode == .rotation {
+            data["rotationOrder"] = sanitizedRotationOrder
+            let normalizedPayer = (currentPayerId != nil && sanitizedRotationOrder.contains(currentPayerId!))
+                ? currentPayerId
+                : sanitizedRotationOrder.first
+            let normalizedIndex = rotationIndex
+                ?? (normalizedPayer.flatMap { sanitizedRotationOrder.firstIndex(of: $0) })
+                ?? 0
+            data["rotationIndex"] = normalizedIndex
+            data["rotationCycleStartDate"] = Timestamp(date: chargeDate)
+            data["currentPayerId"] = normalizedPayer as Any
+        } else {
+            data["rotationOrder"] = []
+            data["rotationIndex"] = FieldValue.delete()
+            data["rotationCycleStartDate"] = FieldValue.delete()
+            data["currentPayerId"] = FieldValue.delete()
+        }
 
         do {
             try await store.updateGroup(

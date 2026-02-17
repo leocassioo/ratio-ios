@@ -233,6 +233,16 @@ struct GroupDetailView: View {
                 Text(currentGroup.category.label)
                     .foregroundStyle(.secondary)
             }
+
+            if let payerName = currentPayerName {
+                HStack {
+                    Text("Pagador do mês")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(payerName)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 
@@ -270,6 +280,11 @@ struct GroupDetailView: View {
                     Spacer()
                     Text(currentMember.status.label)
                         .foregroundStyle(statusColor(for: currentMember.status))
+                }
+                if currentMember.status == .exempt {
+                    Text("Você está isento neste ciclo.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
                 if let estimated = estimatedAmount(for: currentMember.amount) {
                     HStack {
@@ -442,7 +457,10 @@ struct GroupDetailView: View {
                         }
                         .buttonStyle(.bordered)
                         .tint(.green)
-                    } else if isOwner, member.status != .paid, member.userId != currentUserId {
+                    } else if isOwner,
+                              member.status != .paid,
+                              member.status != .exempt,
+                              member.userId != currentUserId {
                         HStack(spacing: 6) {
                             Button {
                                 Task {
@@ -661,7 +679,18 @@ struct GroupDetailView: View {
             return .blue
         case .overdue:
             return .red
+        case .exempt:
+            return .secondary
         }
+    }
+
+    private var currentPayerName: String? {
+        guard currentGroup.paymentMode == .rotation else { return nil }
+        let payerId = currentGroup.currentPayerId ?? currentGroup.rotationOrder.first
+        guard let payerId else { return nil }
+        let member = currentGroup.members.first { $0.id == payerId || $0.userId == payerId }
+        let name = member?.name.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return name.isEmpty ? nil : name
     }
 
     private var orderedMembers: [GroupMember] {
@@ -715,6 +744,11 @@ struct GroupDetailView: View {
             subscriptionLogoURL: currentGroup.subscriptionLogoURL,
             chargeDay: currentGroup.chargeDay,
             chargeNextBillingDate: currentGroup.chargeNextBillingDate,
+            paymentMode: currentGroup.paymentMode,
+            rotationOrder: currentGroup.rotationOrder,
+            rotationIndex: currentGroup.rotationIndex,
+            rotationCycleStartDate: currentGroup.rotationCycleStartDate,
+            currentPayerId: currentGroup.currentPayerId,
             serviceLogin: currentGroup.serviceLogin,
             servicePassword: currentGroup.servicePassword,
             pixKey: currentGroup.pixKey,
@@ -759,6 +793,11 @@ struct GroupDetailView: View {
                 subscriptionLogoURL: nil,
                 chargeDay: 9,
                 chargeNextBillingDate: Date(),
+                paymentMode: .split,
+                rotationOrder: [],
+                rotationIndex: nil,
+                rotationCycleStartDate: nil,
+                currentPayerId: nil,
                 serviceLogin: nil,
                 servicePassword: nil,
                 pixKey: nil,

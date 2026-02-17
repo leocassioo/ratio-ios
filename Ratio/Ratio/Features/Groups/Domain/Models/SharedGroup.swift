@@ -26,6 +26,11 @@ struct SharedGroup: Identifiable, Equatable {
     let subscriptionLogoURL: String?
     let chargeDay: Int?
     let chargeNextBillingDate: Date?
+    let paymentMode: GroupPaymentMode
+    let rotationOrder: [String]
+    let rotationIndex: Int?
+    let rotationCycleStartDate: Date?
+    let currentPayerId: String?
     let serviceLogin: String?
     let servicePassword: String?
     let pixKey: String?

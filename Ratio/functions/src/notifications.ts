@@ -343,12 +343,12 @@ const runBillingReminders = async (
 
     membersSnapshot.docs.forEach((memberDoc) => {
       const memberData = memberDoc.data();
-      const role = (memberData.role as string | undefined) ?? "";
       const userId = memberData.userId as string | undefined;
       const status = (memberData.status as string | undefined) ?? "pending";
-      const isOwner = role == "owner" || (ownerId && userId == ownerId);
+      const paymentMode = (data.paymentMode as string | undefined) ?? "split";
+      const isOwner = ownerId && userId == ownerId;
 
-      if (!userId || isOwner || status != "overdue") {
+      if (!userId || (paymentMode !== "rotation" && isOwner) || status != "overdue") {
         return;
       }
       if (newlyOverdueMemberIds.has(memberDoc.id)) {
@@ -488,20 +488,81 @@ const runBillingReminders = async (
     const ownerId = data.ownerId as string | undefined;
     const groupRef = groupDoc.ref;
     const membersSnapshot = await groupRef.collection("members").get();
+    const paymentMode = (data.paymentMode as string | undefined) ?? "split";
 
     const batch = db.batch();
+
+    if (paymentMode !== "rotation") {
+      membersSnapshot.docs.forEach((memberDoc) => {
+        const memberData = memberDoc.data();
+        const role = (memberData.role as string | undefined) ?? "";
+        const userId = memberData.userId as string | undefined;
+        const isOwner = role == "owner" || (ownerId && userId == ownerId);
+
+        if (isOwner) {
+          return;
+        }
+
+        batch.update(memberDoc.ref, {
+          status: "pending",
+          overdueStartedAt: FieldValue.delete(),
+          receiptURL: FieldValue.delete(),
+          submittedAt: FieldValue.delete(),
+          approvedAt: FieldValue.delete(),
+          updatedAt: FieldValue.serverTimestamp()
+        });
+      });
+
+      const preview = (data.membersPreview as Array<Record<string, any>> | undefined) ?? [];
+      const updatedPreview = preview.map((member) => {
+        const userId = member.userId as string | undefined;
+        const isOwner = ownerId && userId == ownerId;
+        if (isOwner) {
+          return member;
+        }
+        return {
+          ...member,
+          status: "pending",
+          receiptURL: null
+        };
+      });
+
+      batch.update(groupRef, {
+        membersPreview: updatedPreview,
+        lastChargeResetDate: nextBillingDate,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+
+      await batch.commit();
+      summary.groupsReset += 1;
+      return;
+    }
+
+    const rotationOrder = Array.isArray(data.rotationOrder) ? (data.rotationOrder as string[]) : [];
+    let rotationIndex = typeof data.rotationIndex === "number" ? (data.rotationIndex as number) : 0;
+    let currentPayerId = (data.currentPayerId as string | undefined)
+      ?? (rotationOrder[rotationIndex] ?? rotationOrder[0]);
+    const rotationCycleStart = data.rotationCycleStartDate as Timestamp | undefined;
+    const shouldAdvance = !rotationCycleStart || rotationCycleStart.toMillis() !== nextBillingDate.toMillis();
+
+    if (rotationOrder.length > 0 && shouldAdvance) {
+      const currentIndex = currentPayerId ? rotationOrder.indexOf(currentPayerId) : -1;
+      const baseIndex = currentIndex >= 0 ? currentIndex : rotationIndex;
+      const nextIndex = ((baseIndex >= 0 ? baseIndex : 0) + 1) % rotationOrder.length;
+      rotationIndex = nextIndex;
+      currentPayerId = rotationOrder[nextIndex];
+    }
+
     membersSnapshot.docs.forEach((memberDoc) => {
       const memberData = memberDoc.data();
-      const role = (memberData.role as string | undefined) ?? "";
       const userId = memberData.userId as string | undefined;
-      const isOwner = role == "owner" || (ownerId && userId == ownerId);
-
-      if (isOwner) {
-        return;
+      const isOwner = ownerId && userId == ownerId;
+      let nextStatus = currentPayerId && memberDoc.id === currentPayerId ? "pending" : "exempt";
+      if (isOwner && memberDoc.id === currentPayerId) {
+        nextStatus = "paid";
       }
-
       batch.update(memberDoc.ref, {
-        status: "pending",
+        status: nextStatus,
         overdueStartedAt: FieldValue.delete(),
         receiptURL: FieldValue.delete(),
         submittedAt: FieldValue.delete(),
@@ -512,23 +573,30 @@ const runBillingReminders = async (
 
     const preview = (data.membersPreview as Array<Record<string, any>> | undefined) ?? [];
     const updatedPreview = preview.map((member) => {
+      const memberId = member.id as string | undefined;
       const userId = member.userId as string | undefined;
       const isOwner = ownerId && userId == ownerId;
-      if (isOwner) {
-        return member;
+      let nextStatus = currentPayerId && memberId === currentPayerId ? "pending" : "exempt";
+      if (isOwner && memberId === currentPayerId) {
+        nextStatus = "paid";
       }
       return {
         ...member,
-        status: "pending",
+        status: nextStatus,
         receiptURL: null
       };
     });
 
-    batch.update(groupRef, {
+    const groupUpdate: Record<string, any> = {
       membersPreview: updatedPreview,
       lastChargeResetDate: nextBillingDate,
-      updatedAt: FieldValue.serverTimestamp()
-    });
+      updatedAt: FieldValue.serverTimestamp(),
+      rotationIndex,
+      currentPayerId: currentPayerId ?? null,
+      rotationCycleStartDate: nextBillingDate
+    };
+
+    batch.update(groupRef, groupUpdate);
 
     await batch.commit();
     summary.groupsReset += 1;
@@ -551,6 +619,7 @@ const runBillingReminders = async (
     const ownerId = data.ownerId as string | undefined;
     const groupRef = groupDoc.ref;
     const membersSnapshot = await groupRef.collection("members").get();
+    const paymentMode = (data.paymentMode as string | undefined) ?? "split";
 
     let hasMemberUpdates = false;
     const overdueMemberIds: string[] = [];
@@ -560,12 +629,10 @@ const runBillingReminders = async (
 
     membersSnapshot.docs.forEach((memberDoc) => {
       const memberData = memberDoc.data();
-      const role = (memberData.role as string | undefined) ?? "";
       const userId = memberData.userId as string | undefined;
-      const isOwner = role == "owner" || (ownerId && userId == ownerId);
       const status = (memberData.status as string | undefined) ?? "pending";
 
-      if (isOwner || status !== "pending") {
+      if ((paymentMode !== "rotation" && ownerId && userId == ownerId) || status !== "pending") {
         return;
       }
 
@@ -585,11 +652,9 @@ const runBillingReminders = async (
     const preview = (data.membersPreview as Array<Record<string, any>> | undefined) ?? [];
     let previewChanged = false;
     const updatedPreview = preview.map((member) => {
-      const userId = member.userId as string | undefined;
-      const isOwner = ownerId && userId == ownerId;
       const status = (member.status as string | undefined) ?? "pending";
 
-      if (isOwner || status !== "pending") {
+      if ((paymentMode !== "rotation" && ownerId && (member.userId as string | undefined) == ownerId) || status !== "pending") {
         return member;
       }
 
@@ -858,9 +923,22 @@ const runBillingReminders = async (
     await resetGroupStatusesIfNeeded(groupDoc, nextBillingDate, offset);
 
     const memberIds = (data.memberIds as string[] | undefined) ?? [];
-    const targetMemberIds = allowedUserIds
+    let targetMemberIds = allowedUserIds
       ? memberIds.filter((id) => allowedUserIds.has(id))
       : memberIds;
+
+    const paymentMode = (data.paymentMode as string | undefined) ?? "split";
+    if (paymentMode === "rotation") {
+      const currentPayerId = data.currentPayerId as string | undefined;
+      const preview = (data.membersPreview as Array<Record<string, any>> | undefined) ?? [];
+      const payerUserId = preview.find((member) => {
+        const id = member.id as string | undefined;
+        const userId = member.userId as string | undefined;
+        return id === currentPayerId || userId === currentPayerId;
+      })?.userId as string | undefined;
+
+      targetMemberIds = payerUserId ? [payerUserId] : [];
+    }
 
     if (targetMemberIds.length == 0) {
       continue;

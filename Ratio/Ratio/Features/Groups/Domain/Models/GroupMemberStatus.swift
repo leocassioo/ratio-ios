@@ -12,6 +12,7 @@ enum GroupMemberStatus: String, CaseIterable {
     case pending
     case submitted
     case overdue
+    case exempt
 
     var label: String {
         switch self {
@@ -19,10 +20,11 @@ enum GroupMemberStatus: String, CaseIterable {
         case .pending: return "Pendente"
         case .submitted: return "Aguardando aprovação"
         case .overdue: return "Em atraso"
+        case .exempt: return "Isento"
         }
     }
 
     static var editableCases: [GroupMemberStatus] {
-        [.paid, .pending, .submitted, .overdue]
+        [.paid, .pending, .submitted, .overdue, .exempt]
     }
 }

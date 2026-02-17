@@ -47,6 +47,9 @@
     "Adicione assinaturas para ver os gastos por categoria." : {
 
     },
+    "Adicione membros para montar o rodízio." : {
+
+    },
     "Adicione sua primeira assinatura ou crie um grupo para dividir custos." : {
 
     },
@@ -78,6 +81,9 @@
 
     },
     "Aprovar" : {
+
+    },
+    "Arraste os membros para definir a ordem de pagamento." : {
 
     },
     "As cobranças registradas aparecerão aqui." : {
@@ -461,6 +467,9 @@
     "Mês" : {
 
     },
+    "Modo de cobrança" : {
+
+    },
     "Moeda" : {
 
     },
@@ -563,6 +572,15 @@
     "Ou continue com" : {
 
     },
+    "Pagador deste ciclo" : {
+
+    },
+    "Pagador do mês" : {
+
+    },
+    "Pagador do mês: %@" : {
+
+    },
     "Pagamento" : {
 
     },
@@ -633,6 +651,9 @@
 
     },
     "Revise as principais funções do app." : {
+
+    },
+    "Rodízio" : {
 
     },
     "Saindo do grupo..." : {
@@ -737,6 +758,9 @@
     "Tipo" : {
 
     },
+    "Todos entram no rodízio, incluindo o organizador." : {
+
+    },
     "toque aqui." : {
 
     },
@@ -793,6 +817,9 @@
 
     },
     "Versão do app" : {
+
+    },
+    "Você está isento neste ciclo." : {
 
     },
     "Você pode colar o link completo ou apenas o código." : {
