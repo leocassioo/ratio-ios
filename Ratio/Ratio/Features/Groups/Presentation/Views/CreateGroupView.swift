@@ -43,6 +43,7 @@ struct CreateGroupView: View {
     @State private var newMemberName = ""
     @StateObject private var creationViewModel: GroupCreationViewModel
     @State private var showInviteSheet = false
+    @State private var showPaymentModeInfo = false
     @State private var inviteURL: URL?
     @State private var inviteError: String?
     @State private var isGeneratingInvite = false
@@ -260,6 +261,9 @@ struct CreateGroupView: View {
         }) {
             inviteSheet
         }
+        .sheet(isPresented: $showPaymentModeInfo) {
+            paymentModeInfoSheet
+        }
         .alert("Assinatura já vinculada", isPresented: $showSubscriptionInUseAlert) {
             Button("Ok", role: .cancel) {}
         } message: {
@@ -351,10 +355,26 @@ struct CreateGroupView: View {
                 Text("Dia de cobrança do grupo: \(billingDay)")
             }
 
-            Picker("Modo de cobrança", selection: $paymentMode) {
-                ForEach(GroupPaymentMode.allCases) { mode in
-                    Text(mode.label).tag(mode)
+            HStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    Text("Modo de cobrança")
+                    Button {
+                        showPaymentModeInfo = true
+                    } label: {
+                        Image(systemName: "questionmark.circle")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Ajuda sobre modo de cobrança")
                 }
+                Spacer()
+                Picker("", selection: $paymentMode) {
+                    ForEach(GroupPaymentMode.allCases) { mode in
+                        Text(mode.label).tag(mode)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
             }
 
             if paymentMode == .split {
@@ -416,6 +436,38 @@ struct CreateGroupView: View {
         Section("Observações") {
             TextField("Detalhes do grupo", text: $notes, axis: .vertical)
                 .lineLimit(3, reservesSpace: true)
+        }
+    }
+
+    private var paymentModeInfoSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Divisão")
+                        .font(.headline)
+                    Text("Cada membro paga uma parte do valor total do grupo. Você pode dividir igualmente ou definir valores diferentes.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Divider()
+
+                    Text("Rodízio")
+                        .font(.headline)
+                    Text("Um único membro paga o valor total em cada ciclo. A ordem do rodízio é definida por você, e todos entram na vez, inclusive o organizador.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(20)
+            }
+            .navigationTitle("Modo de cobrança")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fechar") {
+                        showPaymentModeInfo = false
+                    }
+                }
+            }
         }
     }
 

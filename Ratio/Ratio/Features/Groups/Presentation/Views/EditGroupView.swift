@@ -43,6 +43,8 @@ struct EditGroupView: View {
     @State private var showSubscriptionInUseAlert = false
     @State private var subscriptionInUseName = ""
     @State private var clearedSubscription = false
+    @State private var isSaving = false
+    @State private var showPaymentModeInfo = false
     @State private var removedMemberIds: Set<String> = []
     @State private var showShareSheet = false
     @StateObject private var creationViewModel: GroupCreationViewModel
@@ -93,21 +95,35 @@ struct EditGroupView: View {
     }
 
     var body: some View {
-        Form {
-            groupSection
-            credentialsSection
-            paymentDataSection
-            contactSection
-            notesSection
-            membersSection
-            if paymentMode == .rotation {
-                rotationSection
+        ZStack {
+            Form {
+                groupSection
+                credentialsSection
+                paymentDataSection
+                contactSection
+                notesSection
+                membersSection
+                if paymentMode == .rotation {
+                    rotationSection
+                }
+                if perPersonAmount > 0 {
+                    summarySection
+                }
+                inviteSection
+                deleteSection
             }
-            if perPersonAmount > 0 {
-                summarySection
+            .disabled(isSaving)
+
+            if isSaving {
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("Salvando alterações...")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(.ultraThinMaterial)
             }
-            inviteSection
-            deleteSection
         }
         .navigationTitle("Editar grupo")
         .toolbar {
@@ -115,10 +131,14 @@ struct EditGroupView: View {
                 Button("Cancelar") {
                     dismiss()
                 }
+                .disabled(isSaving)
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Salvar") {
                     Task {
+                        guard !isSaving else { return }
+                        isSaving = true
+                        defer { isSaving = false }
                         if let subscription = selectedSubscriptionForSave {
                             if isSubscriptionInUse(subscriptionId: subscription.id) {
                                 subscriptionInUseName = subscription.name
@@ -171,7 +191,7 @@ struct EditGroupView: View {
                         dismiss()
                     }
                 }
-                .disabled(!canSubmit || !isOwner)
+                .disabled(!canSubmit || !isOwner || isSaving)
             }
         }
         .alert("Excluir grupo?", isPresented: $showDeleteAlert) {
@@ -251,6 +271,9 @@ struct EditGroupView: View {
                 resetExemptStatusesForSplit()
             }
         }
+        .sheet(isPresented: $showPaymentModeInfo) {
+            paymentModeInfoSheet
+        }
     }
 
     private var groupSection: some View {
@@ -322,10 +345,26 @@ struct EditGroupView: View {
                 Text("Dia de cobrança do grupo: \(billingDay)")
             }
 
-            Picker("Modo de cobrança", selection: $paymentMode) {
-                ForEach(GroupPaymentMode.allCases) { mode in
-                    Text(mode.label).tag(mode)
+            HStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    Text("Modo de cobrança")
+                    Button {
+                        showPaymentModeInfo = true
+                    } label: {
+                        Image(systemName: "questionmark.circle")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Ajuda sobre modo de cobrança")
                 }
+                Spacer()
+                Picker("", selection: $paymentMode) {
+                    ForEach(GroupPaymentMode.allCases) { mode in
+                        Text(mode.label).tag(mode)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
             }
 
             if paymentMode == .split {
@@ -662,6 +701,38 @@ struct EditGroupView: View {
             return name.isEmpty ? "Membro" : name
         }
         return "Membro"
+    }
+
+    private var paymentModeInfoSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Divisão")
+                        .font(.headline)
+                    Text("Cada membro paga uma parte do valor total do grupo. Você pode dividir igualmente ou definir valores diferentes.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Divider()
+
+                    Text("Rodízio")
+                        .font(.headline)
+                    Text("Um único membro paga o valor total em cada ciclo. A ordem do rodízio é definida por você, e todos entram na vez, inclusive o organizador.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(20)
+            }
+            .navigationTitle("Modo de cobrança")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fechar") {
+                        showPaymentModeInfo = false
+                    }
+                }
+            }
+        }
     }
 
     private var rotationPayerBinding: Binding<String> {

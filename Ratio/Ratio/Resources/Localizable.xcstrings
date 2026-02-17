@@ -62,6 +62,9 @@
     "Ajuda e tutorial" : {
 
     },
+    "Ajuda sobre modo de cobrança" : {
+
+    },
     "Ajustes" : {
 
     },
@@ -87,6 +90,9 @@
 
     },
     "As cobranças registradas aparecerão aqui." : {
+
+    },
+    "As notificações são essenciais para avisos de cobrança e confirmação de pagamentos." : {
 
     },
     "Assim que houver cobranças, elas aparecerão aqui." : {
@@ -132,6 +138,9 @@
 
     },
     "BRL" : {
+
+    },
+    "Cada membro paga uma parte do valor total do grupo. Você pode dividir igualmente ou definir valores diferentes." : {
 
     },
     "Cadastrar assinatura" : {
@@ -276,6 +285,9 @@
 
     },
     "Dividir igualmente" : {
+
+    },
+    "Divisão" : {
 
     },
     "Editar" : {
@@ -677,6 +689,9 @@
     "Salvando" : {
 
     },
+    "Salvando alterações..." : {
+
+    },
     "Salvando grupo..." : {
 
     },
@@ -787,6 +802,9 @@
       }
     },
     "Tutorial rápido" : {
+
+    },
+    "Um único membro paga o valor total em cada ciclo. A ordem do rodízio é definida por você, e todos entram na vez, inclusive o organizador." : {
 
     },
     "Usamos essa moeda para destacar os totais e estimativas." : {

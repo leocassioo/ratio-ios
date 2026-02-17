@@ -73,26 +73,27 @@ struct RatioApp: App {
             let language = AppLanguage(rawValue: appLanguageRaw) ?? .system
             Group {
                 if hasSeenOnboarding {
-                    switch pushPermissionState.status {
-                    case .unknown:
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    case .notDetermined:
-                        if didSkipPushPermission {
-                            ContentView()
-                        } else {
-                        PushPermissionView(
-                            onRequestDone: {
-                            pushPermissionState.refresh()
-                            },
-                            onSkip: {
-                                didSkipPushPermission = true
-                            }
-                        )
-                        }
-                    case .authorized, .denied:
-                        ContentView()
-                    }
+                    ContentView()
+//                    switch pushPermissionState.status {
+//                    case .unknown:
+//                        ProgressView()
+//                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+//                    case .notDetermined:
+//                        if didSkipPushPermission {
+//                            ContentView()
+//                        } else {
+//                        PushPermissionView(
+//                            onRequestDone: {
+//                            pushPermissionState.refresh()
+//                            },
+//                            onSkip: {
+//                                didSkipPushPermission = true
+//                            }
+//                        )
+//                        }
+//                    case .authorized, .denied:
+//                        ContentView()
+//                    }
                 } else {
                     OnboardingView {
                         hasSeenOnboarding = true

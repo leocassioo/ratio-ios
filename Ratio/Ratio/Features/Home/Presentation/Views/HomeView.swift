@@ -80,11 +80,24 @@ struct HomeView: View {
                         }
                     )
 
-                        if !viewModel.isLoading && !viewModel.hasSubscriptions && !viewModel.hasGroups {
-                            HomeEmptyStateView(
-                                onAddSubscription: {
-                                    router.route(to: .subscriptions)
-                                },
+                    if pushPermissionState.status == .notDetermined || pushPermissionState.status == .denied {
+                        PushPermissionBannerView(
+                            status: pushPermissionState.status,
+                            onPrimaryAction: {
+                                if pushPermissionState.status == .denied {
+                                    openAppSettings()
+                                } else {
+                                    showPushPrompt = true
+                                }
+                            }
+                        )
+                    }
+
+                    if !viewModel.isLoading && !viewModel.hasSubscriptions && !viewModel.hasGroups {
+                        HomeEmptyStateView(
+                            onAddSubscription: {
+                                router.route(to: .subscriptions)
+                            },
                                 onCreateGroup: {
                                     router.route(to: .groups)
                                 }
@@ -317,6 +330,11 @@ struct HomeView: View {
         guard lastPushPromptDateRaw != todayKey else { return }
         lastPushPromptDateRaw = todayKey
         showPushPrompt = true
+    }
+
+    private func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 }
 

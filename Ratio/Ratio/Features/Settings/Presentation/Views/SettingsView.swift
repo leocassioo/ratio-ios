@@ -14,9 +14,12 @@ struct SettingsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @EnvironmentObject private var router: AppRouter
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage(PreferencesStore.PrefKey.appTheme) private var appThemeRaw: String = AppTheme.system.rawValue
     @AppStorage(PreferencesStore.PrefKey.appLanguage) private var appLanguageRaw: String = AppLanguage.system.rawValue
     @AppStorage(PreferencesStore.PrefKey.primaryCurrencyCode) private var primaryCurrencyCodeRaw: String = "BRL"
+    @StateObject private var pushPermissionState = PushPermissionState()
+    @State private var isRequestingPush = false
     @State private var showSignOutConfirm = false
     @State private var isSigningOut = false
     @State private var showWhatsNewError = false
@@ -119,6 +122,28 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section {
+                HStack {
+                    Text("Status")
+                    Spacer()
+                    Text(pushStatusLabel)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    handlePushPermissionAction()
+                } label: {
+                    Label(pushActionLabel, systemImage: "bell.badge")
+                }
+                .disabled(isRequestingPush)
+            } header: {
+                Text("Notificações")
+            } footer: {
+                Text("As notificações são essenciais para avisos de cobrança e confirmação de pagamentos.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
             if !subscriptionManager.hasProAccess {
                 Section {
                     Button {
@@ -212,12 +237,18 @@ struct SettingsView: View {
                 analytics.track(.settings_open)
                 didLogScreen = true
             }
+            pushPermissionState.refresh()
         }
         .onDisappear {
             didLogScreen = false
         }
         .onChange(of: primaryCurrencyCodeRaw) { _, newValue in
             analytics.track(.settings_currency_change, parameters: ["currency": newValue])
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                pushPermissionState.refresh()
+            }
         }
         .alert("Sair da conta?", isPresented: $showSignOutConfirm) {
             Button("Cancelar", role: .cancel) {}
@@ -289,6 +320,59 @@ struct SettingsView: View {
         guard let url = URL(string: "itms-apps://apps.apple.com/us/app/ratio-dividir-contas-e-gastos/id6757924426?action=write-review") else {
             return
         }
+        UIApplication.shared.open(url)
+    }
+
+    private var pushStatusLabel: String {
+        switch pushPermissionState.status {
+        case .authorized:
+            return "Ativado"
+        case .denied:
+            return "Desativado"
+        case .notDetermined:
+            return "Não solicitado"
+        case .unknown:
+            return "Verificando…"
+        }
+    }
+
+    private var pushActionLabel: String {
+        switch pushPermissionState.status {
+        case .authorized:
+            return "Gerenciar notificações"
+        case .denied:
+            return "Ativar notificações"
+        case .notDetermined, .unknown:
+            return "Ativar notificações"
+        }
+    }
+
+    private func handlePushPermissionAction() {
+        guard !isRequestingPush else { return }
+        isRequestingPush = true
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                switch settings.authorizationStatus {
+                case .notDetermined:
+                    NotificationManager.shared.requestAuthorization { _ in
+                        isRequestingPush = false
+                        pushPermissionState.refresh()
+                    }
+                case .denied:
+                    isRequestingPush = false
+                    openAppSettings()
+                case .authorized, .provisional, .ephemeral:
+                    isRequestingPush = false
+                    openAppSettings()
+                @unknown default:
+                    isRequestingPush = false
+                }
+            }
+        }
+    }
+
+    private func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
     }
 }
