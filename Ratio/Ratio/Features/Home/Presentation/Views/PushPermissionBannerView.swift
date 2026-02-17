@@ -10,6 +10,7 @@ import SwiftUI
 struct PushPermissionBannerView: View {
     let status: PushPermissionState.Status
     let onPrimaryAction: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
 
     private var title: String {
         switch status {
@@ -78,14 +79,22 @@ struct PushPermissionBannerView: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color(.separator).opacity(0.2), lineWidth: 1)
+                .stroke(Color(.separator).opacity(borderOpacity), lineWidth: 1)
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(title))
+    }
+
+    private var cardBackground: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground)
+    }
+
+    private var borderOpacity: Double {
+        colorScheme == .dark ? 0.4 : 0.25
     }
 }
 
