@@ -443,7 +443,7 @@ struct EditGroupView: View {
                 currencySymbol: currencySymbol,
                 splitEqually: splitEqually,
                 isAmountEditable: paymentMode == .split && !splitEqually,
-                isStatusEditable: paymentMode == .split,
+                isStatusEditable: true,
                 memberValues: $memberValues,
                 parseAmount: parseAmount,
                 formatAmount: formatAmount,
@@ -604,14 +604,8 @@ struct EditGroupView: View {
                     let payerId = rotationCurrentPayerId ?? rotationOrderIds.first
                     if payerId != nil, memberKey == payerId {
                         copy.amountText = formatAmount(totalAmountValue)
-                        if copy.userId == ownerId {
-                            copy.status = .paid
-                        } else {
-                            copy.status = .pending
-                        }
                     } else {
                         copy.amountText = formatAmount(0)
-                        copy.status = .exempt
                     }
                 }
                 return copy

@@ -8,6 +8,11 @@
 import SwiftUI
 
 struct GroupCardView: View {
+    private struct SharePayload: Identifiable {
+        let id = UUID()
+        let items: [Any]
+    }
+
     let group: SharedGroup
     let currentUserId: String?
     let currentUserPixKey: String?
@@ -18,8 +23,17 @@ struct GroupCardView: View {
     let onMarkPaid: (_ groupId: String, _ memberId: String) -> Void
     let isMarkingPaid: (_ groupId: String, _ memberId: String) -> Bool
     @Environment(\.colorScheme) private var colorScheme
+    @State private var sharePayload: SharePayload?
 
     var body: some View {
+        cardContent(showTopActions: true, showMemberActions: true, includeShadow: true)
+            .sheet(item: $sharePayload) { payload in
+                ShareSheet(items: payload.items)
+            }
+    }
+
+    @ViewBuilder
+    private func cardContent(showTopActions: Bool, showMemberActions: Bool, includeShadow: Bool) -> some View {
         VStack(spacing: 12) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -70,11 +84,23 @@ struct GroupCardView: View {
 
                 VStack(alignment: .trailing, spacing: 8) {
                     GroupAvatarStack(members: group.members)
-                    if canEdit {
+                    if showTopActions, canEdit {
                         Button {
                             onEdit()
                         } label: {
                             Image(systemName: "pencil")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .padding(6)
+                                .background(Circle().fill(Color(.tertiarySystemBackground)))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if showTopActions {
+                        Button {
+                            shareCurrentCardSnapshot()
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .padding(6)
@@ -109,7 +135,8 @@ struct GroupCardView: View {
 
                         Spacer()
 
-                        if canEdit,
+                        if showMemberActions,
+                           canEdit,
                            member.status != .paid,
                            member.status != .exempt,
                            member.userId != currentUserId {
@@ -200,7 +227,34 @@ struct GroupCardView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(Color(.separator).opacity(borderOpacity), lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
+        .shadow(color: includeShadow ? Color.black.opacity(0.06) : .clear, radius: 12, x: 0, y: 8)
+    }
+
+    @MainActor
+    private func shareCurrentCardSnapshot() {
+        let snapshot = cardContent(showTopActions: false, showMemberActions: false, includeShadow: false)
+            .frame(width: 360)
+
+        let renderer = ImageRenderer(content: snapshot)
+        #if canImport(UIKit)
+        renderer.scale = UIScreen.main.scale
+        #endif
+        guard let image = renderer.uiImage else { return }
+        let hasConvertedValue = group.currencyCode != preferredCurrencyCode && estimatedTotal != nil
+        let messageAmount = hasConvertedValue ? (estimatedTotal ?? group.totalAmount) : group.totalAmount
+        let messageCurrency = hasConvertedValue ? preferredCurrencyCode : group.currencyCode
+        let originalAmount = hasConvertedValue ? group.totalAmount : nil
+        let originalCurrencyCode = hasConvertedValue ? group.currencyCode : nil
+        let message = WhatsAppMessageBuilder.buildPaymentRequestMessage(
+            memberName: "pessoal",
+            groupName: group.name,
+            amount: messageAmount,
+            currencyCode: messageCurrency,
+            originalAmount: originalAmount,
+            originalCurrencyCode: originalCurrencyCode,
+            pixKey: (group.pixKey?.isEmpty == false) ? group.pixKey : currentUserPixKey
+        )
+        sharePayload = SharePayload(items: [message, image])
     }
 
     private var cardBackground: Color {

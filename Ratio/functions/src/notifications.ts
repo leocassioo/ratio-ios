@@ -557,8 +557,11 @@ const runBillingReminders = async (
       const memberData = memberDoc.data();
       const userId = memberData.userId as string | undefined;
       const isOwner = ownerId && userId == ownerId;
-      let nextStatus = currentPayerId && memberDoc.id === currentPayerId ? "pending" : "exempt";
-      if (isOwner && memberDoc.id === currentPayerId) {
+      const isCurrentPayer = Boolean(
+        currentPayerId && (memberDoc.id === currentPayerId || (userId && userId === currentPayerId))
+      );
+      let nextStatus = isCurrentPayer ? "pending" : "exempt";
+      if (isOwner && isCurrentPayer) {
         nextStatus = "paid";
       }
       batch.update(memberDoc.ref, {
@@ -576,8 +579,12 @@ const runBillingReminders = async (
       const memberId = member.id as string | undefined;
       const userId = member.userId as string | undefined;
       const isOwner = ownerId && userId == ownerId;
-      let nextStatus = currentPayerId && memberId === currentPayerId ? "pending" : "exempt";
-      if (isOwner && memberId === currentPayerId) {
+      const isCurrentPayer = Boolean(
+        currentPayerId &&
+        (memberId === currentPayerId || (userId && userId === currentPayerId))
+      );
+      let nextStatus = isCurrentPayer ? "pending" : "exempt";
+      if (isOwner && isCurrentPayer) {
         nextStatus = "paid";
       }
       return {
