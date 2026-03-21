@@ -318,7 +318,8 @@ final class HomeViewModel: ObservableObject {
     }
 
     private func updateUserProperties() {
-        let subscriptionBucket = subscriptions.count >= 3 ? "3+" : String(subscriptions.count)
+        let activeCount = activeSubscriptions.count
+        let subscriptionBucket = activeCount >= 3 ? "3+" : String(activeCount)
         let groupsBucket = groups.count >= 3 ? "3+" : String(groups.count)
         analytics.setUserProperty(.subscriptions_count, value: subscriptionBucket)
         analytics.setUserProperty(.groups_count, value: groupsBucket)
@@ -403,11 +404,11 @@ final class HomeViewModel: ObservableObject {
 
         let ownedGroups = groups.filter { $0.ownerId == userId }
         let linkedSubscriptionIds = Set(ownedGroups.compactMap { $0.subscriptionId })
-        let subscriptionsWithoutGroup = subscriptions.filter { !linkedSubscriptionIds.contains($0.id) }
+        let subscriptionsWithoutGroup = activeSubscriptions.filter { !linkedSubscriptionIds.contains($0.id) }
 
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let dueTodaySubscriptions = subscriptions.filter {
+        let dueTodaySubscriptions = activeSubscriptions.filter {
             let effective = nextDateForDisplay($0.nextBillingDate, period: $0.period)
             return calendar.isDate(effective, inSameDayAs: today)
         }
@@ -476,7 +477,7 @@ final class HomeViewModel: ObservableObject {
             return
         }
 
-        let subscriptionItems: [UpcomingPaymentItem] = subscriptions.map { item in
+        let subscriptionItems: [UpcomingPaymentItem] = activeSubscriptions.map { item in
             let effectiveDate = nextDateForDisplay(item.nextBillingDate, period: item.period)
             return UpcomingPaymentItem(
                 subscriptionId: item.id,
@@ -534,7 +535,7 @@ final class HomeViewModel: ObservableObject {
             return
         }
 
-        let subscriptionTotals = Dictionary(grouping: subscriptions, by: { $0.category.label })
+        let subscriptionTotals = Dictionary(grouping: activeSubscriptions, by: { $0.category.label })
             .mapValues { items in
                 items.reduce(0) { partial, item in
                     guard let converted = convert(
@@ -728,7 +729,7 @@ final class HomeViewModel: ObservableObject {
     private func buildContributions() -> [(currencyCode: String, monthlyAmount: Double)] {
         var contributions: [(currencyCode: String, monthlyAmount: Double)] = []
 
-        contributions.append(contentsOf: subscriptions.map { item in
+        contributions.append(contentsOf: activeSubscriptions.map { item in
             (currencyCode: item.currencyCode, monthlyAmount: monthlyEquivalent(for: item))
         })
 
@@ -747,6 +748,10 @@ final class HomeViewModel: ObservableObject {
 
         contributions.append(contentsOf: groupContributions)
         return contributions
+    }
+
+    private var activeSubscriptions: [SubscriptionItem] {
+        subscriptions.filter { $0.status.isBillable }
     }
 
     private func initials(for text: String) -> String {

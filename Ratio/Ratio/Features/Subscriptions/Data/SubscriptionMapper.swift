@@ -23,6 +23,8 @@ enum SubscriptionMapper {
         let nextBillingDate = nextBillingTimestamp?.dateValue() ?? Date()
         let notes = data["notes"] as? String ?? ""
         let logoURL = data["logoURL"] as? String
+        let statusRaw = data["status"] as? String ?? SubscriptionStatus.active.rawValue
+        let status = SubscriptionStatus(rawValue: statusRaw) ?? .active
 
         return SubscriptionItem(
             id: document.documentID,
@@ -33,7 +35,8 @@ enum SubscriptionMapper {
             period: period,
             nextBillingDate: nextBillingDate,
             notes: notes,
-            logoURL: logoURL
+            logoURL: logoURL,
+            status: status
         )
     }
 }

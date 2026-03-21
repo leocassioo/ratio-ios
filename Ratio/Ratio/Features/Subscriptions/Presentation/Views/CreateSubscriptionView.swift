@@ -21,6 +21,7 @@ struct CreateSubscriptionView: View {
     @State private var currencyCode = "BRL"
     @State private var category: SubscriptionCategory = .streaming
     @State private var period: SubscriptionPeriod = .monthly
+    @State private var status: SubscriptionStatus = .active
     @State private var nextBillingDate = Date()
     @State private var notes = ""
     @State private var selectedLogoItem: PhotosPickerItem?
@@ -102,6 +103,12 @@ struct CreateSubscriptionView: View {
                     }
                 }
 
+                Picker("Status", selection: $status) {
+                    ForEach(SubscriptionStatus.allCases) { status in
+                        Text(status.label).tag(status)
+                    }
+                }
+
                 DatePicker("Próxima cobrança", selection: $nextBillingDate, displayedComponents: .date)
             }
 
@@ -146,7 +153,8 @@ struct CreateSubscriptionView: View {
                             period: period,
                             nextBillingDate: nextBillingDate,
                             notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
-                            logoURL: logoURL
+                            logoURL: logoURL,
+                            status: status
                         )
                         await MainActor.run {
                             onSave(subscription)

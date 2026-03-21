@@ -638,6 +638,10 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
         summary.subscriptionsMatched += subsSnapshot.size;
         for (const sub of subsSnapshot.docs) {
             const data = sub.data();
+            const status = (data.status ?? "active").toLowerCase();
+            if (status !== "active") {
+                continue;
+            }
             const nextBillingDate = data.nextBillingDate;
             if (!nextBillingDate) {
                 continue;
@@ -699,6 +703,13 @@ const runBillingReminders = async (includeDiagnostics, allowedUserIds) => {
     }
     for (const groupDoc of matchedGroups.values()) {
         const data = groupDoc.data();
+        const subscriptionStatus = data.subscriptionStatus?.toLowerCase();
+        const isLinkedSubscriptionPausedOrCanceled = Boolean(data.subscriptionId) &&
+            subscriptionStatus !== undefined &&
+            subscriptionStatus !== "active";
+        if (isLinkedSubscriptionPausedOrCanceled) {
+            continue;
+        }
         const groupName = data.name || "Grupo";
         const nextBillingDate = data.chargeNextBillingDate ||
             data.subscriptionNextBillingDate;

@@ -21,6 +21,7 @@ struct EditSubscriptionView: View {
     @State private var currencyCode: String
     @State private var category: SubscriptionCategory
     @State private var period: SubscriptionPeriod
+    @State private var status: SubscriptionStatus
     @State private var nextBillingDate: Date
     @State private var notes: String
     @State private var selectedLogoItem: PhotosPickerItem?
@@ -51,6 +52,7 @@ struct EditSubscriptionView: View {
         _currencyCode = State(initialValue: subscription.currencyCode)
         _category = State(initialValue: subscription.category)
         _period = State(initialValue: subscription.period)
+        _status = State(initialValue: subscription.status)
         _nextBillingDate = State(initialValue: subscription.nextBillingDate)
         _notes = State(initialValue: subscription.notes)
         _selectedLogoURL = State(initialValue: subscription.logoURL)
@@ -107,6 +109,12 @@ struct EditSubscriptionView: View {
                 Picker("Periodicidade", selection: $period) {
                     ForEach(SubscriptionPeriod.allCases.filter { $0 != .oneTime }) { period in
                         Text(period.label).tag(period)
+                    }
+                }
+
+                Picker("Status", selection: $status) {
+                    ForEach(SubscriptionStatus.allCases) { status in
+                        Text(status.label).tag(status)
                     }
                 }
 
@@ -167,7 +175,8 @@ struct EditSubscriptionView: View {
                             period: period,
                             nextBillingDate: nextBillingDate,
                             notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
-                            logoURL: logoURL
+                            logoURL: logoURL,
+                            status: status
                         )
                         await MainActor.run {
                             onSave(updated)

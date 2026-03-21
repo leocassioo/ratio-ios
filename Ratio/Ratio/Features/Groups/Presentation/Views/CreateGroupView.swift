@@ -899,6 +899,7 @@ struct CreateGroupView: View {
                     "category": newSubscription.category.rawValue,
                     "period": newSubscription.period.rawValue,
                     "nextBillingDate": Timestamp(date: newSubscription.nextBillingDate),
+                    "status": newSubscription.status.rawValue,
                     "notes": newSubscription.notes.isEmpty ? nil : newSubscription.notes,
                     "logoURL": newSubscription.logoURL as Any,
                     "ownerId": ownerId,

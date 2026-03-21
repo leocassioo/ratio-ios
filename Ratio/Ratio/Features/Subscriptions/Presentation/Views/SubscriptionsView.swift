@@ -183,6 +183,7 @@ struct SubscriptionsView: View {
                     category: newSubscription.category,
                     period: newSubscription.period,
                     nextBillingDate: newSubscription.nextBillingDate,
+                    status: newSubscription.status,
                     notes: newSubscription.notes.isEmpty ? nil : newSubscription.notes,
                     logoURL: newSubscription.logoURL,
                     ownerId: userId
@@ -211,6 +212,7 @@ struct SubscriptionsView: View {
                         category: updated.category,
                         period: updated.period,
                         nextBillingDate: updated.nextBillingDate,
+                        status: updated.status,
                         notes: updated.notes.isEmpty ? nil : updated.notes,
                         logoURL: updated.logoURL,
                         ownerId: userId

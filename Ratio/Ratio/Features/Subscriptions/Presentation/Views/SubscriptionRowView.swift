@@ -33,12 +33,22 @@ struct SubscriptionRowView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
+                if subscription.status != .active {
+                    Text(subscription.status.label)
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(statusChipBackground))
+                        .foregroundStyle(statusChipForeground)
+                }
+
                 HStack(spacing: 6) {
                     Text("Próxima cobrança: \(formattedDate(subscription.nextBillingDate))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 0)
-                    if let chip = SubscriptionRenewalChipView.model(for: subscription) {
+                    if subscription.status == .active,
+                       let chip = SubscriptionRenewalChipView.model(for: subscription) {
                         SubscriptionRenewalChipView(text: chip.text, color: chip.color)
                     }
                 }
@@ -84,6 +94,28 @@ struct SubscriptionRowView: View {
 
     private var borderOpacity: Double {
         colorScheme == .dark ? 0.4 : 0.25
+    }
+
+    private var statusChipBackground: Color {
+        switch subscription.status {
+        case .active:
+            return Color.green.opacity(colorScheme == .dark ? 0.22 : 0.14)
+        case .paused:
+            return Color.orange.opacity(colorScheme == .dark ? 0.22 : 0.14)
+        case .canceled:
+            return Color.red.opacity(colorScheme == .dark ? 0.22 : 0.14)
+        }
+    }
+
+    private var statusChipForeground: Color {
+        switch subscription.status {
+        case .active:
+            return .green
+        case .paused:
+            return .orange
+        case .canceled:
+            return .red
+        }
     }
 
     private func colorForCategory() -> Color {

@@ -65,7 +65,10 @@ final class SubscriptionsViewModel: ObservableObject {
                 switch result {
                 case .success(let items):
                     let sorted = items.sorted { lhs, rhs in
-                        lhs.nextBillingDate < rhs.nextBillingDate
+                        if lhs.status.isBillable != rhs.status.isBillable {
+                            return lhs.status.isBillable
+                        }
+                        return lhs.nextBillingDate < rhs.nextBillingDate
                     }
                     self?.subscriptions = sorted
                 case .failure(let error):
@@ -137,6 +140,7 @@ final class SubscriptionsViewModel: ObservableObject {
         category: SubscriptionCategory,
         period: SubscriptionPeriod,
         nextBillingDate: Date,
+        status: SubscriptionStatus,
         notes: String?,
         logoURL: String?,
         ownerId: String
@@ -148,6 +152,7 @@ final class SubscriptionsViewModel: ObservableObject {
             "category": category.rawValue,
             "period": period.rawValue,
             "nextBillingDate": Timestamp(date: nextBillingDate),
+            "status": status.rawValue,
             "notes": notes as Any,
             "logoURL": logoURL as Any,
             "ownerId": ownerId,
@@ -185,6 +190,7 @@ final class SubscriptionsViewModel: ObservableObject {
         category: SubscriptionCategory,
         period: SubscriptionPeriod,
         nextBillingDate: Date,
+        status: SubscriptionStatus,
         notes: String?,
         logoURL: String?,
         ownerId: String
@@ -202,6 +208,7 @@ final class SubscriptionsViewModel: ObservableObject {
             "category": category.rawValue,
             "period": period.rawValue,
             "nextBillingDate": Timestamp(date: nextBillingDate),
+            "status": status.rawValue,
             "notes": notes as Any,
             "logoURL": logoURL as Any,
             "updatedAt": FieldValue.serverTimestamp()
@@ -214,6 +221,7 @@ final class SubscriptionsViewModel: ObservableObject {
                 "subscriptionCategory": category.rawValue,
                 "subscriptionPeriod": period.rawValue,
                 "subscriptionNextBillingDate": Timestamp(date: nextBillingDate),
+                "subscriptionStatus": status.rawValue,
                 "subscriptionLogoURL": logoURL as Any,
                 "totalAmount": amount,
                 "currencyCode": currencyCode,
